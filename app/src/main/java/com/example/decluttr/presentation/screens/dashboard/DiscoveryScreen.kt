@@ -52,15 +52,7 @@ fun DiscoveryScreen(
 ) {
     var showAllApps by remember { mutableStateOf(false) }
     
-    if (isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return
-    }
-
     val context = LocalContext.current
-    
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     
     // Check permission on resume
@@ -76,6 +68,13 @@ fun DiscoveryScreen(
         onDispose {
             lifecycle.removeObserver(observer)
         }
+    }
+
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
     }
     
     // Only show unused if we have permission, otherwise fallback to empty to trigger prompt
