@@ -1,40 +1,48 @@
 package com.example.decluttr.presentation.screens.dashboard
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.ui.unit.dp
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import com.example.decluttr.domain.model.ArchivedApp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,21 +57,70 @@ fun DashboardScreen(
     val allInstalledApps by viewModel.allInstalledApps.collectAsState()
     val isLoadingDiscovery by viewModel.isLoadingDiscovery.collectAsState()
 
-    val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
+    var celebrationData by remember { mutableStateOf<DashboardViewModel.CelebrationData?>(null) }
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {
-        viewModel.snackbarEvent.collect { message ->
-            snackbarHostState.showSnackbar(message)
+        viewModel.celebrationEvent.collect { data ->
+            celebrationData = data
         }
     }
 
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Declutter", "My Archive")
+    val tabs = listOf("Discover", "My Archive")
     val tabIcons = listOf(Icons.Default.Search, Icons.Default.List)
 
+    if (celebrationData != null) {
+        Dialog(onDismissRequest = { celebrationData = null }) {
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Success",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(72.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Great job!",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    val mbSaved = celebrationData!!.savedBytes / (1024 * 1024)
+                    Text(
+                        text = "${celebrationData!!.count} apps archived\n$mbSaved MB freed\nBackground processes stopped",
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    Spacer(modifier = Modifier.height(32.dp))
+                    
+                    Button(
+                        onClick = {
+                            celebrationData = null
+                            selectedTabIndex = 1 // Switch to My Archive
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("See them in My Archive")
+                    }
+                }
+            }
+        }
+    }
+
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { 
@@ -74,22 +131,6 @@ fun DashboardScreen(
                     ) 
                 },
                 actions = {
-                    if (archivedApps.isNotEmpty()) {
-                        val estimatedMBs = archivedApps.size * 45
-                        androidx.compose.material3.Surface(
-                            color = MaterialTheme.colorScheme.tertiaryContainer,
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(100),
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) {
-                            Text(
-                                text = "~${estimatedMBs}MB saved",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
@@ -110,18 +151,6 @@ fun DashboardScreen(
                     )
                 }
             }
-        },
-        floatingActionButton = {
-            val hasUsagePermission = viewModel.hasUsagePermission.collectAsState().value
-            if (selectedTabIndex == 1 && hasUsagePermission && unusedApps.isNotEmpty()) {
-                androidx.compose.material3.ExtendedFloatingActionButton(
-                    onClick = { selectedTabIndex = 0 },
-                    icon = { Icon(Icons.Default.Search, contentDescription = "Declutter") },
-                    text = { Text("Declutter ${unusedApps.size} Apps", fontWeight = FontWeight.Bold) },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
         }
     ) { paddingValues ->
         Column(
@@ -131,7 +160,7 @@ fun DashboardScreen(
         ) {
             when (selectedTabIndex) {
                 0 -> {
-                    // Declutter Dashboard
+                    // Discovery Dashboard
                     DiscoveryScreen(
                         unusedApps = unusedApps,
                         largeApps = largeApps,

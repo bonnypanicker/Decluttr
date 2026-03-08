@@ -55,8 +55,13 @@ class DashboardViewModel @Inject constructor(
            .sortedByDescending { it.apkSizeBytes }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _snackbarEvent = kotlinx.coroutines.flow.MutableSharedFlow<String>()
-    val snackbarEvent = _snackbarEvent.asSharedFlow()
+    data class CelebrationData(
+        val count: Int,
+        val savedBytes: Long
+    )
+
+    private val _celebrationEvent = kotlinx.coroutines.flow.MutableSharedFlow<CelebrationData>()
+    val celebrationEvent = _celebrationEvent.asSharedFlow()
 
     private var discoveryJob: kotlinx.coroutines.Job? = null
 
@@ -90,21 +95,31 @@ class DashboardViewModel @Inject constructor(
 
     fun archiveAndUninstallSelected(packageIds: Set<String>) {
         if (packageIds.isEmpty()) return
+        
+        // Calculate size before removing
+        val appsToUninstall = allInstalledApps.value.filter { it.packageId in packageIds }
+        val savedBytes = appsToUninstall.sumOf { it.apkSizeBytes }
+        
         viewModelScope.launch {
             archiveAndUninstallUseCase(packageIds.toList())
             loadDiscoveryData() // Refresh list after uninstall queue is fired
-            _snackbarEvent.emit("${packageIds.size} apps removed. Archived ✔ Tap to reinstall anytime.")
+            _celebrationEvent.emit(CelebrationData(packageIds.size, savedBytes))
         }
     }
 
     fun uninstallSelectedOnly(packageIds: Set<String>) {
         if (packageIds.isEmpty()) return
+        
+        // Calculate size before removing
+        val appsToUninstall = allInstalledApps.value.filter { it.packageId in packageIds }
+        val savedBytes = appsToUninstall.sumOf { it.apkSizeBytes }
+        
         viewModelScope.launch {
             packageIds.forEach { pkg ->
                 uninstallAppUseCase(pkg)
             }
             loadDiscoveryData()
-            _snackbarEvent.emit("${packageIds.size} apps uninstalled permanently.")
+            _celebrationEvent.emit(CelebrationData(packageIds.size, savedBytes))
         }
     }
 }
