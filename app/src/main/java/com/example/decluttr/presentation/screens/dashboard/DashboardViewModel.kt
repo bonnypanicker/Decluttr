@@ -59,12 +59,10 @@ class DashboardViewModel @Inject constructor(
         discoveryJob = viewModelScope.launch {
             _isLoadingDiscovery.value = true
             
-            // In a real app we might load these in parallel, but sequential is fine for now
-            val unused = getUnusedAppsUseCase()
-            _unusedApps.value = unused
-            
-            val all = getInstalledAppsUseCase()
-            _allInstalledApps.value = all
+            // Single pass: fetch all installed apps + unused in one go
+            val result = getUnusedAppsUseCase.fetchAll()
+            _unusedApps.value = result.unusedApps
+            _allInstalledApps.value = result.allApps
             
             _isLoadingDiscovery.value = false
         }

@@ -24,7 +24,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,9 +32,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 
@@ -142,7 +143,7 @@ fun DiscoveryScreen(
                     },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Uninstall Only", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    Text("Uninstall Only", textAlign = TextAlign.Center)
                 }
                 Button(
                     onClick = {
@@ -158,7 +159,7 @@ fun DiscoveryScreen(
                     },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Archive &\nUninstall", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    Text("Archive &\nUninstall", textAlign = TextAlign.Center)
                 }
             }
         }
@@ -171,7 +172,7 @@ fun DiscoveryScreen(
                     Text(
                         "We need usage access to determine which apps are rarely used.", 
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.size(16.dp))
                     Button(onClick = {
@@ -230,6 +231,13 @@ fun AppListCard(
     isSelected: Boolean,
     onToggle: () -> Unit
 ) {
+    // Cache the decoded bitmap — only decode once per unique iconBytes reference
+    val cachedBitmap: ImageBitmap? = remember(app.iconBytes) {
+        app.iconBytes?.let { bytes ->
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+        }
+    }
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -251,17 +259,12 @@ fun AppListCard(
             
             Spacer(modifier = Modifier.width(8.dp))
             
-            if (app.iconBytes != null) {
-                val bitmap = BitmapFactory.decodeByteArray(app.iconBytes, 0, app.iconBytes.size)
-                if (bitmap != null) {
-                    Image(
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = "App Icon",
-                        modifier = Modifier.size(48.dp)
-                    )
-                } else {
-                    Box(modifier = Modifier.size(48.dp))
-                }
+            if (cachedBitmap != null) {
+                Image(
+                    bitmap = cachedBitmap,
+                    contentDescription = "App Icon",
+                    modifier = Modifier.size(48.dp)
+                )
             } else {
                 Box(modifier = Modifier.size(48.dp))
             }

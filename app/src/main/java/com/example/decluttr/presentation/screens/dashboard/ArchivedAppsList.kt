@@ -209,6 +209,13 @@ fun AppDrawerItem(
     val context = LocalContext.current
     var showMenu by remember { mutableStateOf(false) }
 
+    // Cache the decoded bitmap — only decode once per unique iconBytes reference
+    val cachedBitmap: androidx.compose.ui.graphics.ImageBitmap? = remember(app.iconBytes) {
+        app.iconBytes?.let { bytes ->
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -221,17 +228,12 @@ fun AppDrawerItem(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // App Icon
-        if (app.iconBytes != null) {
-            val bitmap = BitmapFactory.decodeByteArray(app.iconBytes, 0, app.iconBytes.size)
-            if (bitmap != null) {
-                Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = "App Icon",
-                    modifier = Modifier.size(56.dp)
-                )
-            } else {
-                PlaceholderIcon()
-            }
+        if (cachedBitmap != null) {
+            Image(
+                bitmap = cachedBitmap,
+                contentDescription = "App Icon",
+                modifier = Modifier.size(56.dp)
+            )
         } else {
             PlaceholderIcon()
         }

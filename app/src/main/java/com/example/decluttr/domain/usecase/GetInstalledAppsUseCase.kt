@@ -5,6 +5,9 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -33,49 +36,52 @@ class GetInstalledAppsUseCase @Inject constructor(
             val isWebApk = appInfo.packageName.startsWith("org.chromium.webapk") || 
                            appInfo.packageName.startsWith("com.android.chrome.webapk") || 
                            appInfo.packageName.startsWith("com.google.android.apps.chrome.webapk")
-            !isSystemApp && !isWebApk
+            !isSystemApp && !isWebApk && appInfo.packageName != context.packageName
         }
 
-        userApps.mapNotNull { appInfo ->
-            val packageId = appInfo.packageName
-            // Exclude our own app
-            if (packageId == context.packageName) return@mapNotNull null
-            
-            val details = getAppDetailsUseCase(packageId)
-            val apkSize = try {
-                val sourceDir = appInfo.sourceDir
-                java.io.File(sourceDir).length()
-            } catch (e: Exception) {
-                0L
-            }
-            
-            val isArchived = if (android.os.Build.VERSION.SDK_INT >= 35) {
-                appInfo.isArchived
-            } else {
-                false
-            }
+        // Process apps in parallel batches for much faster loading
+        coroutineScope {
+            userApps.map { appInfo ->
+                async(Dispatchers.IO) {
+                    val packageId = appInfo.packageName
+                    
+                    val details = getAppDetailsUseCase(packageId)
+                    val apkSize = try {
+                        val sourceDir = appInfo.sourceDir
+                        java.io.File(sourceDir).length()
+                    } catch (e: Exception) {
+                        0L
+                    }
+                    
+                    val isArchived = if (android.os.Build.VERSION.SDK_INT >= 35) {
+                        appInfo.isArchived
+                    } else {
+                        false
+                    }
 
-            val installerName = try {
-                if (android.os.Build.VERSION.SDK_INT >= 30) {
-                    packageManager.getInstallSourceInfo(packageId).installingPackageName
-                } else {
-                    @Suppress("DEPRECATION")
-                    packageManager.getInstallerPackageName(packageId)
+                    val installerName = try {
+                        if (android.os.Build.VERSION.SDK_INT >= 30) {
+                            packageManager.getInstallSourceInfo(packageId).installingPackageName
+                        } else {
+                            @Suppress("DEPRECATION")
+                            packageManager.getInstallerPackageName(packageId)
+                        }
+                    } catch (e: Exception) {
+                        null
+                    }
+                    
+                    val isPlayStore = installerName == "com.android.vending"
+
+                    InstalledAppInfo(
+                        packageId = packageId,
+                        name = details?.name ?: packageManager.getApplicationLabel(appInfo).toString(),
+                        iconBytes = details?.iconBytes,
+                        apkSizeBytes = apkSize,
+                        isOsArchived = isArchived,
+                        isPlayStoreInstalled = isPlayStore
+                    )
                 }
-            } catch (e: Exception) {
-                null
-            }
-            
-            val isPlayStore = installerName == "com.android.vending"
-
-            InstalledAppInfo(
-                packageId = packageId,
-                name = details?.name ?: packageManager.getApplicationLabel(appInfo).toString(),
-                iconBytes = details?.iconBytes,
-                apkSizeBytes = apkSize,
-                isOsArchived = isArchived,
-                isPlayStoreInstalled = isPlayStore
-            )
+            }.awaitAll()
         }.sortedBy { it.name.lowercase() }
     }
 }

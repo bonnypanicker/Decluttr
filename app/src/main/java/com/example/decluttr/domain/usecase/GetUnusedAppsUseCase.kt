@@ -15,9 +15,24 @@ class GetUnusedAppsUseCase @Inject constructor(
     // 30 days in milliseconds
     private val thresholdMs = 30L * 24 * 60 * 60 * 1000
 
-    suspend operator fun invoke(): List<GetInstalledAppsUseCase.InstalledAppInfo> = withContext(Dispatchers.IO) {
+    data class UnusedAppsResult(
+        val allApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
+        val unusedApps: List<GetInstalledAppsUseCase.InstalledAppInfo>
+    )
+
+    /**
+     * Returns both the full installed apps list AND the unused subset.
+     * This avoids fetching all installed apps twice.
+     */
+    suspend fun fetchAll(): UnusedAppsResult = withContext(Dispatchers.IO) {
         val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
-            ?: return@withContext emptyList()
+
+        // Get all installed user apps (single fetch!)
+        val userApps = getInstalledAppsUseCase()
+
+        if (usageStatsManager == null) {
+            return@withContext UnusedAppsResult(allApps = userApps, unusedApps = emptyList())
+        }
 
         val calendar = Calendar.getInstance()
         val endTime = calendar.timeInMillis
@@ -32,7 +47,7 @@ class GetUnusedAppsUseCase @Inject constructor(
 
         // If usageStatsList is empty, it probably means the app doesn't have the PACKAGE_USAGE_STATS permission
         if (usageStatsList == null || usageStatsList.isEmpty()) {
-            return@withContext emptyList()
+            return@withContext UnusedAppsResult(allApps = userApps, unusedApps = emptyList())
         }
 
         // Map of packageName to last time used
@@ -47,16 +62,17 @@ class GetUnusedAppsUseCase @Inject constructor(
             }
         }
 
-        // Get all installed user apps
-        val userApps = getInstalledAppsUseCase()
-
         // Filter out apps that have been used within the threshold
-        userApps.filter { app ->
+        val unused = userApps.filter { app ->
             val lastUsed = lastUsedMap[app.packageId] ?: 0L
-            // If lastUsed is 0, it means the app wasn't used at all in the queried interval
-            // Or it was used before the interval. So it's unused.
-            // If it was used within the interval (lastUsed > startTime), we exclude it
             lastUsed <= startTime
         }
+        
+        UnusedAppsResult(allApps = userApps, unusedApps = unused)
+    }
+
+    // Kept for backward compatibility if needed elsewhere
+    suspend operator fun invoke(): List<GetInstalledAppsUseCase.InstalledAppInfo> {
+        return fetchAll().unusedApps
     }
 }
