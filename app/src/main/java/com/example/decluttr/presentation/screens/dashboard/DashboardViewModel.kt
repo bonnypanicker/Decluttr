@@ -21,6 +21,7 @@ class DashboardViewModel @Inject constructor(
     private val getUnusedAppsUseCase: GetUnusedAppsUseCase,
     private val getInstalledAppsUseCase: GetInstalledAppsUseCase,
     private val archiveAndUninstallUseCase: com.example.decluttr.domain.usecase.ArchiveAndUninstallUseCase,
+    private val checkUsagePermissionUseCase: com.example.decluttr.domain.usecase.CheckUsagePermissionUseCase,
     private val uninstallAppUseCase: com.example.decluttr.domain.usecase.UninstallAppUseCase
 ) : ViewModel() {
 
@@ -40,8 +41,16 @@ class DashboardViewModel @Inject constructor(
     private val _isLoadingDiscovery = MutableStateFlow(false)
     val isLoadingDiscovery = _isLoadingDiscovery.asStateFlow()
 
+    private val _hasUsagePermission = MutableStateFlow(true)
+    val hasUsagePermission = _hasUsagePermission.asStateFlow()
+
     init {
+        checkUsagePermission()
         loadDiscoveryData()
+    }
+
+    fun checkUsagePermission() {
+        _hasUsagePermission.value = checkUsagePermissionUseCase()
     }
 
     fun loadDiscoveryData() {
@@ -76,10 +85,9 @@ class DashboardViewModel @Inject constructor(
     fun uninstallSelectedOnly(packageIds: Set<String>) {
         if (packageIds.isEmpty()) return
         viewModelScope.launch {
-            packageIds.forEach { packageId ->
-                uninstallAppUseCase(packageId)
+            packageIds.forEach { pkg ->
+                uninstallAppUseCase(pkg)
             }
-            loadDiscoveryData()
         }
     }
 }

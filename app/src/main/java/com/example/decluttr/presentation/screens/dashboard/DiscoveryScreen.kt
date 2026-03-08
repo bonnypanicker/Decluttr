@@ -36,10 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import android.app.AppOpsManager
-import android.content.Intent
-import android.provider.Settings
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 
 @Composable
@@ -49,7 +46,9 @@ fun DiscoveryScreen(
     isLoading: Boolean,
     onRefresh: () -> Unit,
     onBatchUninstall: (Set<String>) -> Unit,
-    onBatchUninstallOnly: (Set<String>) -> Unit
+    onBatchUninstallOnly: (Set<String>) -> Unit,
+    hasUsagePermission: Boolean,
+    onRequestPermission: () -> Unit
 ) {
     var showAllApps by remember { mutableStateOf(false) }
     
@@ -60,18 +59,27 @@ fun DiscoveryScreen(
         return
     }
 
-    val displayList = if (showAllApps) allApps else unusedApps
-    var selectedApps by remember { mutableStateOf<Set<String>>(emptySet()) }
-    
     val context = LocalContext.current
     
-    val appOps = context.getSystemService(android.content.Context.APP_OPS_SERVICE) as AppOpsManager
-    val mode = appOps.unsafeCheckOpNoThrow(
-        AppOpsManager.OPSTR_GET_USAGE_STATS,
-        android.os.Process.myUid(),
-        context.packageName
-    )
-    val hasUsageStatsPermission = mode == AppOpsManager.MODE_ALLOWED
+    // Check permission on resume
+    androidx.compose.runtime.DisposableEffect(androidx.lifecycle.compose.LocalLifecycleOwner.current) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                onRequestPermission()
+                onRefresh()
+            }
+        }
+        val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+        lifecycle.addObserver(observer)
+        onDispose {
+            lifecycle.removeObserver(observer)
+        }
+    }
+    
+    // Only show unused if we have permission, otherwise fallback to empty to trigger prompt
+    val safeUnusedApps = if (hasUsagePermission) unusedApps else emptyList()
+    val displayList = if (showAllApps) allApps else safeUnusedApps
+    var selectedApps by remember { mutableStateOf<Set<String>>(emptySet()) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         
@@ -96,6 +104,16 @@ fun DiscoveryScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                androidx.compose.material3.OutlinedButton(
+                    onClick = {
+                        val ids = selectedApps.toSet()
+                        selectedApps = emptySet()
+                        onBatchUninstallOnly(ids)
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Uninstall Only", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                }
                 Button(
                     onClick = {
                         val ids = selectedApps.toSet()
@@ -104,36 +122,30 @@ fun DiscoveryScreen(
                     },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Archive & Uninstall", textAlign = TextAlign.Center)
-                }
-                
-                Button(
-                    onClick = {
-                        val ids = selectedApps.toSet()
-                        selectedApps = emptySet()
-                        onBatchUninstallOnly(ids)
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text("Uninstall Only", textAlign = TextAlign.Center)
+                    Text("Archive &\nUninstall", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 }
             }
         }
 
-        if (!showAllApps && !hasUsageStatsPermission) {
+        if (!showAllApps && !hasUsagePermission) {
             Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
-                    Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.size(16.dp))
                     Text(
-                        "To discover rarely used apps, Decluttr needs Usage Access.",
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface
+                        "We need usage access to determine which apps are rarely used.", 
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
-                    Spacer(modifier = Modifier.size(24.dp))
+                    Spacer(modifier = Modifier.size(16.dp))
                     Button(onClick = {
-                        context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                        val intent = android.content.Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        try {
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            // ignored
+                        }
                     }) {
                         Text("Grant Permission")
                     }
