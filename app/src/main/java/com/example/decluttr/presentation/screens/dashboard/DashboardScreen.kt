@@ -95,6 +95,18 @@ fun DashboardScreen(
                     )
                 }
             }
+        },
+        floatingActionButton = {
+            val hasUsagePermission = viewModel.hasUsagePermission.collectAsState().value
+            if (selectedTabIndex == 0 && hasUsagePermission && unusedApps.isNotEmpty()) {
+                androidx.compose.material3.ExtendedFloatingActionButton(
+                    onClick = { selectedTabIndex = 1 },
+                    icon = { Icon(Icons.Default.Search, contentDescription = "Discover") },
+                    text = { Text("Declutter ${unusedApps.size} Apps", fontWeight = FontWeight.Bold) },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
         }
     ) { paddingValues ->
         Column(
