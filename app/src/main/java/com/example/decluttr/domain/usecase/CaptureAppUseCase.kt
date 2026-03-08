@@ -21,7 +21,8 @@ class CaptureAppUseCase @Inject constructor(
         val archivedApp = ArchivedApp(
             packageId = packageId,
             name = appDetails?.name ?: packageId, // Fallback to package ID if not installed
-            iconBytes = appDetails?.iconBytes
+            iconBytes = appDetails?.iconBytes,
+            category = appDetails?.category
         )
         
         repository.insertApp(archivedApp)

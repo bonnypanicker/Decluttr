@@ -15,7 +15,8 @@ class GetAppDetailsUseCase @Inject constructor(
 ) {
     data class AppDetailsResult(
         val name: String,
-        val iconBytes: ByteArray?
+        val iconBytes: ByteArray?,
+        val category: String?
     )
 
     operator fun invoke(packageId: String): AppDetailsResult? {
@@ -26,10 +27,26 @@ class GetAppDetailsUseCase @Inject constructor(
             val tempIcon = packageManager.getApplicationIcon(appInfo)
             
             val iconBytes = drawableToByteArray(tempIcon)
+            val category = getCategoryName(appInfo.category)
             
-            AppDetailsResult(name, iconBytes)
+            AppDetailsResult(name, iconBytes, category)
         } catch (e: PackageManager.NameNotFoundException) {
             null
+        }
+    }
+
+    private fun getCategoryName(categoryNumber: Int): String? {
+        return when (categoryNumber) {
+            android.content.pm.ApplicationInfo.CATEGORY_GAME -> "Games"
+            android.content.pm.ApplicationInfo.CATEGORY_AUDIO -> "Audio"
+            android.content.pm.ApplicationInfo.CATEGORY_VIDEO -> "Video"
+            android.content.pm.ApplicationInfo.CATEGORY_IMAGE -> "Photography"
+            android.content.pm.ApplicationInfo.CATEGORY_SOCIAL -> "Social"
+            android.content.pm.ApplicationInfo.CATEGORY_NEWS -> "News & Magazines"
+            android.content.pm.ApplicationInfo.CATEGORY_MAPS -> "Maps & Navigation"
+            android.content.pm.ApplicationInfo.CATEGORY_PRODUCTIVITY -> "Productivity"
+            android.content.pm.ApplicationInfo.CATEGORY_ACCESSIBILITY -> "Accessibility"
+            else -> null
         }
     }
 

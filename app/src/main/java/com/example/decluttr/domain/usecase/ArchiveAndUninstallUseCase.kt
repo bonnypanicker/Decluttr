@@ -17,7 +17,8 @@ class ArchiveAndUninstallUseCase @Inject constructor(
             val app = ArchivedApp(
                 packageId = packageId,
                 name = details?.name ?: packageId,
-                iconBytes = details?.iconBytes
+                iconBytes = details?.iconBytes,
+                category = details?.category
             )
             
             // Save to DB
