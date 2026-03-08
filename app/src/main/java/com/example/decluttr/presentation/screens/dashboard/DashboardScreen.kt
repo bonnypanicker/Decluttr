@@ -18,6 +18,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -30,6 +32,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import com.example.decluttr.domain.model.ArchivedApp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,14 +45,25 @@ fun DashboardScreen(
 ) {
     val archivedApps by viewModel.archivedApps.collectAsState()
     val unusedApps by viewModel.unusedApps.collectAsState()
+    val largeApps by viewModel.largeApps.collectAsState()
     val allInstalledApps by viewModel.allInstalledApps.collectAsState()
     val isLoadingDiscovery by viewModel.isLoadingDiscovery.collectAsState()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        viewModel.snackbarEvent.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
+    }
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("My Archive", "Discover")
     val tabIcons = listOf(Icons.Default.List, Icons.Default.Search)
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { 
@@ -125,9 +140,10 @@ fun DashboardScreen(
                     )
                 }
                 1 -> {
-                    // Discovery List
+                    // Discovery Dashboard
                     DiscoveryScreen(
                         unusedApps = unusedApps,
+                        largeApps = largeApps,
                         allApps = allInstalledApps,
                         isLoading = isLoadingDiscovery,
                         onRefresh = { viewModel.loadDiscoveryData() },

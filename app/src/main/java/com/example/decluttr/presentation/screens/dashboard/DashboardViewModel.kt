@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -43,6 +44,19 @@ class DashboardViewModel @Inject constructor(
 
     private val _hasUsagePermission = MutableStateFlow(checkUsagePermissionUseCase())
     val hasUsagePermission = _hasUsagePermission.asStateFlow()
+
+    // 100MB in bytes
+    private val LARGE_APP_THRESHOLD = 100L * 1024 * 1024
+
+    val largeApps = kotlinx.coroutines.flow.combine(allInstalledApps, unusedApps) { all, unused ->
+        // Exclude already-rarely-used apps so we don't double-count in cards
+        val unusedIds = unused.map { it.packageId }.toSet()
+        all.filter { it.apkSizeBytes > LARGE_APP_THRESHOLD && it.packageId !in unusedIds }
+           .sortedByDescending { it.apkSizeBytes }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _snackbarEvent = kotlinx.coroutines.flow.MutableSharedFlow<String>()
+    val snackbarEvent = _snackbarEvent.asSharedFlow()
 
     private var discoveryJob: kotlinx.coroutines.Job? = null
 
@@ -79,6 +93,7 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             archiveAndUninstallUseCase(packageIds.toList())
             loadDiscoveryData() // Refresh list after uninstall queue is fired
+            _snackbarEvent.emit("${packageIds.size} apps removed. Archived ✔ Tap to reinstall anytime.")
         }
     }
 
@@ -88,6 +103,8 @@ class DashboardViewModel @Inject constructor(
             packageIds.forEach { pkg ->
                 uninstallAppUseCase(pkg)
             }
+            loadDiscoveryData()
+            _snackbarEvent.emit("${packageIds.size} apps uninstalled permanently.")
         }
     }
 }
