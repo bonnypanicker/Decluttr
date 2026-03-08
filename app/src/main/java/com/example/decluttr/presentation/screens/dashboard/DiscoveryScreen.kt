@@ -61,15 +61,17 @@ fun DiscoveryScreen(
 
     val context = LocalContext.current
     
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    
     // Check permission on resume
-    androidx.compose.runtime.DisposableEffect(androidx.lifecycle.compose.LocalLifecycleOwner.current) {
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
                 onRequestPermission()
                 onRefresh()
             }
         }
-        val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
+        val lifecycle = lifecycleOwner.lifecycle
         lifecycle.addObserver(observer)
         onDispose {
             lifecycle.removeObserver(observer)
