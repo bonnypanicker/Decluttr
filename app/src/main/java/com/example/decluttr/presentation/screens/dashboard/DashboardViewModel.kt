@@ -20,7 +20,8 @@ class DashboardViewModel @Inject constructor(
     private val appRepository: AppRepository,
     private val getUnusedAppsUseCase: GetUnusedAppsUseCase,
     private val getInstalledAppsUseCase: GetInstalledAppsUseCase,
-    private val archiveAndUninstallUseCase: com.example.decluttr.domain.usecase.ArchiveAndUninstallUseCase
+    private val archiveAndUninstallUseCase: com.example.decluttr.domain.usecase.ArchiveAndUninstallUseCase,
+    private val uninstallAppUseCase: com.example.decluttr.domain.usecase.UninstallAppUseCase
 ) : ViewModel() {
 
     val archivedApps: StateFlow<List<ArchivedApp>> = appRepository.getAllArchivedApps()
@@ -69,6 +70,16 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             archiveAndUninstallUseCase(packageIds.toList())
             loadDiscoveryData() // Refresh list after uninstall queue is fired
+        }
+    }
+
+    fun uninstallSelectedOnly(packageIds: Set<String>) {
+        if (packageIds.isEmpty()) return
+        viewModelScope.launch {
+            packageIds.forEach { packageId ->
+                uninstallAppUseCase(packageId)
+            }
+            loadDiscoveryData()
         }
     }
 }

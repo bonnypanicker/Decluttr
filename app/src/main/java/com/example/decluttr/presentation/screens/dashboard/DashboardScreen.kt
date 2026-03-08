@@ -8,9 +8,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -24,6 +24,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import com.example.decluttr.domain.model.ArchivedApp
@@ -41,7 +47,6 @@ fun DashboardScreen(
     val isLoadingDiscovery by viewModel.isLoadingDiscovery.collectAsState()
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val tabs = listOf("My Archive", "Discover")
 
     Scaffold(
         topBar = {
@@ -62,6 +67,24 @@ fun DashboardScreen(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
+        },
+        bottomBar = {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Search, contentDescription = "Discover") },
+                    label = { Text("Discover") },
+                    selected = selectedTabIndex == 0,
+                    onClick = { selectedTabIndex = 0 }
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.List, contentDescription = "My Archive") },
+                    label = { Text("My Archive") },
+                    selected = selectedTabIndex == 1,
+                    onClick = { selectedTabIndex = 1 }
+                )
+            }
         }
     ) { paddingValues ->
         Column(
@@ -69,18 +92,23 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            TabRow(selectedTabIndex = selectedTabIndex) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTabIndex == index,
-                        onClick = { selectedTabIndex = index },
-                        text = { Text(title) }
-                    )
-                }
-            }
-
             when (selectedTabIndex) {
                 0 -> {
+                    // Discovery List
+                    DiscoveryScreen(
+                        unusedApps = unusedApps,
+                        allApps = allInstalledApps,
+                        isLoading = isLoadingDiscovery,
+                        onRefresh = { viewModel.loadDiscoveryData() },
+                        onBatchUninstall = { packageIds ->
+                            viewModel.archiveAndUninstallSelected(packageIds)
+                        },
+                        onBatchUninstallOnly = { packageIds ->
+                            viewModel.uninstallSelectedOnly(packageIds)
+                        }
+                    )
+                }
+                1 -> {
                     // Archive List
                     Column(modifier = Modifier.fillMaxSize()) {
                         StorageSavedEstimator(apps = archivedApps)
@@ -90,18 +118,6 @@ fun DashboardScreen(
                             onDeleteClick = { viewModel.deleteArchivedApp(it) }
                         )
                     }
-                }
-                1 -> {
-                    // Discovery List
-                    DiscoveryScreen(
-                        unusedApps = unusedApps,
-                        allApps = allInstalledApps,
-                        isLoading = isLoadingDiscovery,
-                        onRefresh = { viewModel.loadDiscoveryData() },
-                        onBatchUninstall = { packageIds ->
-                            viewModel.archiveAndUninstallSelected(packageIds)
-                        }
-                    )
                 }
             }
         }
@@ -120,17 +136,23 @@ fun StorageSavedEstimator(apps: List<ArchivedApp>) {
     androidx.compose.material3.Surface(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
         color = MaterialTheme.colorScheme.tertiaryContainer,
-        shape = MaterialTheme.shapes.medium
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer)
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "Estimated Storage Saved", 
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
+            Spacer(modifier = Modifier.weight(1f))
             Text(
                 text = "~$estimatedMBs MB", 
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )

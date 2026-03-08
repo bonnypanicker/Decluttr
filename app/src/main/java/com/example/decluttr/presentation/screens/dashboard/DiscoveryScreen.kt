@@ -36,11 +36,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.runtime.LaunchedEffect
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import android.app.AppOpsManager
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.ui.text.style.TextAlign
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 
 @Composable
@@ -49,7 +48,8 @@ fun DiscoveryScreen(
     allApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
     isLoading: Boolean,
     onRefresh: () -> Unit,
-    onBatchUninstall: (Set<String>) -> Unit
+    onBatchUninstall: (Set<String>) -> Unit,
+    onBatchUninstallOnly: (Set<String>) -> Unit
 ) {
     var showAllApps by remember { mutableStateOf(false) }
     
@@ -65,6 +65,14 @@ fun DiscoveryScreen(
     
     val context = LocalContext.current
     
+    val appOps = context.getSystemService(android.content.Context.APP_OPS_SERVICE) as AppOpsManager
+    val mode = appOps.unsafeCheckOpNoThrow(
+        AppOpsManager.OPSTR_GET_USAGE_STATS,
+        android.os.Process.myUid(),
+        context.packageName
+    )
+    val hasUsageStatsPermission = mode == AppOpsManager.MODE_ALLOWED
+
     Column(modifier = Modifier.fillMaxSize()) {
         
         Row(
@@ -84,22 +92,54 @@ fun DiscoveryScreen(
         }
         
         if (selectedApps.isNotEmpty()) {
-            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Button(
                     onClick = {
                         val ids = selectedApps.toSet()
                         selectedApps = emptySet()
-                        // Call the provided action instead of empty logic
                         onBatchUninstall(ids)
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Text("Archive & Uninstall Selected (${selectedApps.size})")
+                    Text("Archive & Uninstall", textAlign = TextAlign.Center)
+                }
+                
+                Button(
+                    onClick = {
+                        val ids = selectedApps.toSet()
+                        selectedApps = emptySet()
+                        onBatchUninstallOnly(ids)
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Uninstall Only", textAlign = TextAlign.Center)
                 }
             }
         }
 
-        if (displayList.isEmpty()) {
+        if (!showAllApps && !hasUsageStatsPermission) {
+            Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
+                    Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.size(16.dp))
+                    Text(
+                        "To discover rarely used apps, Decluttr needs Usage Access.",
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.size(24.dp))
+                    Button(onClick = {
+                        context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                    }) {
+                        Text("Grant Permission")
+                    }
+                }
+            }
+        } else if (displayList.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -163,26 +203,17 @@ fun AppListCard(
             
             Spacer(modifier = Modifier.width(8.dp))
             
-            var imageBitmap by remember(app.iconBytes) { mutableStateOf<ImageBitmap?>(null) }
-            
-            LaunchedEffect(app.iconBytes) {
-                if (app.iconBytes != null) {
-                    withContext(Dispatchers.IO) {
-                        val bmp = BitmapFactory.decodeByteArray(app.iconBytes, 0, app.iconBytes.size)
-                        val composeBitmap = bmp?.asImageBitmap()
-                        withContext(Dispatchers.Main) {
-                            imageBitmap = composeBitmap
-                        }
-                    }
+            if (app.iconBytes != null) {
+                val bitmap = BitmapFactory.decodeByteArray(app.iconBytes, 0, app.iconBytes.size)
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "App Icon",
+                        modifier = Modifier.size(48.dp)
+                    )
+                } else {
+                    Box(modifier = Modifier.size(48.dp))
                 }
-            }
-
-            if (imageBitmap != null) {
-                Image(
-                    bitmap = imageBitmap!!,
-                    contentDescription = "App Icon",
-                    modifier = Modifier.size(48.dp)
-                )
             } else {
                 Box(modifier = Modifier.size(48.dp))
             }
