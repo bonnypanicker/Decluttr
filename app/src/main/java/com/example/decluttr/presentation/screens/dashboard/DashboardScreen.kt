@@ -59,8 +59,8 @@ fun DashboardScreen(
     }
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val tabs = listOf("My Archive", "Discover")
-    val tabIcons = listOf(Icons.Default.List, Icons.Default.Search)
+    val tabs = listOf("Declutter", "My Archive")
+    val tabIcons = listOf(Icons.Default.Search, Icons.Default.List)
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -113,10 +113,10 @@ fun DashboardScreen(
         },
         floatingActionButton = {
             val hasUsagePermission = viewModel.hasUsagePermission.collectAsState().value
-            if (selectedTabIndex == 0 && hasUsagePermission && unusedApps.isNotEmpty()) {
+            if (selectedTabIndex == 1 && hasUsagePermission && unusedApps.isNotEmpty()) {
                 androidx.compose.material3.ExtendedFloatingActionButton(
-                    onClick = { selectedTabIndex = 1 },
-                    icon = { Icon(Icons.Default.Search, contentDescription = "Discover") },
+                    onClick = { selectedTabIndex = 0 },
+                    icon = { Icon(Icons.Default.Search, contentDescription = "Declutter") },
                     text = { Text("Declutter ${unusedApps.size} Apps", fontWeight = FontWeight.Bold) },
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -131,16 +131,7 @@ fun DashboardScreen(
         ) {
             when (selectedTabIndex) {
                 0 -> {
-                    // Archive List
-                    ArchivedAppsList(
-                        apps = archivedApps,
-                        onAppClick = onNavigateToAppDetails,
-                        onDeleteClick = { viewModel.deleteArchivedApp(it) },
-                        onNavigateToDiscover = { selectedTabIndex = 1 }
-                    )
-                }
-                1 -> {
-                    // Discovery Dashboard
+                    // Declutter Dashboard
                     DiscoveryScreen(
                         unusedApps = unusedApps,
                         largeApps = largeApps,
@@ -155,6 +146,15 @@ fun DashboardScreen(
                         },
                         hasUsagePermission = viewModel.hasUsagePermission.collectAsState().value,
                         onRequestPermission = { viewModel.checkUsagePermission() }
+                    )
+                }
+                1 -> {
+                    // Archive List
+                    ArchivedAppsList(
+                        apps = archivedApps,
+                        onAppClick = onNavigateToAppDetails,
+                        onDeleteClick = { viewModel.deleteArchivedApp(it) },
+                        onNavigateToDiscover = { selectedTabIndex = 0 }
                     )
                 }
             }
