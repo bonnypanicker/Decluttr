@@ -29,7 +29,11 @@ class GetInstalledAppsUseCase @Inject constructor(
         
         // Filter out system apps, keep strictly user installed apps
         val userApps = packages.filter { appInfo ->
-            (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) == 0
+            val isSystemApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+            val isWebApk = appInfo.packageName.startsWith("org.chromium.webapk") || 
+                           appInfo.packageName.startsWith("com.android.chrome.webapk") || 
+                           appInfo.packageName.startsWith("com.google.android.apps.chrome.webapk")
+            !isSystemApp && !isWebApk
         }
 
         userApps.mapNotNull { appInfo ->

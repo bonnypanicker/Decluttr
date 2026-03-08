@@ -45,8 +45,8 @@ fun DashboardScreen(
     val isLoadingDiscovery by viewModel.isLoadingDiscovery.collectAsState()
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Discover", "My Archive")
-    val tabIcons = listOf(Icons.Default.Search, Icons.Default.List)
+    val tabs = listOf("My Archive", "Discover")
+    val tabIcons = listOf(Icons.Default.List, Icons.Default.Search)
 
     Scaffold(
         topBar = {
@@ -59,6 +59,22 @@ fun DashboardScreen(
                     ) 
                 },
                 actions = {
+                    if (archivedApps.isNotEmpty()) {
+                        val estimatedMBs = archivedApps.size * 45
+                        androidx.compose.material3.Surface(
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(100),
+                            modifier = Modifier.padding(end = 8.dp)
+                        ) {
+                            Text(
+                                text = "~${estimatedMBs}MB saved",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
@@ -88,6 +104,15 @@ fun DashboardScreen(
         ) {
             when (selectedTabIndex) {
                 0 -> {
+                    // Archive List
+                    ArchivedAppsList(
+                        apps = archivedApps,
+                        onAppClick = onNavigateToAppDetails,
+                        onDeleteClick = { viewModel.deleteArchivedApp(it) },
+                        onNavigateToDiscover = { selectedTabIndex = 1 }
+                    )
+                }
+                1 -> {
                     // Discovery List
                     DiscoveryScreen(
                         unusedApps = unusedApps,
@@ -104,52 +129,7 @@ fun DashboardScreen(
                         onRequestPermission = { viewModel.checkUsagePermission() }
                     )
                 }
-                1 -> {
-                    // Archive List
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        StorageSavedEstimator(apps = archivedApps)
-                        ArchivedAppsList(
-                            apps = archivedApps,
-                            onAppClick = onNavigateToAppDetails,
-                            onDeleteClick = { viewModel.deleteArchivedApp(it) }
-                        )
-                    }
-                }
             }
-        }
-    }
-}
-
-@Composable
-fun StorageSavedEstimator(apps: List<ArchivedApp>) {
-    if (apps.isEmpty()) return
-    
-    // In a real implementation this would sum exact apk sizes saved from db
-    // Since we don't save exact APK size to DB in this implementation
-    // We will estimate ~45MB average per app
-    val estimatedMBs = apps.size * 45
-    
-    androidx.compose.material3.Surface(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-        color = MaterialTheme.colorScheme.tertiaryContainer,
-        shape = MaterialTheme.shapes.small
-    ) {
-        androidx.compose.foundation.layout.Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "Estimated Storage Saved", 
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
-            )
-            Text(
-                text = "~$estimatedMBs MB", 
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
-            )
         }
     }
 }

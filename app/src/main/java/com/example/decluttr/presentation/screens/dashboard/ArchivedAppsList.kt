@@ -62,7 +62,8 @@ import com.example.decluttr.domain.model.ArchivedApp
 fun ArchivedAppsList(
     apps: List<ArchivedApp>,
     onAppClick: (String) -> Unit,
-    onDeleteClick: (ArchivedApp) -> Unit
+    onDeleteClick: (ArchivedApp) -> Unit,
+    onNavigateToDiscover: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf<String?>("All") }
@@ -136,10 +137,23 @@ fun ArchivedAppsList(
         // App Grid
         if (filteredApps.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    text = if (apps.isEmpty()) "Your archive is empty." else "No apps match your search.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (apps.isEmpty()) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "Your archive is currently empty.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        androidx.compose.material3.Button(onClick = onNavigateToDiscover) {
+                            Text("Find rarely used apps to Decluttr")
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "No apps match your search.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         } else {
             LazyVerticalGrid(
