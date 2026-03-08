@@ -1,4 +1,4 @@
-**App Idea: "Archivly" – Your Personal App Archive Library**  
+**App Idea: "Decluttr" – Your Personal App Archive Library**  
 (Alternative names: Decluttr Archive, AppStack Vault)
 
 **Core Concept**  
