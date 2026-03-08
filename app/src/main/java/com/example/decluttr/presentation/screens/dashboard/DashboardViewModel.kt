@@ -41,11 +41,12 @@ class DashboardViewModel @Inject constructor(
     private val _isLoadingDiscovery = MutableStateFlow(false)
     val isLoadingDiscovery = _isLoadingDiscovery.asStateFlow()
 
-    private val _hasUsagePermission = MutableStateFlow(true)
+    private val _hasUsagePermission = MutableStateFlow(checkUsagePermissionUseCase())
     val hasUsagePermission = _hasUsagePermission.asStateFlow()
 
+    private var discoveryJob: kotlinx.coroutines.Job? = null
+
     init {
-        checkUsagePermission()
         loadDiscoveryData()
     }
 
@@ -54,7 +55,8 @@ class DashboardViewModel @Inject constructor(
     }
 
     fun loadDiscoveryData() {
-        viewModelScope.launch {
+        if (discoveryJob?.isActive == true) return
+        discoveryJob = viewModelScope.launch {
             _isLoadingDiscovery.value = true
             
             // In a real app we might load these in parallel, but sequential is fine for now
