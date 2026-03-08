@@ -12,7 +12,9 @@ data class AppEntity(
     val tags: String, // Comma separated tags
     val notes: String?,
     val iconBytes: ByteArray?,
-    val archivedAt: Long = System.currentTimeMillis()
+    val isPlayStoreInstalled: Boolean = true,
+    val archivedAt: Long = System.currentTimeMillis(),
+    val lastTimeUsed: Long = 0L
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -30,6 +32,8 @@ data class AppEntity(
             if (!iconBytes.contentEquals(other.iconBytes)) return false
         } else if (other.iconBytes != null) return false
         if (archivedAt != other.archivedAt) return false
+        if (isPlayStoreInstalled != other.isPlayStoreInstalled) return false
+        if (lastTimeUsed != other.lastTimeUsed) return false
 
         return true
     }
@@ -42,6 +46,8 @@ data class AppEntity(
         result = 31 * result + (notes?.hashCode() ?: 0)
         result = 31 * result + (iconBytes?.contentHashCode() ?: 0)
         result = 31 * result + archivedAt.hashCode()
+        result = 31 * result + isPlayStoreInstalled.hashCode()
+        result = 31 * result + lastTimeUsed.hashCode()
         return result
     }
 }

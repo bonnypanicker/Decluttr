@@ -3,6 +3,8 @@ package com.example.decluttr.domain.usecase
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.app.usage.StorageStatsManager
+import android.os.storage.StorageManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -21,11 +23,15 @@ class GetInstalledAppsUseCase @Inject constructor(
         val iconBytes: ByteArray?,
         val apkSizeBytes: Long,
         val isOsArchived: Boolean = false,
-        val isPlayStoreInstalled: Boolean = true
+        val isPlayStoreInstalled: Boolean = true,
+        val lastTimeUsed: Long = 0L // Populated later by UsageStats
     )
 
     suspend operator fun invoke(): List<InstalledAppInfo> = withContext(Dispatchers.IO) {
         val packageManager = context.packageManager
+        val storageStatsManager = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            context.getSystemService(Context.STORAGE_STATS_SERVICE) as? StorageStatsManager
+        } else null
         
         // Get all installed packages
         val packages = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
@@ -46,11 +52,24 @@ class GetInstalledAppsUseCase @Inject constructor(
                     val packageId = appInfo.packageName
                     
                     val details = getAppDetailsUseCase(packageId)
-                    val apkSize = try {
-                        val sourceDir = appInfo.sourceDir
-                        java.io.File(sourceDir).length()
+                    
+                    var totalSize = 0L
+                    try {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && storageStatsManager != null) {
+                            val stats = storageStatsManager.queryStatsForPackage(
+                                StorageManager.UUID_DEFAULT,
+                                packageId,
+                                android.os.Process.myUserHandle()
+                            )
+                            totalSize = stats.appBytes + stats.dataBytes + stats.cacheBytes
+                        } else {
+                            totalSize = java.io.File(appInfo.sourceDir).length()
+                        }
+                    } catch (e: SecurityException) {
+                        // Fallback if PACKAGE_USAGE_STATS is not explicitly granted
+                        totalSize = try { java.io.File(appInfo.sourceDir).length() } catch (ignored: Exception) { 0L }
                     } catch (e: Exception) {
-                        0L
+                        totalSize = try { java.io.File(appInfo.sourceDir).length() } catch (ignored: Exception) { 0L }
                     }
                     
                     val isArchived = if (android.os.Build.VERSION.SDK_INT >= 35) {
@@ -76,7 +95,7 @@ class GetInstalledAppsUseCase @Inject constructor(
                         packageId = packageId,
                         name = details?.name ?: packageManager.getApplicationLabel(appInfo).toString(),
                         iconBytes = details?.iconBytes,
-                        apkSizeBytes = apkSize,
+                        apkSizeBytes = totalSize,
                         isOsArchived = isArchived,
                         isPlayStoreInstalled = isPlayStore
                     )

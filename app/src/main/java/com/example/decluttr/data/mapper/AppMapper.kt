@@ -7,11 +7,13 @@ fun AppEntity.toArchivedApp(): ArchivedApp {
     return ArchivedApp(
         packageId = packageId,
         name = name,
+        isPlayStoreInstalled = isPlayStoreInstalled,
         category = category,
         tags = if (tags.isNotBlank()) tags.split(",") else emptyList(),
         notes = notes,
         iconBytes = iconBytes,
-        archivedAt = archivedAt
+        archivedAt = archivedAt,
+        lastTimeUsed = lastTimeUsed
     )
 }
 
@@ -23,6 +25,8 @@ fun ArchivedApp.toAppEntity(): AppEntity {
         tags = tags.joinToString(","),
         notes = notes,
         iconBytes = iconBytes,
-        archivedAt = archivedAt
+        isPlayStoreInstalled = isPlayStoreInstalled,
+        archivedAt = archivedAt,
+        lastTimeUsed = lastTimeUsed
     )
 }

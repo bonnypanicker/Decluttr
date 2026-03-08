@@ -3,11 +3,13 @@ package com.example.decluttr.domain.model
 data class ArchivedApp(
     val packageId: String,
     val name: String,
+    val isPlayStoreInstalled: Boolean = true,
     val category: String? = null,
     val tags: List<String> = emptyList(),
     val notes: String? = null,
     val iconBytes: ByteArray? = null,
-    val archivedAt: Long = System.currentTimeMillis()
+    val archivedAt: Long = System.currentTimeMillis(),
+    val lastTimeUsed: Long = 0L
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

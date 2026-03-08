@@ -100,8 +100,13 @@ class DashboardViewModel @Inject constructor(
         val appsToUninstall = allInstalledApps.value.filter { it.packageId in packageIds }
         val savedBytes = appsToUninstall.sumOf { it.apkSizeBytes }
         
+        // Build metadata map for archive entries
+        val appInfoMap = appsToUninstall.associate { 
+            it.packageId to Pair(it.isPlayStoreInstalled, it.lastTimeUsed)
+        }
+        
         viewModelScope.launch {
-            archiveAndUninstallUseCase(packageIds.toList())
+            archiveAndUninstallUseCase(packageIds.toList(), appInfoMap)
             loadDiscoveryData() // Refresh list after uninstall queue is fired
             _celebrationEvent.emit(CelebrationData(packageIds.size, savedBytes))
         }

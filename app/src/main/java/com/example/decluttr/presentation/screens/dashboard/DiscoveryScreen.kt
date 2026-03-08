@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import android.text.format.DateUtils
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Warning
@@ -483,50 +484,79 @@ fun AppListCard(
         }
     }
     
-    Card(
+    val timeString = remember(app.lastTimeUsed) {
+        if (app.lastTimeUsed > 0) {
+            DateUtils.getRelativeTimeSpanString(
+                app.lastTimeUsed,
+                System.currentTimeMillis(),
+                DateUtils.MINUTE_IN_MILLIS
+            ).toString()
+        } else {
+            "Never used"
+        }
+    }
+    
+    // Flat Row design instead of Card
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onToggle),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-        )
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
+            .clickable(onClick = onToggle)
+            .padding(vertical = 12.dp, horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Checkbox(
-                checked = isSelected,
-                onCheckedChange = { onToggle() }
+        Checkbox(
+            checked = isSelected,
+            onCheckedChange = { onToggle() }
+        )
+        
+        Spacer(modifier = Modifier.width(8.dp))
+        
+        if (cachedBitmap != null) {
+            Image(
+                bitmap = cachedBitmap,
+                contentDescription = "App Icon",
+                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
             )
-            
-            Spacer(modifier = Modifier.width(8.dp))
-            
-            if (cachedBitmap != null) {
-                Image(
-                    bitmap = cachedBitmap,
-                    contentDescription = "App Icon",
-                    modifier = Modifier.size(48.dp)
-                )
-            } else {
-                Box(modifier = Modifier.size(48.dp))
-            }
-            
-            Spacer(modifier = Modifier.width(16.dp))
-            
-            Column(modifier = Modifier.weight(1f)) {
+        } else {
+            Box(modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)))
+        }
+        
+        Spacer(modifier = Modifier.width(16.dp))
+        
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = app.name, 
                     fontWeight = FontWeight.Bold, 
                     style = MaterialTheme.typography.titleMedium,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
+                if (!app.isPlayStoreInstalled) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = "Sideloaded App",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "${bytesToMB(app.apkSizeBytes)} MB", 
                     style = MaterialTheme.typography.bodySmall, 
+                    fontWeight = FontWeight.Medium,
                     color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = " • $timeString", 
+                    style = MaterialTheme.typography.bodySmall, 
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             }
         }

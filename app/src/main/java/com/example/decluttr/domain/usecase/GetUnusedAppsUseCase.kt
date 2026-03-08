@@ -62,13 +62,18 @@ class GetUnusedAppsUseCase @Inject constructor(
             }
         }
 
-        // Filter out apps that have been used within the threshold
-        val unused = userApps.filter { app ->
+        // Map the last used time back into the primary app list for display purposes
+        val userAppsWithTime = userApps.map { app ->
             val lastUsed = lastUsedMap[app.packageId] ?: 0L
-            lastUsed <= startTime
+            app.copy(lastTimeUsed = lastUsed)
+        }
+
+        // Filter out apps that have been used within the threshold
+        val unused = userAppsWithTime.filter { app ->
+            app.lastTimeUsed <= startTime
         }
         
-        UnusedAppsResult(allApps = userApps, unusedApps = unused)
+        UnusedAppsResult(allApps = userAppsWithTime, unusedApps = unused)
     }
 
     // Kept for backward compatibility if needed elsewhere

@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 import com.example.decluttr.data.local.dao.AppDao
 import com.example.decluttr.data.local.entity.AppEntity
 
-@Database(entities = [AppEntity::class], version = 1, exportSchema = false)
+@Database(entities = [AppEntity::class], version = 2, exportSchema = false)
 abstract class DecluttrDatabase : RoomDatabase() {
     abstract val appDao: AppDao
     
