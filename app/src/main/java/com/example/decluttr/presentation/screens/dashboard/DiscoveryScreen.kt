@@ -37,6 +37,10 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 
 @Composable
@@ -159,17 +163,26 @@ fun AppListCard(
             
             Spacer(modifier = Modifier.width(8.dp))
             
-            if (app.iconBytes != null) {
-                val bitmap = BitmapFactory.decodeByteArray(app.iconBytes, 0, app.iconBytes.size)
-                if (bitmap != null) {
-                    Image(
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = "App Icon",
-                        modifier = Modifier.size(48.dp)
-                    )
-                } else {
-                    Box(modifier = Modifier.size(48.dp))
+            var imageBitmap by remember(app.iconBytes) { mutableStateOf<ImageBitmap?>(null) }
+            
+            LaunchedEffect(app.iconBytes) {
+                if (app.iconBytes != null) {
+                    withContext(Dispatchers.IO) {
+                        val bmp = BitmapFactory.decodeByteArray(app.iconBytes, 0, app.iconBytes.size)
+                        val composeBitmap = bmp?.asImageBitmap()
+                        withContext(Dispatchers.Main) {
+                            imageBitmap = composeBitmap
+                        }
+                    }
                 }
+            }
+
+            if (imageBitmap != null) {
+                Image(
+                    bitmap = imageBitmap!!,
+                    contentDescription = "App Icon",
+                    modifier = Modifier.size(48.dp)
+                )
             } else {
                 Box(modifier = Modifier.size(48.dp))
             }
