@@ -52,7 +52,13 @@ class GetAppDetailsUseCase @Inject constructor(
         // Compress as PNG with 100% quality or WEBP? PNG is safer. 
         // 50KB constraint means maybe lower quality or WEBP, but let's stick to standard size icon
         val scaledBitmap = Bitmap.createScaledBitmap(bitmap, 96, 96, true)
-        scaledBitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, 80, stream)
+        val format = if (android.os.Build.VERSION.SDK_INT >= 30) {
+            Bitmap.CompressFormat.WEBP_LOSSY
+        } else {
+            @Suppress("DEPRECATION")
+            Bitmap.CompressFormat.WEBP
+        }
+        scaledBitmap.compress(format, 80, stream)
         val byteArray = stream.toByteArray()
         
         return byteArray.takeIf { it.isNotEmpty() }
