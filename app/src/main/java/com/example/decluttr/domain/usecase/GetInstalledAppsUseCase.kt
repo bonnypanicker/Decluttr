@@ -17,7 +17,8 @@ class GetInstalledAppsUseCase @Inject constructor(
         val name: String,
         val iconBytes: ByteArray?,
         val apkSizeBytes: Long,
-        val isOsArchived: Boolean = false
+        val isOsArchived: Boolean = false,
+        val isPlayStoreInstalled: Boolean = true
     )
 
     suspend operator fun invoke(): List<InstalledAppInfo> = withContext(Dispatchers.IO) {
@@ -26,10 +27,9 @@ class GetInstalledAppsUseCase @Inject constructor(
         // Get all installed packages
         val packages = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
         
-        // Filter out system apps, keep user installed apps
+        // Filter out system apps, keep strictly user installed apps
         val userApps = packages.filter { appInfo ->
-            (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) == 0 || 
-            (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+            (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) == 0
         }
 
         userApps.mapNotNull { appInfo ->
@@ -51,12 +51,26 @@ class GetInstalledAppsUseCase @Inject constructor(
                 false
             }
 
+            val installerName = try {
+                if (android.os.Build.VERSION.SDK_INT >= 30) {
+                    packageManager.getInstallSourceInfo(packageId).installingPackageName
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageManager.getInstallerPackageName(packageId)
+                }
+            } catch (e: Exception) {
+                null
+            }
+            
+            val isPlayStore = installerName == "com.android.vending"
+
             InstalledAppInfo(
                 packageId = packageId,
                 name = details?.name ?: packageManager.getApplicationLabel(appInfo).toString(),
                 iconBytes = details?.iconBytes,
                 apkSizeBytes = apkSize,
-                isOsArchived = isArchived
+                isOsArchived = isArchived,
+                isPlayStoreInstalled = isPlayStore
             )
         }.sortedBy { it.name.lowercase() }
     }

@@ -81,6 +81,35 @@ fun DiscoveryScreen(
     val safeUnusedApps = if (hasUsagePermission) unusedApps else emptyList()
     val displayList = if (showAllApps) allApps else safeUnusedApps
     var selectedApps by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var showSideloadWarning by remember { mutableStateOf(false) }
+    var appsToUninstall by remember { mutableStateOf<Set<String>>(emptySet()) }
+
+    if (showSideloadWarning) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showSideloadWarning = false },
+            title = { Text("Sideloaded Apps Detected", fontWeight = FontWeight.Bold) },
+            text = { Text("One or more of the selected apps were not installed from the Google Play Store. It is not possible to archive sideloaded apps.\n\nDo you wish to uninstall them anyway?") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        showSideloadWarning = false
+                        val playStoreIds = displayList.filter { it.packageId in appsToUninstall && it.isPlayStoreInstalled }.map { it.packageId }.toSet()
+                        val sideloadedIds = displayList.filter { it.packageId in appsToUninstall && !it.isPlayStoreInstalled }.map { it.packageId }.toSet()
+                        selectedApps = emptySet()
+                        if (playStoreIds.isNotEmpty()) onBatchUninstall(playStoreIds)
+                        if (sideloadedIds.isNotEmpty()) onBatchUninstallOnly(sideloadedIds)
+                    }
+                ) {
+                    Text("Uninstall Anyway")
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showSideloadWarning = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         
@@ -118,8 +147,14 @@ fun DiscoveryScreen(
                 Button(
                     onClick = {
                         val ids = selectedApps.toSet()
-                        selectedApps = emptySet()
-                        onBatchUninstall(ids)
+                        val hasSideloaded = displayList.any { it.packageId in ids && !it.isPlayStoreInstalled }
+                        if (hasSideloaded) {
+                            appsToUninstall = ids
+                            showSideloadWarning = true
+                        } else {
+                            selectedApps = emptySet()
+                            onBatchUninstall(ids)
+                        }
                     },
                     modifier = Modifier.weight(1f)
                 ) {
