@@ -23,6 +23,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import android.text.format.DateUtils
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -419,11 +421,11 @@ fun SpecificAppListDisplay(
             value = searchQuery,
             onValueChange = { searchQuery = it },
             placeholder = { Text("Search apps") },
-            leadingIcon = { Icon(androidx.compose.material.icons.Icons.Default.Search, contentDescription = "Search") },
+            leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search") },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = { searchQuery = "" }) {
-                        Icon(androidx.compose.material.icons.Icons.Default.Clear, contentDescription = "Clear")
+                        Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear")
                     }
                 }
             },
