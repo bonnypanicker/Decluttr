@@ -25,7 +25,12 @@ jobs:
         gradle-version: '8.7'
 
     - name: Build Debug APK
-      run: ./gradlew :app:assembleDebug
+      run: |
+        if [ ! -f gradlew ]; then
+          gradle wrapper
+        fi
+        chmod +x gradlew
+        ./gradlew :app:assembleDebug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
