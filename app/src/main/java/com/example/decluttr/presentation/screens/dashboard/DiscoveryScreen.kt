@@ -45,14 +45,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.imageLoader
 import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 import com.example.decluttr.presentation.util.AppIconModel
 import kotlin.math.roundToInt
@@ -385,27 +382,7 @@ fun SpecificAppListDisplay(
         derivedStateOf { filterAndSortApps(appList, searchQuery, sortOption) }
     }
 
-    // Prefetch icons for visible and upcoming items
-    val context = LocalContext.current
     val listState = rememberLazyListState()
-    
-    LaunchedEffect(listState.firstVisibleItemIndex, filteredList) {
-        // Prefetch a window of 20 items ahead of the current visible range
-        val start = listState.firstVisibleItemIndex
-        val end = (start + 20).coerceAtMost(filteredList.size)
-        
-        if (start < end) {
-            val imageLoader = coil.imageLoader(context)
-            for (i in start until end) {
-                val app = filteredList[i]
-                val request = ImageRequest.Builder(context)
-                    .data(AppIconModel(app.packageId))
-                    .memoryCacheKey(app.packageId) // Ensure we hit/populate the same cache key
-                    .build()
-                imageLoader.enqueue(request)
-            }
-        }
-    }
 
     // Selection stats
     val selectedSize = remember(selectedApps, appList) {
