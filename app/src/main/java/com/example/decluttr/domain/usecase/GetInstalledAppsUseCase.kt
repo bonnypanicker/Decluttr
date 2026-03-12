@@ -62,7 +62,8 @@ class GetInstalledAppsUseCase @Inject constructor(
                                 packageId,
                                 android.os.Process.myUserHandle()
                             )
-                            totalSize = stats.appBytes + stats.dataBytes + stats.cacheBytes
+                            // User requested ONLY APK size, excluding data and cache
+                            totalSize = stats.appBytes
                         } else {
                             totalSize = java.io.File(appInfo.sourceDir).length()
                         }
