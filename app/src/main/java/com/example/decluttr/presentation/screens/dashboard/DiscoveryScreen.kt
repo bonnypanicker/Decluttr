@@ -50,7 +50,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
+import com.example.decluttr.presentation.util.AppIconModel
 import kotlin.math.roundToInt
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -73,15 +75,13 @@ fun DiscoveryScreen(
     unusedApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
     largeApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
     allApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
-    bitmapCache: Map<String, ImageBitmap>,
     isLoading: Boolean,
     onRefresh: () -> Unit,
     onForceRefresh: () -> Unit,
     onBatchUninstall: (Set<String>) -> Unit,
     onBatchUninstallOnly: (Set<String>) -> Unit,
     hasUsagePermission: Boolean,
-    onRequestPermission: () -> Unit,
-    onPrefetchIcons: (List<GetInstalledAppsUseCase.InstalledAppInfo>) -> Unit
+    onRequestPermission: () -> Unit
 ) {
     var viewState by remember { mutableStateOf(DiscoveryViewState.DASHBOARD) }
     
@@ -139,7 +139,6 @@ fun DiscoveryScreen(
                 SpecificAppListDisplay(
                     title = "Rarely Used Apps",
                     appList = unusedApps,
-                    bitmapCache = bitmapCache,
                     listType = DiscoveryViewState.RARELY_USED,
                     onBack = { viewState = DiscoveryViewState.DASHBOARD },
                     onBatchUninstall = { ids -> 
@@ -149,15 +148,13 @@ fun DiscoveryScreen(
                     onBatchUninstallOnly = { ids -> 
                         viewState = DiscoveryViewState.DASHBOARD
                         onBatchUninstallOnly(ids) 
-                    },
-                    onPrefetchIcons = onPrefetchIcons
+                    }
                 )
             }
             DiscoveryViewState.LARGE_APPS -> {
                 SpecificAppListDisplay(
                     title = "Large Apps (>100MB)",
                     appList = largeApps,
-                    bitmapCache = bitmapCache,
                     listType = DiscoveryViewState.LARGE_APPS,
                     onBack = { viewState = DiscoveryViewState.DASHBOARD },
                     onBatchUninstall = { ids -> 
@@ -167,15 +164,13 @@ fun DiscoveryScreen(
                     onBatchUninstallOnly = { ids -> 
                         viewState = DiscoveryViewState.DASHBOARD
                         onBatchUninstallOnly(ids) 
-                    },
-                    onPrefetchIcons = onPrefetchIcons
+                    }
                 )
             }
             DiscoveryViewState.ALL_APPS -> {
                 SpecificAppListDisplay(
                     title = "All Installed Apps",
                     appList = allApps,
-                    bitmapCache = bitmapCache,
                     listType = DiscoveryViewState.ALL_APPS,
                     onBack = { viewState = DiscoveryViewState.DASHBOARD },
                     onBatchUninstall = { ids -> 
@@ -185,8 +180,7 @@ fun DiscoveryScreen(
                     onBatchUninstallOnly = { ids -> 
                         viewState = DiscoveryViewState.DASHBOARD
                         onBatchUninstallOnly(ids) 
-                    },
-                    onPrefetchIcons = onPrefetchIcons
+                    }
                 )
             }
         }
@@ -374,12 +368,10 @@ fun SmartDeclutterCard(
 fun SpecificAppListDisplay(
     title: String,
     appList: List<GetInstalledAppsUseCase.InstalledAppInfo>,
-    bitmapCache: Map<String, ImageBitmap>,
     listType: DiscoveryViewState = DiscoveryViewState.ALL_APPS,
     onBack: () -> Unit,
     onBatchUninstall: (Set<String>) -> Unit,
-    onBatchUninstallOnly: (Set<String>) -> Unit,
-    onPrefetchIcons: (List<GetInstalledAppsUseCase.InstalledAppInfo>) -> Unit
+    onBatchUninstallOnly: (Set<String>) -> Unit
 ) {
     var selectedApps by remember { mutableStateOf<Set<String>>(emptySet()) }
     var showSideloadWarning by remember { mutableStateOf(false) }
@@ -424,34 +416,6 @@ fun SpecificAppListDisplay(
     }
 
     val listState = rememberLazyListState()
-
-    LaunchedEffect(filteredList) {
-        if (filteredList.isNotEmpty()) {
-            onPrefetchIcons(filteredList.take(24))
-        }
-    }
-
-    LaunchedEffect(listState, filteredList) {
-        snapshotFlow { listState.layoutInfo.visibleItemsInfo.map { it.index } }
-            .map { indices ->
-                if (indices.isEmpty()) null else {
-                    val start = (indices.minOrNull() ?: 0).coerceAtLeast(0)
-                    val end = (indices.maxOrNull() ?: 0).coerceAtMost(filteredList.lastIndex)
-                    val expandedStart = (start - 6).coerceAtLeast(0)
-                    val expandedEnd = (end + 6).coerceAtMost(filteredList.lastIndex)
-                    expandedStart..expandedEnd
-                }
-            }
-            .filterNotNull()
-            .distinctUntilChanged()
-            .debounce(120)
-            .collect { range ->
-                if (filteredList.isNotEmpty()) {
-                    val slice = filteredList.subList(range.first, range.last + 1)
-                    onPrefetchIcons(slice)
-                }
-            }
-    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Header with back button and title
@@ -620,7 +584,6 @@ fun SpecificAppListDisplay(
                     AppListCard(
                         app = app,
                         isSelected = isSelected,
-                        cachedBitmap = bitmapCache[app.packageId],
                         listType = listType,
                         onToggle = {
                             selectedApps = if (isSelected) {
@@ -640,11 +603,9 @@ fun SpecificAppListDisplay(
 fun AppListCard(
     app: GetInstalledAppsUseCase.InstalledAppInfo,
     isSelected: Boolean,
-    cachedBitmap: ImageBitmap?,
     listType: DiscoveryViewState = DiscoveryViewState.ALL_APPS,
     onToggle: () -> Unit
 ) {
-    val bitmap: ImageBitmap? = cachedBitmap
     
     val timeString = remember(app.lastTimeUsed) {
         if (app.lastTimeUsed > 0) {
@@ -676,15 +637,11 @@ fun AppListCard(
         
         Spacer(modifier = Modifier.width(8.dp))
         
-        if (bitmap != null) {
-            Image(
-                bitmap = bitmap,
-                contentDescription = "App Icon",
-                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
-            )
-        } else {
-            Box(modifier = Modifier.size(48.dp).background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)))
-        }
+        AsyncImage(
+            model = AppIconModel(app.packageId),
+            contentDescription = "App Icon",
+            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
+        )
         
         Spacer(modifier = Modifier.width(16.dp))
         

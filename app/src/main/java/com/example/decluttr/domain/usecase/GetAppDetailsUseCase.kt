@@ -19,14 +19,19 @@ class GetAppDetailsUseCase @Inject constructor(
         val category: String?
     )
 
-    operator fun invoke(packageId: String): AppDetailsResult? {
+    operator fun invoke(packageId: String, fetchIcon: Boolean = false): AppDetailsResult? {
         val packageManager = context.packageManager
         return try {
             val appInfo = packageManager.getApplicationInfo(packageId, PackageManager.GET_META_DATA)
             val name = packageManager.getApplicationLabel(appInfo).toString()
-            val tempIcon = packageManager.getApplicationIcon(appInfo)
             
-            val iconBytes = drawableToByteArray(tempIcon)
+            val iconBytes = if (fetchIcon) {
+                val tempIcon = packageManager.getApplicationIcon(appInfo)
+                drawableToByteArray(tempIcon)
+            } else {
+                null
+            }
+            
             val category = getCategoryName(appInfo.category)
             
             AppDetailsResult(name, iconBytes, category)
