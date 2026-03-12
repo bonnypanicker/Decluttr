@@ -1,6 +1,7 @@
 package com.example.decluttr.presentation.screens.dashboard
 
 import android.graphics.BitmapFactory
+import android.util.LruCache
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.ViewModel
@@ -44,7 +45,6 @@ class DashboardViewModel @Inject constructor(
     private val _allInstalledApps = MutableStateFlow<List<GetInstalledAppsUseCase.InstalledAppInfo>>(emptyList())
     val allInstalledApps = _allInstalledApps.asStateFlow()
 
-    // Pre-decoded bitmap cache: packageId -> ImageBitmap (decoded off main thread)
     private val _bitmapCache = MutableStateFlow<Map<String, ImageBitmap>>(emptyMap())
     val bitmapCache = _bitmapCache.asStateFlow()
 
@@ -75,6 +75,9 @@ class DashboardViewModel @Inject constructor(
     private var discoveryJob: kotlinx.coroutines.Job? = null
     private var lastRefreshTime = 0L
     private val REFRESH_COOLDOWN_MS = 30_000L  // 30 seconds
+    private val iconCacheLock = Any()
+    private val iconBitmapCache = LruCache<String, ImageBitmap>(200)
+    private val inFlightIconDecodes = mutableSetOf<String>()
 
     init {
         loadDiscoveryData()
@@ -97,27 +100,41 @@ class DashboardViewModel @Inject constructor(
             _isLoadingDiscovery.value = false
             lastRefreshTime = System.currentTimeMillis()
             
-            // Pre-decode all bitmaps off the main thread
-            preDecodeBitmaps(result.allApps)
         }
     }
 
-    private fun preDecodeBitmaps(apps: List<GetInstalledAppsUseCase.InstalledAppInfo>) {
+    fun prefetchIcons(apps: List<GetInstalledAppsUseCase.InstalledAppInfo>) {
+        if (apps.isEmpty()) return
+        val toDecode = mutableListOf<Pair<String, ByteArray>>()
+        synchronized(iconCacheLock) {
+            for (app in apps) {
+                val bytes = app.iconBytes ?: continue
+                if (iconBitmapCache.get(app.packageId) == null && inFlightIconDecodes.add(app.packageId)) {
+                    toDecode.add(app.packageId to bytes)
+                }
+            }
+        }
+        if (toDecode.isEmpty()) return
         viewModelScope.launch {
-            val cache = withContext(Dispatchers.Default) {
+            val decoded = withContext(Dispatchers.Default) {
                 val map = mutableMapOf<String, ImageBitmap>()
-                for (app in apps) {
-                    app.iconBytes?.let { bytes ->
-                        try {
-                            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.let { bmp ->
-                                map[app.packageId] = bmp.asImageBitmap()
-                            }
-                        } catch (_: Exception) { }
+                for ((packageId, bytes) in toDecode) {
+                    try {
+                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.let { bmp ->
+                            map[packageId] = bmp.asImageBitmap()
+                        }
+                    } catch (_: Exception) {
                     }
                 }
                 map
             }
-            _bitmapCache.value = cache
+            synchronized(iconCacheLock) {
+                decoded.forEach { (packageId, bitmap) ->
+                    iconBitmapCache.put(packageId, bitmap)
+                }
+                inFlightIconDecodes.removeAll(toDecode.map { it.first })
+                _bitmapCache.value = iconBitmapCache.snapshot()
+            }
         }
     }
 

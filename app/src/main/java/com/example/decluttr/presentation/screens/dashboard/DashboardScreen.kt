@@ -177,7 +177,8 @@ fun DashboardScreen(
                             viewModel.uninstallSelectedOnly(packageIds)
                         },
                         hasUsagePermission = viewModel.hasUsagePermission.collectAsState().value,
-                        onRequestPermission = { viewModel.checkUsagePermission() }
+                        onRequestPermission = { viewModel.checkUsagePermission() },
+                        onPrefetchIcons = { apps -> viewModel.prefetchIcons(apps) }
                     )
                 }
                 1 -> {

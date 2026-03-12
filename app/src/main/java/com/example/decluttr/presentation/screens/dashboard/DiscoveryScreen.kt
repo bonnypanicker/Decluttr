@@ -1,6 +1,5 @@
 package com.example.decluttr.presentation.screens.dashboard
 
-import android.graphics.BitmapFactory
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -19,8 +18,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import android.text.format.DateUtils
+import androidx.compose.foundation.clipToBounds
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
@@ -44,7 +45,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -52,7 +52,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 import kotlin.math.roundToInt
-import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.snapshotFlow
 
 enum class DiscoveryViewState {
     DASHBOARD, RARELY_USED, LARGE_APPS, ALL_APPS
@@ -74,7 +80,8 @@ fun DiscoveryScreen(
     onBatchUninstall: (Set<String>) -> Unit,
     onBatchUninstallOnly: (Set<String>) -> Unit,
     hasUsagePermission: Boolean,
-    onRequestPermission: () -> Unit
+    onRequestPermission: () -> Unit,
+    onPrefetchIcons: (List<GetInstalledAppsUseCase.InstalledAppInfo>) -> Unit
 ) {
     var viewState by remember { mutableStateOf(DiscoveryViewState.DASHBOARD) }
     
@@ -142,7 +149,8 @@ fun DiscoveryScreen(
                     onBatchUninstallOnly = { ids -> 
                         viewState = DiscoveryViewState.DASHBOARD
                         onBatchUninstallOnly(ids) 
-                    }
+                    },
+                    onPrefetchIcons = onPrefetchIcons
                 )
             }
             DiscoveryViewState.LARGE_APPS -> {
@@ -159,7 +167,8 @@ fun DiscoveryScreen(
                     onBatchUninstallOnly = { ids -> 
                         viewState = DiscoveryViewState.DASHBOARD
                         onBatchUninstallOnly(ids) 
-                    }
+                    },
+                    onPrefetchIcons = onPrefetchIcons
                 )
             }
             DiscoveryViewState.ALL_APPS -> {
@@ -176,7 +185,8 @@ fun DiscoveryScreen(
                     onBatchUninstallOnly = { ids -> 
                         viewState = DiscoveryViewState.DASHBOARD
                         onBatchUninstallOnly(ids) 
-                    }
+                    },
+                    onPrefetchIcons = onPrefetchIcons
                 )
             }
         }
@@ -368,7 +378,8 @@ fun SpecificAppListDisplay(
     listType: DiscoveryViewState = DiscoveryViewState.ALL_APPS,
     onBack: () -> Unit,
     onBatchUninstall: (Set<String>) -> Unit,
-    onBatchUninstallOnly: (Set<String>) -> Unit
+    onBatchUninstallOnly: (Set<String>) -> Unit,
+    onPrefetchIcons: (List<GetInstalledAppsUseCase.InstalledAppInfo>) -> Unit
 ) {
     var selectedApps by remember { mutableStateOf<Set<String>>(emptySet()) }
     var showSideloadWarning by remember { mutableStateOf(false) }
@@ -376,15 +387,8 @@ fun SpecificAppListDisplay(
     var searchQuery by remember { mutableStateOf("") }
     var sortOption by remember { mutableStateOf(SortOption.NAME) }
 
-    // Filtered + sorted list
-    val filteredList = remember(appList, searchQuery, sortOption) {
-        val filtered = if (searchQuery.isBlank()) appList
-            else appList.filter { it.name.contains(searchQuery, ignoreCase = true) }
-        when (sortOption) {
-            SortOption.NAME -> filtered.sortedBy { it.name.lowercase() }
-            SortOption.SIZE -> filtered.sortedByDescending { it.apkSizeBytes }
-            SortOption.LAST_USED -> filtered.sortedBy { it.lastTimeUsed }
-        }
+    val filteredList by remember(appList, searchQuery, sortOption) {
+        derivedStateOf { filterAndSortApps(appList, searchQuery, sortOption) }
     }
 
     // Selection stats
@@ -417,6 +421,36 @@ fun SpecificAppListDisplay(
                 }
             }
         )
+    }
+
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(filteredList) {
+        if (filteredList.isNotEmpty()) {
+            onPrefetchIcons(filteredList.take(24))
+        }
+    }
+
+    LaunchedEffect(listState, filteredList) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.map { it.index } }
+            .map { indices ->
+                if (indices.isEmpty()) null else {
+                    val start = (indices.minOrNull() ?: 0).coerceAtLeast(0)
+                    val end = (indices.maxOrNull() ?: 0).coerceAtMost(filteredList.lastIndex)
+                    val expandedStart = (start - 6).coerceAtLeast(0)
+                    val expandedEnd = (end + 6).coerceAtMost(filteredList.lastIndex)
+                    expandedStart..expandedEnd
+                }
+            }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .debounce(120)
+            .collect { range ->
+                if (filteredList.isNotEmpty()) {
+                    val slice = filteredList.subList(range.first, range.last + 1)
+                    onPrefetchIcons(slice)
+                }
+            }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -572,11 +606,17 @@ fun SpecificAppListDisplay(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().weight(1f),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+                state = listState,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(filteredList, key = { it.packageId }) { app ->
+                items(
+                    items = filteredList,
+                    key = { it.packageId },
+                    contentType = { "app" }
+                ) { app ->
                     val isSelected = selectedApps.contains(app.packageId)
-                    
+
                     AppListCard(
                         app = app,
                         isSelected = isSelected,
@@ -590,7 +630,6 @@ fun SpecificAppListDisplay(
                             }
                         }
                     )
-                    Spacer(modifier = Modifier.size(8.dp))
                 }
             }
         }
@@ -605,13 +644,7 @@ fun AppListCard(
     listType: DiscoveryViewState = DiscoveryViewState.ALL_APPS,
     onToggle: () -> Unit
 ) {
-    // Use pre-decoded bitmap from ViewModel cache — no BitmapFactory on main thread
-    val bitmap: ImageBitmap? = cachedBitmap ?: remember(app.packageId) {
-        // Fallback: decode if not yet in cache (e.g. during initial load race)
-        app.iconBytes?.let { bytes ->
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-        }
-    }
+    val bitmap: ImageBitmap? = cachedBitmap
     
     val timeString = remember(app.lastTimeUsed) {
         if (app.lastTimeUsed > 0) {
@@ -630,6 +663,7 @@ fun AppListCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
+            .clipToBounds()
             .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
             .clickable(onClick = onToggle)
             .padding(vertical = 12.dp, horizontal = 8.dp),
@@ -719,5 +753,19 @@ private fun bytesToMB(bytes: Long): String {
         String.format("%.1f", mb)
     } else {
         String.format("%.0f", mb)
+    }
+}
+
+internal fun filterAndSortApps(
+    appList: List<GetInstalledAppsUseCase.InstalledAppInfo>,
+    searchQuery: String,
+    sortOption: SortOption
+): List<GetInstalledAppsUseCase.InstalledAppInfo> {
+    val filtered = if (searchQuery.isBlank()) appList
+    else appList.filter { it.name.contains(searchQuery, ignoreCase = true) }
+    return when (sortOption) {
+        SortOption.NAME -> filtered.sortedBy { it.name.lowercase() }
+        SortOption.SIZE -> filtered.sortedByDescending { it.apkSizeBytes }
+        SortOption.LAST_USED -> filtered.sortedBy { it.lastTimeUsed }
     }
 }
