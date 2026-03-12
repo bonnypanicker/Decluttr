@@ -63,6 +63,7 @@ fun DiscoveryScreen(
     unusedApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
     largeApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
     allApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
+    bitmapCache: Map<String, ImageBitmap>,
     isLoading: Boolean,
     onRefresh: () -> Unit,
     onBatchUninstall: (Set<String>) -> Unit,
@@ -126,6 +127,7 @@ fun DiscoveryScreen(
                 SpecificAppListDisplay(
                     title = "Rarely Used Apps",
                     appList = unusedApps,
+                    bitmapCache = bitmapCache,
                     onBack = { viewState = DiscoveryViewState.DASHBOARD },
                     onBatchUninstall = { ids -> 
                         viewState = DiscoveryViewState.DASHBOARD
@@ -141,6 +143,7 @@ fun DiscoveryScreen(
                 SpecificAppListDisplay(
                     title = "Large Apps (>100MB)",
                     appList = largeApps,
+                    bitmapCache = bitmapCache,
                     onBack = { viewState = DiscoveryViewState.DASHBOARD },
                     onBatchUninstall = { ids -> 
                         viewState = DiscoveryViewState.DASHBOARD
@@ -156,6 +159,7 @@ fun DiscoveryScreen(
                 SpecificAppListDisplay(
                     title = "All Installed Apps",
                     appList = allApps,
+                    bitmapCache = bitmapCache,
                     onBack = { viewState = DiscoveryViewState.DASHBOARD },
                     onBatchUninstall = { ids -> 
                         viewState = DiscoveryViewState.DASHBOARD
@@ -352,6 +356,7 @@ fun SmartDeclutterCard(
 fun SpecificAppListDisplay(
     title: String,
     appList: List<GetInstalledAppsUseCase.InstalledAppInfo>,
+    bitmapCache: Map<String, ImageBitmap>,
     onBack: () -> Unit,
     onBatchUninstall: (Set<String>) -> Unit,
     onBatchUninstallOnly: (Set<String>) -> Unit
@@ -544,6 +549,7 @@ fun SpecificAppListDisplay(
                     AppListCard(
                         app = app,
                         isSelected = isSelected,
+                        cachedBitmap = bitmapCache[app.packageId],
                         onToggle = {
                             selectedApps = if (isSelected) {
                                 selectedApps - app.packageId
@@ -563,10 +569,12 @@ fun SpecificAppListDisplay(
 fun AppListCard(
     app: GetInstalledAppsUseCase.InstalledAppInfo,
     isSelected: Boolean,
+    cachedBitmap: ImageBitmap?,
     onToggle: () -> Unit
 ) {
-    // Cache the decoded bitmap — only decode once per unique iconBytes reference
-    val cachedBitmap: ImageBitmap? = remember(app.packageId) {
+    // Use pre-decoded bitmap from ViewModel cache — no BitmapFactory on main thread
+    val bitmap: ImageBitmap? = cachedBitmap ?: remember(app.packageId) {
+        // Fallback: decode if not yet in cache (e.g. during initial load race)
         app.iconBytes?.let { bytes ->
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
         }
@@ -601,9 +609,9 @@ fun AppListCard(
         
         Spacer(modifier = Modifier.width(8.dp))
         
-        if (cachedBitmap != null) {
+        if (bitmap != null) {
             Image(
-                bitmap = cachedBitmap,
+                bitmap = bitmap,
                 contentDescription = "App Icon",
                 modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
             )

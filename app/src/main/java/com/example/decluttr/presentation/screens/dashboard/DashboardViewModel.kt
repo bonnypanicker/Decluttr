@@ -1,5 +1,8 @@
 package com.example.decluttr.presentation.screens.dashboard
 
+import android.graphics.BitmapFactory
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.decluttr.domain.model.ArchivedApp
@@ -7,6 +10,7 @@ import com.example.decluttr.domain.repository.AppRepository
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 import com.example.decluttr.domain.usecase.GetUnusedAppsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -38,6 +43,10 @@ class DashboardViewModel @Inject constructor(
 
     private val _allInstalledApps = MutableStateFlow<List<GetInstalledAppsUseCase.InstalledAppInfo>>(emptyList())
     val allInstalledApps = _allInstalledApps.asStateFlow()
+
+    // Pre-decoded bitmap cache: packageId -> ImageBitmap (decoded off main thread)
+    private val _bitmapCache = MutableStateFlow<Map<String, ImageBitmap>>(emptyMap())
+    val bitmapCache = _bitmapCache.asStateFlow()
 
     private val _isLoadingDiscovery = MutableStateFlow(false)
     val isLoadingDiscovery = _isLoadingDiscovery.asStateFlow()
@@ -87,6 +96,28 @@ class DashboardViewModel @Inject constructor(
             
             _isLoadingDiscovery.value = false
             lastRefreshTime = System.currentTimeMillis()
+            
+            // Pre-decode all bitmaps off the main thread
+            preDecodeBitmaps(result.allApps)
+        }
+    }
+
+    private fun preDecodeBitmaps(apps: List<GetInstalledAppsUseCase.InstalledAppInfo>) {
+        viewModelScope.launch {
+            val cache = withContext(Dispatchers.Default) {
+                val map = mutableMapOf<String, ImageBitmap>()
+                for (app in apps) {
+                    app.iconBytes?.let { bytes ->
+                        try {
+                            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.let { bmp ->
+                                map[app.packageId] = bmp.asImageBitmap()
+                            }
+                        } catch (_: Exception) { }
+                    }
+                }
+                map
+            }
+            _bitmapCache.value = cache
         }
     }
 
