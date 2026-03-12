@@ -56,7 +56,6 @@ fun DashboardScreen(
     val largeApps by viewModel.largeApps.collectAsState()
     val allInstalledApps by viewModel.allInstalledApps.collectAsState()
     val isLoadingDiscovery by viewModel.isLoadingDiscovery.collectAsState()
-    val bitmapCache by viewModel.bitmapCache.collectAsState()
 
     var celebrationData by remember { mutableStateOf<DashboardViewModel.CelebrationData?>(null) }
     var selectedTabIndex by remember { mutableIntStateOf(0) }
@@ -166,7 +165,6 @@ fun DashboardScreen(
                         unusedApps = unusedApps,
                         largeApps = largeApps,
                         allApps = allInstalledApps,
-                        bitmapCache = bitmapCache,
                         isLoading = isLoadingDiscovery,
                         onRefresh = { viewModel.loadDiscoveryDataIfStale() },
                         onForceRefresh = { viewModel.loadDiscoveryData() },
@@ -177,8 +175,7 @@ fun DashboardScreen(
                             viewModel.uninstallSelectedOnly(packageIds)
                         },
                         hasUsagePermission = viewModel.hasUsagePermission.collectAsState().value,
-                        onRequestPermission = { viewModel.checkUsagePermission() },
-                        onPrefetchIcons = { apps -> viewModel.prefetchIcons(apps) }
+                        onRequestPermission = { viewModel.checkUsagePermission() }
                     )
                 }
                 1 -> {
