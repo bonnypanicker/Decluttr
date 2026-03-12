@@ -364,6 +364,10 @@ fun SmartDeclutterCard(
     }
 }
 
+import coil.ImageLoader
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
+
 @Composable
 fun SpecificAppListDisplay(
     title: String,
@@ -381,6 +385,28 @@ fun SpecificAppListDisplay(
 
     val filteredList by remember(appList, searchQuery, sortOption) {
         derivedStateOf { filterAndSortApps(appList, searchQuery, sortOption) }
+    }
+
+    // Prefetch icons for visible and upcoming items
+    val context = LocalContext.current
+    val listState = rememberLazyListState()
+    
+    LaunchedEffect(listState.firstVisibleItemIndex, filteredList) {
+        // Prefetch a window of 20 items ahead of the current visible range
+        val start = listState.firstVisibleItemIndex
+        val end = (start + 20).coerceAtMost(filteredList.size)
+        
+        if (start < end) {
+            val imageLoader = coil.imageLoader(context)
+            for (i in start until end) {
+                val app = filteredList[i]
+                val request = ImageRequest.Builder(context)
+                    .data(AppIconModel(app.packageId))
+                    .memoryCacheKey(app.packageId) // Ensure we hit/populate the same cache key
+                    .build()
+                imageLoader.enqueue(request)
+            }
+        }
     }
 
     // Selection stats
