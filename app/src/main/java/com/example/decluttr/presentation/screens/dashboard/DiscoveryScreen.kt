@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 import kotlin.math.roundToInt
+import androidx.compose.runtime.Immutable
 
 enum class DiscoveryViewState {
     DASHBOARD, RARELY_USED, LARGE_APPS, ALL_APPS
@@ -356,6 +357,18 @@ fun SpecificAppListDisplay(
     var selectedApps by remember { mutableStateOf<Set<String>>(emptySet()) }
     var showSideloadWarning by remember { mutableStateOf(false) }
     var appsToUninstall by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var searchQuery by remember { mutableStateOf("") }
+
+    // Filtered list based on search
+    val filteredList = remember(appList, searchQuery) {
+        if (searchQuery.isBlank()) appList
+        else appList.filter { it.name.contains(searchQuery, ignoreCase = true) }
+    }
+
+    // Selection stats
+    val selectedSize = remember(selectedApps, appList) {
+        appList.filter { it.packageId in selectedApps }.sumOf { it.apkSizeBytes }
+    }
 
     if (showSideloadWarning) {
         androidx.compose.material3.AlertDialog(
@@ -385,6 +398,7 @@ fun SpecificAppListDisplay(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
+        // Header with back button and title
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -400,6 +414,71 @@ fun SpecificAppListDisplay(
             )
         }
 
+        // Search bar
+        androidx.compose.material3.OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            placeholder = { Text("Search apps") },
+            leadingIcon = { Icon(androidx.compose.material.icons.Icons.Default.Search, contentDescription = "Search") },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { searchQuery = "" }) {
+                        Icon(androidx.compose.material.icons.Icons.Default.Clear, contentDescription = "Clear")
+                    }
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(100),
+            singleLine = true,
+            colors = androidx.compose.material3.TextFieldDefaults.colors(
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary
+            )
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Select All toggle + selection info
+        if (filteredList.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                val allFilteredSelected = filteredList.all { it.packageId in selectedApps }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = allFilteredSelected,
+                        onCheckedChange = { checked ->
+                            selectedApps = if (checked) {
+                                selectedApps + filteredList.map { it.packageId }
+                            } else {
+                                selectedApps - filteredList.map { it.packageId }.toSet()
+                            }
+                        }
+                    )
+                    Text(
+                        text = if (allFilteredSelected) "Deselect All" else "Select All",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                if (selectedApps.isNotEmpty()) {
+                    Text(
+                        text = "${selectedApps.size} of ${appList.size} • ${bytesToMB(selectedSize)} MB",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+
+        // Action buttons when items selected
         if (selectedApps.isNotEmpty()) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -434,15 +513,22 @@ fun SpecificAppListDisplay(
             }
         }
 
-        if (appList.isEmpty()) {
+        if (filteredList.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(modifier = Modifier.size(16.dp))
-                    Text(
-                        "No apps to display in this category.", 
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    if (searchQuery.isNotEmpty()) {
+                        Text(
+                            "No apps match \"$searchQuery\".",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.size(16.dp))
+                        Text(
+                            "No apps to display in this category.", 
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         } else {
@@ -450,7 +536,7 @@ fun SpecificAppListDisplay(
                 modifier = Modifier.fillMaxSize().weight(1f),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
             ) {
-                items(appList, key = { it.packageId }) { app ->
+                items(filteredList, key = { it.packageId }) { app ->
                     val isSelected = selectedApps.contains(app.packageId)
                     
                     AppListCard(
@@ -478,7 +564,7 @@ fun AppListCard(
     onToggle: () -> Unit
 ) {
     // Cache the decoded bitmap — only decode once per unique iconBytes reference
-    val cachedBitmap: ImageBitmap? = remember(app.iconBytes) {
+    val cachedBitmap: ImageBitmap? = remember(app.packageId) {
         app.iconBytes?.let { bytes ->
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
         }
@@ -563,6 +649,11 @@ fun AppListCard(
     }
 }
 
-private fun bytesToMB(bytes: Long): Long {
-    return bytes / (1024 * 1024)
+private fun bytesToMB(bytes: Long): String {
+    val mb = bytes / (1024.0 * 1024.0)
+    return if (mb < 1.0) {
+        String.format("%.1f", mb)
+    } else {
+        String.format("%.0f", mb)
+    }
 }

@@ -64,6 +64,8 @@ class DashboardViewModel @Inject constructor(
     val celebrationEvent = _celebrationEvent.asSharedFlow()
 
     private var discoveryJob: kotlinx.coroutines.Job? = null
+    private var lastRefreshTime = 0L
+    private val REFRESH_COOLDOWN_MS = 30_000L  // 30 seconds
 
     init {
         loadDiscoveryData()
@@ -84,7 +86,14 @@ class DashboardViewModel @Inject constructor(
             _allInstalledApps.value = result.allApps
             
             _isLoadingDiscovery.value = false
+            lastRefreshTime = System.currentTimeMillis()
         }
+    }
+
+    fun loadDiscoveryDataIfStale() {
+        val now = System.currentTimeMillis()
+        if (now - lastRefreshTime < REFRESH_COOLDOWN_MS) return
+        loadDiscoveryData()
     }
     
     fun deleteArchivedApp(app: ArchivedApp) {

@@ -15,8 +15,10 @@ import javax.inject.Inject
 
 class GetInstalledAppsUseCase @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val getAppDetailsUseCase: GetAppDetailsUseCase
+    private val getAppDetailsUseCase: GetAppDetailsUseCase,
+    private val iconCacheManager: IconCacheManager
 ) {
+    @androidx.compose.runtime.Immutable
     data class InstalledAppInfo(
         val packageId: String,
         val name: String,
@@ -25,7 +27,30 @@ class GetInstalledAppsUseCase @Inject constructor(
         val isOsArchived: Boolean = false,
         val isPlayStoreInstalled: Boolean = true,
         val lastTimeUsed: Long = 0L // Populated later by UsageStats
-    )
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is InstalledAppInfo) return false
+            return packageId == other.packageId &&
+                   name == other.name &&
+                   apkSizeBytes == other.apkSizeBytes &&
+                   isOsArchived == other.isOsArchived &&
+                   isPlayStoreInstalled == other.isPlayStoreInstalled &&
+                   lastTimeUsed == other.lastTimeUsed &&
+                   iconBytes.contentEquals(other.iconBytes)
+        }
+
+        override fun hashCode(): Int {
+            var result = packageId.hashCode()
+            result = 31 * result + name.hashCode()
+            result = 31 * result + apkSizeBytes.hashCode()
+            result = 31 * result + isOsArchived.hashCode()
+            result = 31 * result + isPlayStoreInstalled.hashCode()
+            result = 31 * result + lastTimeUsed.hashCode()
+            result = 31 * result + (iconBytes?.contentHashCode() ?: 0)
+            return result
+        }
+    }
 
     suspend operator fun invoke(): List<InstalledAppInfo> = withContext(Dispatchers.IO) {
         val packageManager = context.packageManager
@@ -51,7 +76,33 @@ class GetInstalledAppsUseCase @Inject constructor(
                 async(Dispatchers.IO) {
                     val packageId = appInfo.packageName
                     
-                    val details = getAppDetailsUseCase(packageId)
+                    // Use cached icon if available, otherwise fetch and cache
+                    val details: GetAppDetailsUseCase.AppDetailsResult?
+                    if (iconCacheManager.has(packageId)) {
+                        val cachedIcon = iconCacheManager.get(packageId)
+                        val appName = packageManager.getApplicationLabel(appInfo).toString()
+                        val category = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                            when (appInfo.category) {
+                                ApplicationInfo.CATEGORY_GAME -> "Game"
+                                ApplicationInfo.CATEGORY_AUDIO -> "Audio"
+                                ApplicationInfo.CATEGORY_VIDEO -> "Video"
+                                ApplicationInfo.CATEGORY_IMAGE -> "Image"
+                                ApplicationInfo.CATEGORY_SOCIAL -> "Social"
+                                ApplicationInfo.CATEGORY_NEWS -> "News"
+                                ApplicationInfo.CATEGORY_MAPS -> "Maps"
+                                ApplicationInfo.CATEGORY_PRODUCTIVITY -> "Productivity"
+                                else -> null
+                            }
+                        } else null
+                        details = GetAppDetailsUseCase.AppDetailsResult(
+                            name = appName,
+                            iconBytes = cachedIcon,
+                            category = category
+                        )
+                    } else {
+                        details = getAppDetailsUseCase(packageId)
+                        details?.iconBytes?.let { iconCacheManager.put(packageId, it) }
+                    }
                     
                     var totalSize = 0L
                     try {

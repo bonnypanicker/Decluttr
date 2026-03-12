@@ -166,7 +166,7 @@ fun DashboardScreen(
                         largeApps = largeApps,
                         allApps = allInstalledApps,
                         isLoading = isLoadingDiscovery,
-                        onRefresh = { viewModel.loadDiscoveryData() },
+                        onRefresh = { viewModel.loadDiscoveryDataIfStale() },
                         onBatchUninstall = { packageIds ->
                             viewModel.archiveAndUninstallSelected(packageIds)
                         },

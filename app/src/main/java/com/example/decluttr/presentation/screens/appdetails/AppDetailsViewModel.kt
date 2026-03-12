@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.decluttr.domain.model.ArchivedApp
 import com.example.decluttr.domain.repository.AppRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -22,6 +24,9 @@ class AppDetailsViewModel @Inject constructor(
     private val _appState = MutableStateFlow<ArchivedApp?>(null)
     val appState = _appState.asStateFlow()
 
+    private var saveJob: Job? = null
+    private val SAVE_DEBOUNCE_MS = 500L
+
     init {
         loadApp()
     }
@@ -35,13 +40,15 @@ class AppDetailsViewModel @Inject constructor(
     fun updateCategory(newCategory: String) {
         val currentApp = _appState.value ?: return
         val updatedApp = currentApp.copy(category = newCategory.takeIf { it.isNotBlank() })
-        saveApp(updatedApp)
+        _appState.value = updatedApp
+        debounceSave(updatedApp)
     }
 
     fun updateNotes(newNotes: String) {
         val currentApp = _appState.value ?: return
         val updatedApp = currentApp.copy(notes = newNotes.takeIf { it.isNotBlank() })
-        saveApp(updatedApp)
+        _appState.value = updatedApp
+        debounceSave(updatedApp)
     }
 
     fun updateTags(newTagsString: String) {
@@ -50,13 +57,15 @@ class AppDetailsViewModel @Inject constructor(
             .map { it.trim() }
             .filter { it.isNotEmpty() }
         val updatedApp = currentApp.copy(tags = tagsList)
-        saveApp(updatedApp)
+        _appState.value = updatedApp
+        debounceSave(updatedApp)
     }
 
-    private fun saveApp(app: ArchivedApp) {
-        viewModelScope.launch {
+    private fun debounceSave(app: ArchivedApp) {
+        saveJob?.cancel()
+        saveJob = viewModelScope.launch {
+            delay(SAVE_DEBOUNCE_MS)
             repository.insertApp(app)
-            _appState.value = app
         }
     }
 }

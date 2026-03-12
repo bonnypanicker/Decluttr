@@ -75,7 +75,7 @@ class GetAppDetailsUseCase @Inject constructor(
             @Suppress("DEPRECATION")
             Bitmap.CompressFormat.WEBP
         }
-        scaledBitmap.compress(format, 80, stream)
+        scaledBitmap.compress(format, 60, stream)
         val byteArray = stream.toByteArray()
         
         return byteArray.takeIf { it.isNotEmpty() }
