@@ -169,6 +169,7 @@ fun DashboardScreen(
                         bitmapCache = bitmapCache,
                         isLoading = isLoadingDiscovery,
                         onRefresh = { viewModel.loadDiscoveryDataIfStale() },
+                        onForceRefresh = { viewModel.loadDiscoveryData() },
                         onBatchUninstall = { packageIds ->
                             viewModel.archiveAndUninstallSelected(packageIds)
                         },

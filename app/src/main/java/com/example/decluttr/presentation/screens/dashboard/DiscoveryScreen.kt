@@ -58,6 +58,10 @@ enum class DiscoveryViewState {
     DASHBOARD, RARELY_USED, LARGE_APPS, ALL_APPS
 }
 
+enum class SortOption(val label: String) {
+    NAME("Name"), SIZE("Size"), LAST_USED("Last Used")
+}
+
 @Composable
 fun DiscoveryScreen(
     unusedApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
@@ -66,6 +70,7 @@ fun DiscoveryScreen(
     bitmapCache: Map<String, ImageBitmap>,
     isLoading: Boolean,
     onRefresh: () -> Unit,
+    onForceRefresh: () -> Unit,
     onBatchUninstall: (Set<String>) -> Unit,
     onBatchUninstallOnly: (Set<String>) -> Unit,
     hasUsagePermission: Boolean,
@@ -128,6 +133,7 @@ fun DiscoveryScreen(
                     title = "Rarely Used Apps",
                     appList = unusedApps,
                     bitmapCache = bitmapCache,
+                    listType = DiscoveryViewState.RARELY_USED,
                     onBack = { viewState = DiscoveryViewState.DASHBOARD },
                     onBatchUninstall = { ids -> 
                         viewState = DiscoveryViewState.DASHBOARD
@@ -144,6 +150,7 @@ fun DiscoveryScreen(
                     title = "Large Apps (>100MB)",
                     appList = largeApps,
                     bitmapCache = bitmapCache,
+                    listType = DiscoveryViewState.LARGE_APPS,
                     onBack = { viewState = DiscoveryViewState.DASHBOARD },
                     onBatchUninstall = { ids -> 
                         viewState = DiscoveryViewState.DASHBOARD
@@ -160,6 +167,7 @@ fun DiscoveryScreen(
                     title = "All Installed Apps",
                     appList = allApps,
                     bitmapCache = bitmapCache,
+                    listType = DiscoveryViewState.ALL_APPS,
                     onBack = { viewState = DiscoveryViewState.DASHBOARD },
                     onBatchUninstall = { ids -> 
                         viewState = DiscoveryViewState.DASHBOARD
@@ -357,6 +365,7 @@ fun SpecificAppListDisplay(
     title: String,
     appList: List<GetInstalledAppsUseCase.InstalledAppInfo>,
     bitmapCache: Map<String, ImageBitmap>,
+    listType: DiscoveryViewState = DiscoveryViewState.ALL_APPS,
     onBack: () -> Unit,
     onBatchUninstall: (Set<String>) -> Unit,
     onBatchUninstallOnly: (Set<String>) -> Unit
@@ -365,11 +374,17 @@ fun SpecificAppListDisplay(
     var showSideloadWarning by remember { mutableStateOf(false) }
     var appsToUninstall by remember { mutableStateOf<Set<String>>(emptySet()) }
     var searchQuery by remember { mutableStateOf("") }
+    var sortOption by remember { mutableStateOf(SortOption.NAME) }
 
-    // Filtered list based on search
-    val filteredList = remember(appList, searchQuery) {
-        if (searchQuery.isBlank()) appList
-        else appList.filter { it.name.contains(searchQuery, ignoreCase = true) }
+    // Filtered + sorted list
+    val filteredList = remember(appList, searchQuery, sortOption) {
+        val filtered = if (searchQuery.isBlank()) appList
+            else appList.filter { it.name.contains(searchQuery, ignoreCase = true) }
+        when (sortOption) {
+            SortOption.NAME -> filtered.sortedBy { it.name.lowercase() }
+            SortOption.SIZE -> filtered.sortedByDescending { it.apkSizeBytes }
+            SortOption.LAST_USED -> filtered.sortedBy { it.lastTimeUsed }
+        }
     }
 
     // Selection stats
@@ -447,7 +462,23 @@ fun SpecificAppListDisplay(
             )
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Sort row
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            SortOption.entries.forEach { option ->
+                androidx.compose.material3.FilterChip(
+                    selected = sortOption == option,
+                    onClick = { sortOption = option },
+                    label = { Text(option.label, style = MaterialTheme.typography.labelSmall) }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Select All toggle + selection info
         if (filteredList.isNotEmpty()) {
@@ -550,6 +581,7 @@ fun SpecificAppListDisplay(
                         app = app,
                         isSelected = isSelected,
                         cachedBitmap = bitmapCache[app.packageId],
+                        listType = listType,
                         onToggle = {
                             selectedApps = if (isSelected) {
                                 selectedApps - app.packageId
@@ -570,6 +602,7 @@ fun AppListCard(
     app: GetInstalledAppsUseCase.InstalledAppInfo,
     isSelected: Boolean,
     cachedBitmap: ImageBitmap?,
+    listType: DiscoveryViewState = DiscoveryViewState.ALL_APPS,
     onToggle: () -> Unit
 ) {
     // Use pre-decoded bitmap from ViewModel cache — no BitmapFactory on main thread
@@ -653,6 +686,27 @@ fun AppListCard(
                     text = " • $timeString", 
                     style = MaterialTheme.typography.bodySmall, 
                     color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+            // Contextual label based on list type
+            val contextLabel = remember(listType, app.lastTimeUsed, app.apkSizeBytes) {
+                when (listType) {
+                    DiscoveryViewState.RARELY_USED -> {
+                        if (app.lastTimeUsed > 0) {
+                            val daysAgo = ((System.currentTimeMillis() - app.lastTimeUsed) / (1000 * 60 * 60 * 24)).toInt()
+                            "Not used in $daysAgo days"
+                        } else "Never opened"
+                    }
+                    DiscoveryViewState.LARGE_APPS -> "Takes ${bytesToMB(app.apkSizeBytes)} MB"
+                    else -> null
+                }
+            }
+            if (contextLabel != null) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = contextLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.tertiary
                 )
             }
         }
