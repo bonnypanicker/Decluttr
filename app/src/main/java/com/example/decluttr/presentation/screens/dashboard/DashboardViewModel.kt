@@ -1,16 +1,21 @@
 package com.example.decluttr.presentation.screens.dashboard
 
+import android.content.Context
 import android.graphics.BitmapFactory
 import android.util.LruCache
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import coil.imageLoader
+import coil.request.ImageRequest
 import com.example.decluttr.domain.model.ArchivedApp
 import com.example.decluttr.domain.repository.AppRepository
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 import com.example.decluttr.domain.usecase.GetUnusedAppsUseCase
+import com.example.decluttr.presentation.util.AppIconModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,7 +34,8 @@ class DashboardViewModel @Inject constructor(
     private val getInstalledAppsUseCase: GetInstalledAppsUseCase,
     private val archiveAndUninstallUseCase: com.example.decluttr.domain.usecase.ArchiveAndUninstallUseCase,
     private val checkUsagePermissionUseCase: com.example.decluttr.domain.usecase.CheckUsagePermissionUseCase,
-    private val uninstallAppUseCase: com.example.decluttr.domain.usecase.UninstallAppUseCase
+    private val uninstallAppUseCase: com.example.decluttr.domain.usecase.UninstallAppUseCase,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     val archivedApps: StateFlow<List<ArchivedApp>> = appRepository.getAllArchivedApps()
@@ -89,18 +95,14 @@ class DashboardViewModel @Inject constructor(
             // Single pass: fetch all installed apps + unused in one go
             val result = getUnusedAppsUseCase.fetchAll()
 
-            // Preload all icons into memory cache before showing the list
-            // This ensures zero-jank scrolling as all icons will be "hot" in the cache
             withContext(Dispatchers.IO) {
-                val context = com.example.decluttr.DecluttrApp.instance?.applicationContext
-                if (context != null) {
-                    val fetcher = com.example.decluttr.presentation.util.AppIconFetcher(
-                        context, 
-                        com.example.decluttr.presentation.util.AppIconModel(""), // Dummy model, we just need the instance methods if refactored, or we construct per item
-                        null // We can't easily access the DI injected cache here without a refactor, 
-                             // BUT wait, we can just use Coil's ImageLoader if we want, OR we can inject IconCacheManager here.
-                    )
-                    // Actually, cleaner way: Inject IconCacheManager into ViewModel and populate it directly.
+                val imageLoader = context.imageLoader
+                result.allApps.forEach { app ->
+                    val request = ImageRequest.Builder(context)
+                        .data(AppIconModel(app.packageId))
+                        .memoryCacheKey(app.packageId)
+                        .build()
+                    imageLoader.execute(request)
                 }
             }
             

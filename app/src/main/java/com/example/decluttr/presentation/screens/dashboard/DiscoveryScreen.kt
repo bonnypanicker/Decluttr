@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 import com.example.decluttr.presentation.util.AppIconModel
 import kotlin.math.roundToInt
@@ -364,10 +365,6 @@ fun SmartDeclutterCard(
     }
 }
 
-import coil.ImageLoader
-import coil.request.ImageRequest
-import androidx.compose.ui.platform.LocalContext
-
 @Composable
 fun SpecificAppListDisplay(
     title: String,
@@ -440,8 +437,6 @@ fun SpecificAppListDisplay(
             }
         )
     }
-
-    val listState = rememberLazyListState()
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Header with back button and title
