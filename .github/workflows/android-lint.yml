@@ -24,7 +24,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Run Android lint
-        run: ./gradlew lintDebug --stacktrace --info
+        run: bash ./gradlew lintDebug --stacktrace --info
 
       - name: Upload lint reports
         if: always()
