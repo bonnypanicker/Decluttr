@@ -604,6 +604,7 @@ fun SpecificAppListDisplay(
                     AppListCard(
                         app = app,
                         isSelected = isSelected,
+                        isScrolling = listState.isScrollInProgress,
                         listType = listType,
                         onToggle = {
                             selectedApps = if (isSelected) {
@@ -623,6 +624,7 @@ fun SpecificAppListDisplay(
 fun AppListCard(
     app: GetInstalledAppsUseCase.InstalledAppInfo,
     isSelected: Boolean,
+    isScrolling: Boolean,
     listType: DiscoveryViewState = DiscoveryViewState.ALL_APPS,
     onToggle: () -> Unit
 ) {
@@ -668,11 +670,28 @@ fun AppListCard(
         
         Spacer(modifier = Modifier.width(8.dp))
         
-        AsyncImage(
-            model = imageRequest,
-            contentDescription = "App Icon",
-            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
-        )
+        if (isScrolling) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = app.name.firstOrNull()?.uppercase() ?: "?",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        } else {
+            AsyncImage(
+                model = imageRequest,
+                contentDescription = "App Icon",
+                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
+            )
+        }
         
         Spacer(modifier = Modifier.width(16.dp))
         
