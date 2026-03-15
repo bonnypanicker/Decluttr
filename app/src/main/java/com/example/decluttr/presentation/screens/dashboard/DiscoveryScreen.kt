@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
@@ -558,7 +557,7 @@ fun SpecificAppListDisplay(
         }
 
         if (filteredList.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     if (searchQuery.isNotEmpty()) {
                         Text(
@@ -577,7 +576,7 @@ fun SpecificAppListDisplay(
             }
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().weight(1f),
+                modifier = Modifier.fillMaxWidth().weight(1f),
                 state = listState,
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -615,13 +614,23 @@ fun AppListCard(
     onToggle: () -> Unit
 ) {
     val context = LocalContext.current
+    val now = remember { System.currentTimeMillis() }
+    val sizeLabel = remember(app.apkSizeBytes) { "${bytesToMB(app.apkSizeBytes)} MB" }
+    val imageRequest = remember(app.packageId) {
+        ImageRequest.Builder(context)
+            .data(AppIconModel(app.packageId))
+            .memoryCacheKey(app.packageId)
+            .crossfade(false)
+            .build()
+    }
     val timeString = remember(app.lastTimeUsed) {
         if (app.lastTimeUsed > 0) {
-            DateUtils.getRelativeTimeSpanString(
-                app.lastTimeUsed,
-                System.currentTimeMillis(),
-                DateUtils.MINUTE_IN_MILLIS
-            ).toString()
+            val daysAgo = ((now - app.lastTimeUsed) / DateUtils.DAY_IN_MILLIS).toInt()
+            when {
+                daysAgo <= 0 -> "Today"
+                daysAgo == 1 -> "1 day ago"
+                else -> "$daysAgo days ago"
+            }
         } else {
             "Never used"
         }
@@ -631,9 +640,10 @@ fun AppListCard(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .clipToBounds()
-            .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
+            .background(
+                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(8.dp)
+            )
             .clickable(onClick = onToggle)
             .padding(vertical = 12.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -646,11 +656,7 @@ fun AppListCard(
         Spacer(modifier = Modifier.width(8.dp))
         
         AsyncImage(
-            model = ImageRequest.Builder(context)
-                .data(AppIconModel(app.packageId))
-                .memoryCacheKey(app.packageId)
-                .crossfade(false)
-                .build(),
+            model = imageRequest,
             contentDescription = "App Icon",
             modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
         )
@@ -680,7 +686,7 @@ fun AppListCard(
             Spacer(modifier = Modifier.height(2.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "${bytesToMB(app.apkSizeBytes)} MB", 
+                    text = sizeLabel,
                     style = MaterialTheme.typography.bodySmall, 
                     fontWeight = FontWeight.Medium,
                     color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
@@ -696,11 +702,11 @@ fun AppListCard(
                 when (listType) {
                     DiscoveryViewState.RARELY_USED -> {
                         if (app.lastTimeUsed > 0) {
-                            val daysAgo = ((System.currentTimeMillis() - app.lastTimeUsed) / (1000 * 60 * 60 * 24)).toInt()
+                            val daysAgo = ((now - app.lastTimeUsed) / DateUtils.DAY_IN_MILLIS).toInt()
                             "Not used in $daysAgo days"
                         } else "Never opened"
                     }
-                    DiscoveryViewState.LARGE_APPS -> "Takes ${bytesToMB(app.apkSizeBytes)} MB"
+                    DiscoveryViewState.LARGE_APPS -> "Takes $sizeLabel"
                     else -> null
                 }
             }
