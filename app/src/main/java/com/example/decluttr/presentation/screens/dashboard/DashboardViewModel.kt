@@ -12,8 +12,10 @@ import com.example.decluttr.domain.usecase.GetUnusedAppsUseCase
 import com.example.decluttr.presentation.util.AppIconModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +25,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
@@ -85,8 +88,9 @@ class DashboardViewModel @Inject constructor(
     private var lastRefreshTime = 0L
     private val REFRESH_COOLDOWN_MS = 30_000L  // 30 seconds
     private val INITIAL_ICON_PRELOAD_COUNT = 60
-    private val STARTUP_BLOCKING_ICON_PRELOAD_COUNT = 24
+    private val STARTUP_BLOCKING_ICON_PRELOAD_COUNT = 48
     private val ICON_PREFETCH_CHUNK_SIZE = 12
+    private val ICON_WARM_PARALLELISM = 6
 
     init {
         loadDiscoveryData()
@@ -176,7 +180,7 @@ class DashboardViewModel @Inject constructor(
             remainingPackages.chunked(ICON_PREFETCH_CHUNK_SIZE).forEach { chunk ->
                 if (!isActive) return@launch
                 warmPackageIds(chunk)
-                delay(35)
+                yield()
             }
         }
     }
@@ -187,17 +191,26 @@ class DashboardViewModel @Inject constructor(
     ) {
         withContext(Dispatchers.IO) {
             val imageLoader = context.imageLoader
-            packageIds
-                .asSequence()
+            val toWarm = packageIds
                 .filter { preloadedIconPackages.add(it) }
                 .take(limit)
-                .forEach { packageId ->
-                val request = ImageRequest.Builder(context)
-                    .data(AppIconModel(packageId))
-                    .memoryCacheKey(packageId)
-                    .crossfade(false)
-                    .build()
-                imageLoader.execute(request)
+            toWarm
+                .chunked(ICON_WARM_PARALLELISM)
+                .forEach { batch ->
+                    coroutineScope {
+                        batch
+                            .map { packageId ->
+                                async {
+                                    val request = ImageRequest.Builder(context)
+                                        .data(AppIconModel(packageId))
+                                        .memoryCacheKey(packageId)
+                                        .crossfade(false)
+                                        .build()
+                                    imageLoader.execute(request)
+                                }
+                            }
+                            .awaitAll()
+                    }
                 }
         }
     }

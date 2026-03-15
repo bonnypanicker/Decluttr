@@ -10,6 +10,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -58,7 +59,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
@@ -270,10 +270,6 @@ fun DiscoveryDashboard(
             }
         }
     }
-    val firstVisibleItemIndex by remember {
-        derivedStateOf { listState.firstVisibleItemIndex }
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             state = listState,
@@ -358,11 +354,9 @@ fun DiscoveryDashboard(
                 contentType = { "all_apps_row" }
             ) { app ->
                 val isSelected = app.packageId in selectedApps
-                val motionScale = 0.85f - ((firstVisibleItemIndex % 8) * 0.05f)
                 AllAppsSelectableCard(
                     app = app,
                     isSelected = isSelected,
-                    motion = scrollImpulse * motionScale.coerceAtLeast(0.4f),
                     onToggle = {
                         selectedApps = if (isSelected) {
                             selectedApps - app.packageId
@@ -479,7 +473,6 @@ private fun AllAppsSection(
 private fun AllAppsSelectableCard(
     app: GetInstalledAppsUseCase.InstalledAppInfo,
     isSelected: Boolean,
-    motion: Float,
     onToggle: () -> Unit
 ) {
     val context = LocalContext.current
@@ -495,19 +488,16 @@ private fun AllAppsSelectableCard(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .graphicsLayer {
-                translationY = motion
-            }
-            .shadow(
-                elevation = 2.dp,
-                shape = RoundedCornerShape(12.dp),
-                ambientColor = Color.Black.copy(alpha = 0.1f),
-                spotColor = Color.Black.copy(alpha = 0.1f)
-            )
             .clip(RoundedCornerShape(12.dp))
             .background(
                 if (isSelected) MaterialTheme.colorScheme.primaryContainer
                 else MaterialTheme.colorScheme.surface
+            )
+            .border(
+                width = 1.dp,
+                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
+                shape = RoundedCornerShape(12.dp)
             )
             .clickable(onClick = onToggle)
             .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -617,15 +607,10 @@ fun SmartDeclutterCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(
-                elevation = 2.dp,
-                shape = RoundedCornerShape(16.dp),
-                ambientColor = Color.Black.copy(alpha = 0.1f),
-                spotColor = Color.Black.copy(alpha = 0.1f)
-            )
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f), RoundedCornerShape(16.dp))
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(
@@ -896,7 +881,6 @@ fun SpecificAppListDisplay(
                     AppListCard(
                         app = app,
                         isSelected = isSelected,
-                        isScrolling = listState.isScrollInProgress,
                         listType = listType,
                         onToggle = {
                             selectedApps = if (isSelected) {
@@ -916,19 +900,17 @@ fun SpecificAppListDisplay(
 fun AppListCard(
     app: GetInstalledAppsUseCase.InstalledAppInfo,
     isSelected: Boolean,
-    isScrolling: Boolean,
     listType: DiscoveryViewState = DiscoveryViewState.ALL_APPS,
     onToggle: () -> Unit
 ) {
     val context = LocalContext.current
     val now = remember { System.currentTimeMillis() }
     val sizeLabel = remember(app.apkSizeBytes) { "${bytesToMB(app.apkSizeBytes)} MB" }
-    val imageRequest = remember(app.packageId, isScrolling) {
-        val size = if (isScrolling) 48 else 128
+    val imageRequest = remember(app.packageId) {
         ImageRequest.Builder(context)
             .data(AppIconModel(app.packageId))
             .memoryCacheKey(app.packageId)
-            .size(size)
+            .size(96)
             .crossfade(false)
             .build()
     }

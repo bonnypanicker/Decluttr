@@ -58,7 +58,12 @@ class AppIconFetcher(
             if (iconCacheManager != null) {
                 val bitmap = drawableToBitmap(icon, cacheSizePx, cacheSizePx)
                 val stream = ByteArrayOutputStream()
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                    bitmap.compress(Bitmap.CompressFormat.WEBP_LOSSY, 80, stream)
+                } else {
+                    @Suppress("DEPRECATION")
+                    bitmap.compress(Bitmap.CompressFormat.WEBP, 80, stream)
+                }
                 iconCacheManager.put(data.packageName, stream.toByteArray())
             }
 
