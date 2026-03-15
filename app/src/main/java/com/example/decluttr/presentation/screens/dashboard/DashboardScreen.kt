@@ -56,6 +56,7 @@ fun DashboardScreen(
     val largeApps by viewModel.largeApps.collectAsState()
     val allInstalledApps by viewModel.allInstalledApps.collectAsState()
     val isLoadingDiscovery by viewModel.isLoadingDiscovery.collectAsState()
+    val isPreparingAllApps by viewModel.isPreparingAllApps.collectAsState()
 
     var celebrationData by remember { mutableStateOf<DashboardViewModel.CelebrationData?>(null) }
     var selectedTabIndex by remember { mutableIntStateOf(0) }
@@ -166,8 +167,9 @@ fun DashboardScreen(
                         largeApps = largeApps,
                         allApps = allInstalledApps,
                         isLoading = isLoadingDiscovery,
+                        isPreparingAllApps = isPreparingAllApps,
                         onRefresh = { viewModel.loadDiscoveryDataIfStale() },
-                        onForceRefresh = { viewModel.loadDiscoveryData() },
+                        onPrepareAllApps = { viewModel.prepareAllAppsForDisplay() },
                         onBatchUninstall = { packageIds ->
                             viewModel.archiveAndUninstallSelected(packageIds)
                         },

@@ -1,7 +1,7 @@
 package com.example.decluttr.presentation.screens.dashboard
 
+import android.text.format.DateUtils
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import android.text.format.DateUtils
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -37,6 +36,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,23 +45,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 import com.example.decluttr.presentation.util.AppIconModel
 import kotlin.math.roundToInt
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.snapshotFlow
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.map
 
 enum class DiscoveryViewState {
     DASHBOARD, RARELY_USED, LARGE_APPS, ALL_APPS
@@ -76,14 +70,16 @@ fun DiscoveryScreen(
     largeApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
     allApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
     isLoading: Boolean,
+    isPreparingAllApps: Boolean,
     onRefresh: () -> Unit,
-    onForceRefresh: () -> Unit,
+    onPrepareAllApps: () -> Unit,
     onBatchUninstall: (Set<String>) -> Unit,
     onBatchUninstallOnly: (Set<String>) -> Unit,
     hasUsagePermission: Boolean,
     onRequestPermission: () -> Unit
 ) {
     var viewState by remember { mutableStateOf(DiscoveryViewState.DASHBOARD) }
+    var pendingAllAppsOpen by remember { mutableStateOf(false) }
     
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -108,7 +104,14 @@ fun DiscoveryScreen(
         viewState = DiscoveryViewState.DASHBOARD
     }
 
-    if (isLoading) {
+    LaunchedEffect(pendingAllAppsOpen, isPreparingAllApps) {
+        if (pendingAllAppsOpen && !isPreparingAllApps) {
+            viewState = DiscoveryViewState.ALL_APPS
+            pendingAllAppsOpen = false
+        }
+    }
+
+    if (isLoading || isPreparingAllApps) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
@@ -132,7 +135,11 @@ fun DiscoveryScreen(
                             // ignored
                         }
                     },
-                    onNavigateToSpecificList = { newState -> viewState = newState }
+                    onNavigateToSpecificList = { newState -> viewState = newState },
+                    onBrowseAllApps = {
+                        pendingAllAppsOpen = true
+                        onPrepareAllApps()
+                    }
                 )
             }
             DiscoveryViewState.RARELY_USED -> {
@@ -194,7 +201,8 @@ fun DiscoveryDashboard(
     allApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
     hasUsagePermission: Boolean,
     onRequestPermission: () -> Unit,
-    onNavigateToSpecificList: (DiscoveryViewState) -> Unit
+    onNavigateToSpecificList: (DiscoveryViewState) -> Unit,
+    onBrowseAllApps: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -257,7 +265,7 @@ fun DiscoveryDashboard(
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                 horizontalArrangement = Arrangement.Center
             ) {
-                androidx.compose.material3.TextButton(onClick = { onNavigateToSpecificList(DiscoveryViewState.ALL_APPS) }) {
+                androidx.compose.material3.TextButton(onClick = onBrowseAllApps) {
                     Text("Browse All Apps")
                 }
             }
@@ -606,7 +614,7 @@ fun AppListCard(
     listType: DiscoveryViewState = DiscoveryViewState.ALL_APPS,
     onToggle: () -> Unit
 ) {
-    
+    val context = LocalContext.current
     val timeString = remember(app.lastTimeUsed) {
         if (app.lastTimeUsed > 0) {
             DateUtils.getRelativeTimeSpanString(
@@ -638,7 +646,11 @@ fun AppListCard(
         Spacer(modifier = Modifier.width(8.dp))
         
         AsyncImage(
-            model = AppIconModel(app.packageId),
+            model = ImageRequest.Builder(context)
+                .data(AppIconModel(app.packageId))
+                .memoryCacheKey(app.packageId)
+                .crossfade(false)
+                .build(),
             contentDescription = "App Icon",
             modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
         )

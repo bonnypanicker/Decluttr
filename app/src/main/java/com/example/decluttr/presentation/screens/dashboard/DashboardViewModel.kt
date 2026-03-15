@@ -1,10 +1,6 @@
 package com.example.decluttr.presentation.screens.dashboard
 
 import android.content.Context
-import android.graphics.BitmapFactory
-import android.util.LruCache
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.imageLoader
@@ -31,7 +27,6 @@ import javax.inject.Inject
 class DashboardViewModel @Inject constructor(
     private val appRepository: AppRepository,
     private val getUnusedAppsUseCase: GetUnusedAppsUseCase,
-    private val getInstalledAppsUseCase: GetInstalledAppsUseCase,
     private val archiveAndUninstallUseCase: com.example.decluttr.domain.usecase.ArchiveAndUninstallUseCase,
     private val checkUsagePermissionUseCase: com.example.decluttr.domain.usecase.CheckUsagePermissionUseCase,
     private val uninstallAppUseCase: com.example.decluttr.domain.usecase.UninstallAppUseCase,
@@ -53,6 +48,9 @@ class DashboardViewModel @Inject constructor(
 
     private val _isLoadingDiscovery = MutableStateFlow(false)
     val isLoadingDiscovery = _isLoadingDiscovery.asStateFlow()
+
+    private val _isPreparingAllApps = MutableStateFlow(false)
+    val isPreparingAllApps = _isPreparingAllApps.asStateFlow()
 
     private val _hasUsagePermission = MutableStateFlow(checkUsagePermissionUseCase())
     val hasUsagePermission = _hasUsagePermission.asStateFlow()
@@ -91,26 +89,51 @@ class DashboardViewModel @Inject constructor(
         if (discoveryJob?.isActive == true) return
         discoveryJob = viewModelScope.launch {
             _isLoadingDiscovery.value = true
-            
-            // Single pass: fetch all installed apps + unused in one go
-            val result = getUnusedAppsUseCase.fetchAll()
-
-            withContext(Dispatchers.IO) {
-                val imageLoader = context.imageLoader
-                result.allApps.forEach { app ->
-                    val request = ImageRequest.Builder(context)
-                        .data(AppIconModel(app.packageId))
-                        .memoryCacheKey(app.packageId)
-                        .build()
-                    imageLoader.execute(request)
-                }
+            try {
+                val result = getUnusedAppsUseCase.fetchAll()
+                _unusedApps.value = result.unusedApps
+                _allInstalledApps.value = result.allApps
+                warmIcons(result.allApps)
+                lastRefreshTime = System.currentTimeMillis()
+            } finally {
+                _isLoadingDiscovery.value = false
             }
-            
-            _unusedApps.value = result.unusedApps
-            _allInstalledApps.value = result.allApps
-            
-            _isLoadingDiscovery.value = false
-            lastRefreshTime = System.currentTimeMillis()
+        }
+    }
+
+    fun prepareAllAppsForDisplay() {
+        if (_isPreparingAllApps.value) return
+        viewModelScope.launch {
+            _isPreparingAllApps.value = true
+            try {
+                val result = if (allInstalledApps.value.isEmpty()) {
+                    getUnusedAppsUseCase.fetchAll()
+                } else {
+                    GetUnusedAppsUseCase.UnusedAppsResult(
+                        allApps = allInstalledApps.value,
+                        unusedApps = unusedApps.value
+                    )
+                }
+                _unusedApps.value = result.unusedApps
+                _allInstalledApps.value = result.allApps
+                warmIcons(result.allApps)
+            } finally {
+                _isPreparingAllApps.value = false
+            }
+        }
+    }
+
+    private suspend fun warmIcons(apps: List<GetInstalledAppsUseCase.InstalledAppInfo>) {
+        withContext(Dispatchers.IO) {
+            val imageLoader = context.imageLoader
+            apps.forEach { app ->
+                val request = ImageRequest.Builder(context)
+                    .data(AppIconModel(app.packageId))
+                    .memoryCacheKey(app.packageId)
+                    .crossfade(false)
+                    .build()
+                imageLoader.execute(request)
+            }
         }
     }
 

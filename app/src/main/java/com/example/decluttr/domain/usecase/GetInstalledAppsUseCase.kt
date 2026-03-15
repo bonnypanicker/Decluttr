@@ -3,8 +3,6 @@ package com.example.decluttr.domain.usecase
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
-import android.app.usage.StorageStatsManager
-import android.os.storage.StorageManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -14,8 +12,7 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class GetInstalledAppsUseCase @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val getAppDetailsUseCase: GetAppDetailsUseCase
+    @ApplicationContext private val context: Context
 ) {
     @androidx.compose.runtime.Immutable
     data class InstalledAppInfo(
@@ -29,9 +26,7 @@ class GetInstalledAppsUseCase @Inject constructor(
 
     suspend operator fun invoke(): List<InstalledAppInfo> = withContext(Dispatchers.IO) {
         val packageManager = context.packageManager
-        val storageStatsManager = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            context.getSystemService(Context.STORAGE_STATS_SERVICE) as? StorageStatsManager
-        } else null
+        runCatching { packageManager.getInstalledPackages(0) }
         
         // Get all installed packages
         val packages = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
@@ -45,34 +40,13 @@ class GetInstalledAppsUseCase @Inject constructor(
             !isSystemApp && !isWebApk && appInfo.packageName != context.packageName
         }
 
-        // Process apps in parallel batches for much faster loading
+        val processedApps = mutableListOf<InstalledAppInfo>()
         coroutineScope {
-            userApps.map { appInfo ->
-                async(Dispatchers.IO) {
+            userApps.chunked(12).forEach { appBatch ->
+                val chunkResults = appBatch.map { appInfo ->
+                    async(Dispatchers.IO) {
                     val packageId = appInfo.packageName
-                    
-                    // Use cached icon if available, otherwise fetch and cache
-                    val details = getAppDetailsUseCase(packageId, fetchIcon = false)
-                    
-                    var totalSize = 0L
-                    try {
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && storageStatsManager != null) {
-                            val stats = storageStatsManager.queryStatsForPackage(
-                                StorageManager.UUID_DEFAULT,
-                                packageId,
-                                android.os.Process.myUserHandle()
-                            )
-                            // User requested ONLY APK size, excluding data and cache
-                            totalSize = stats.appBytes
-                        } else {
-                            totalSize = java.io.File(appInfo.sourceDir).length()
-                        }
-                    } catch (e: SecurityException) {
-                        // Fallback if PACKAGE_USAGE_STATS is not explicitly granted
-                        totalSize = try { java.io.File(appInfo.sourceDir).length() } catch (ignored: Exception) { 0L }
-                    } catch (e: Exception) {
-                        totalSize = try { java.io.File(appInfo.sourceDir).length() } catch (ignored: Exception) { 0L }
-                    }
+                    val apkSizeBytes = runCatching { java.io.File(appInfo.sourceDir).length() }.getOrDefault(0L)
                     
                     val isArchived = if (android.os.Build.VERSION.SDK_INT >= 35) {
                         appInfo.isArchived
@@ -95,13 +69,16 @@ class GetInstalledAppsUseCase @Inject constructor(
 
                     InstalledAppInfo(
                         packageId = packageId,
-                        name = details?.name ?: packageManager.getApplicationLabel(appInfo).toString(),
-                        apkSizeBytes = totalSize,
+                        name = packageManager.getApplicationLabel(appInfo).toString(),
+                        apkSizeBytes = apkSizeBytes,
                         isOsArchived = isArchived,
                         isPlayStoreInstalled = isPlayStore
                     )
-                }
-            }.awaitAll()
-        }.sortedBy { it.name.lowercase() }
+                    }
+                }.awaitAll()
+                processedApps += chunkResults
+            }
+        }
+        processedApps.sortedBy { it.name.lowercase() }
     }
 }

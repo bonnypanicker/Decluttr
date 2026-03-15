@@ -2,8 +2,10 @@ package com.example.decluttr.presentation.util
 
 import android.content.Context
 import android.content.pm.LauncherApps
-import android.content.pm.PackageManager
-import android.os.UserHandle
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import coil.ImageLoader
 import coil.decode.DataSource
 import coil.fetch.DrawableResult
@@ -11,8 +13,6 @@ import coil.fetch.FetchResult
 import coil.fetch.Fetcher
 import coil.request.Options
 import com.example.decluttr.domain.usecase.IconCacheManager
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.Bitmap
 import java.io.ByteArrayOutputStream
 
 data class AppIconModel(val packageName: String)
@@ -22,6 +22,7 @@ class AppIconFetcher(
     private val data: AppIconModel,
     private val iconCacheManager: IconCacheManager? = null
 ) : Fetcher {
+    private val cacheSizePx = 128
 
     override suspend fun fetch(): FetchResult? {
         // 1. Try Memory Cache first (if available)
@@ -54,11 +55,9 @@ class AppIconFetcher(
                 context.packageManager.getApplicationIcon(data.packageName)
             }
 
-            // 3. Populate Cache (async-friendly but here we do it inline for simplicity)
-            if (iconCacheManager != null && icon is BitmapDrawable) {
-                val bitmap = icon.bitmap
+            if (iconCacheManager != null) {
+                val bitmap = drawableToBitmap(icon, cacheSizePx, cacheSizePx)
                 val stream = ByteArrayOutputStream()
-                // Compress significantly to reduce memory pressure
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
                 iconCacheManager.put(data.packageName, stream.toByteArray())
             }
@@ -72,6 +71,18 @@ class AppIconFetcher(
             // Handle NameNotFound or other system errors
             null
         }
+    }
+
+    private fun drawableToBitmap(drawable: Drawable, width: Int, height: Int): Bitmap {
+        if (drawable is BitmapDrawable && drawable.bitmap != null) {
+            return Bitmap.createScaledBitmap(drawable.bitmap, width, height, true)
+        }
+
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        return bitmap
     }
 
     class Factory(

@@ -5,7 +5,7 @@ import coil.ImageLoader
 import coil.ImageLoaderFactory
 import com.example.decluttr.domain.usecase.IconCacheManager
 import com.example.decluttr.presentation.util.AppIconFetcher
-import com.example.decluttr.presentation.util.AppIconModel
+import com.example.decluttr.presentation.util.AppIconKeyer
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -18,11 +18,9 @@ class DecluttrApp : Application(), ImageLoaderFactory {
     override fun newImageLoader(): ImageLoader {
         return ImageLoader.Builder(this)
             .components {
-                // Pass the injected cache manager to the fetcher factory
                 add(AppIconFetcher.Factory(this@DecluttrApp, iconCacheManager))
+                add(AppIconKeyer())
             }
-            .crossfade(true)
-            // Optional: Limit memory cache size for Coil itself to avoid OOM with large lists
             .memoryCache {
                 coil.memory.MemoryCache.Builder(this)
                     .maxSizePercent(0.25)
