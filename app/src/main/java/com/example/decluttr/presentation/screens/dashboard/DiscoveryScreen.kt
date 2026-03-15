@@ -5,11 +5,16 @@ import android.text.format.DateUtils
 import android.util.Log
 import android.view.Choreographer
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -24,6 +29,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
@@ -43,6 +49,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -51,11 +58,17 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.decluttr.BuildConfig
@@ -216,72 +229,285 @@ fun DiscoveryDashboard(
     onNavigateToSpecificList: (DiscoveryViewState) -> Unit,
     onBrowseAllApps: () -> Unit
 ) {
+    val listState = rememberLazyListState()
+    val configuration = LocalConfiguration.current
+    val horizontalPadding = if (configuration.screenWidthDp >= 840) 24.dp else 16.dp
+    var scrollImpulseTarget by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(listState) {
+        var lastIndex = 0
+        var lastOffset = 0
+        snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+            .collect { (index, offset) ->
+                val delta = ((index - lastIndex) * 320 + (offset - lastOffset)).toFloat()
+                scrollImpulseTarget = (-delta * 0.15f).coerceIn(-20f, 20f)
+                lastIndex = index
+                lastOffset = offset
+            }
+    }
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress }
+            .distinctUntilChanged()
+            .collect { isScrolling ->
+                if (!isScrolling) {
+                    scrollImpulseTarget = 0f
+                }
+            }
+    }
+
+    val scrollImpulse by animateFloatAsState(
+        targetValue = scrollImpulseTarget,
+        animationSpec = spring(dampingRatio = 0.82f, stiffness = 430f),
+        label = "dashboardScrollImpulse"
+    )
+
+    val allAppsHeaderProgress by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val largeCardItem = layoutInfo.visibleItemsInfo.firstOrNull { it.key == "large_apps_card" }
+            if (largeCardItem == null) {
+                if (listState.firstVisibleItemIndex > 2) 1f else 0f
+            } else {
+                val visibleStart = maxOf(layoutInfo.viewportStartOffset, largeCardItem.offset)
+                val visibleEnd = minOf(layoutInfo.viewportEndOffset, largeCardItem.offset + largeCardItem.size)
+                val visiblePx = (visibleEnd - visibleStart).coerceAtLeast(0)
+                val visibleFraction = if (largeCardItem.size > 0) visiblePx.toFloat() / largeCardItem.size else 0f
+                (1f - visibleFraction).coerceIn(0f, 1f)
+            }
+        }
+    }
+
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+        contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Hero Graphic: Storage Impact
-        item {
-            StorageImpactMeter(unusedApps = unusedApps, allApps = allApps)
+        item(key = "storage_meter") {
+            DashboardMotionContainer(
+                motion = scrollImpulse,
+                intensity = 0.35f
+            ) {
+                StorageImpactMeter(unusedApps = unusedApps, allApps = allApps)
+            }
         }
-        
-        // Smart Card: Rarely Used
-        item {
+
+        item(key = "rarely_used_card") {
             if (!hasUsagePermission) {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                    modifier = Modifier.fillMaxWidth()
+                DashboardMotionContainer(
+                    motion = scrollImpulse,
+                    intensity = 0.55f
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Usage Access Required", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onErrorContainer)
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "We need permission to detect which apps you haven't used recently.", 
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = onRequestPermission) {
-                            Text("Grant Permission")
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Usage Access Required", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onErrorContainer)
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "We need permission to detect which apps you haven't used recently.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(onClick = onRequestPermission) {
+                                Text("Grant Permission")
+                            }
                         }
                     }
                 }
             } else {
-                SmartDeclutterCard(
-                    icon = "📦",
-                    title = "Rarely Used Apps",
-                    description = "${unusedApps.size} apps • ${bytesToMB(unusedApps.sumOf { it.apkSizeBytes })} MB",
-                    onClick = { onNavigateToSpecificList(DiscoveryViewState.RARELY_USED) }
-                )
-            }
-        }
-        
-        // Smart Card: Large Apps
-        item {
-            SmartDeclutterCard(
-                icon = "💾",
-                title = "Large Apps",
-                description = "${largeApps.size} apps • ${bytesToMB(largeApps.sumOf { it.apkSizeBytes })} MB",
-                onClick = { onNavigateToSpecificList(DiscoveryViewState.LARGE_APPS) }
-            )
-        }
-
-        // Secondary Action: All Apps
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                androidx.compose.material3.TextButton(onClick = onBrowseAllApps) {
-                    Text("Browse All Apps")
+                DashboardMotionContainer(
+                    motion = scrollImpulse,
+                    intensity = 0.55f
+                ) {
+                    SmartDeclutterCard(
+                        icon = "📦",
+                        title = "Rarely Used Apps",
+                        description = "${unusedApps.size} apps • ${bytesToMB(unusedApps.sumOf { it.apkSizeBytes })} MB",
+                        onClick = { onNavigateToSpecificList(DiscoveryViewState.RARELY_USED) }
+                    )
                 }
             }
         }
+
+        item(key = "large_apps_card") {
+            DashboardMotionContainer(
+                motion = scrollImpulse,
+                intensity = 0.75f
+            ) {
+                SmartDeclutterCard(
+                    icon = "💾",
+                    title = "Large Apps",
+                    description = "${largeApps.size} apps • ${bytesToMB(largeApps.sumOf { it.apkSizeBytes })} MB",
+                    onClick = { onNavigateToSpecificList(DiscoveryViewState.LARGE_APPS) }
+                )
+            }
+        }
+
+        item(key = "all_apps_section") {
+            AllAppsSection(
+                allApps = allApps,
+                onBrowseAllApps = onBrowseAllApps,
+                headerProgress = allAppsHeaderProgress,
+                scrollImpulse = scrollImpulse
+            )
+        }
+    }
+}
+
+@Composable
+private fun DashboardMotionContainer(
+    motion: Float,
+    intensity: Float,
+    content: @Composable () -> Unit
+) {
+    Box(
+        modifier = Modifier.graphicsLayer {
+            translationY = motion * intensity
+        }
+    ) {
+        content()
+    }
+}
+
+@Composable
+private fun AllAppsSection(
+    allApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
+    onBrowseAllApps: () -> Unit,
+    headerProgress: Float,
+    scrollImpulse: Float
+) {
+    val transitionEasing = remember { CubicBezierEasing(0.2f, 0f, 0f, 1f) }
+    val headerScale by animateFloatAsState(
+        targetValue = 1f + (0.5f * headerProgress),
+        animationSpec = tween(durationMillis = 300, easing = transitionEasing),
+        label = "allAppsHeaderScale"
+    )
+    val headerAlpha by animateFloatAsState(
+        targetValue = 1f - (0.1f * headerProgress),
+        animationSpec = tween(durationMillis = 300, easing = transitionEasing),
+        label = "allAppsHeaderAlpha"
+    )
+    val headerBias by animateFloatAsState(
+        targetValue = -1f + headerProgress,
+        animationSpec = tween(durationMillis = 300, easing = transitionEasing),
+        label = "allAppsHeaderBias"
+    )
+    val previewApps = remember(allApps) { allApps.take(5) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .zIndex(1f),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "All Apps",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    shadow = Shadow(
+                        color = Color.Black.copy(alpha = 0.12f),
+                        offset = androidx.compose.ui.geometry.Offset(0f, 1f),
+                        blurRadius = 2f
+                    )
+                ),
+                modifier = Modifier
+                    .align(androidx.compose.ui.Alignment(horizontalBias = headerBias, verticalBias = 0f))
+                    .graphicsLayer {
+                        scaleX = headerScale
+                        scaleY = headerScale
+                        alpha = headerAlpha
+                    }
+            )
+        }
+
+        previewApps.forEachIndexed { index, app ->
+            val cardMotion = scrollImpulse * (0.9f - index * 0.08f).coerceAtLeast(0.4f)
+            AllAppsMiniCard(
+                app = app,
+                motion = cardMotion,
+                onClick = onBrowseAllApps
+            )
+        }
+
+        TextButton(
+            onClick = onBrowseAllApps,
+            modifier = Modifier.align(Alignment.Start)
+        ) {
+            Text("Browse all apps")
+        }
+    }
+}
+
+@Composable
+private fun AllAppsMiniCard(
+    app: GetInstalledAppsUseCase.InstalledAppInfo,
+    motion: Float,
+    onClick: () -> Unit
+) {
+    val context = LocalContext.current
+    val imageRequest = remember(app.packageId) {
+        ImageRequest.Builder(context)
+            .data(AppIconModel(app.packageId))
+            .memoryCacheKey(app.packageId)
+            .size(96)
+            .crossfade(false)
+            .build()
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                translationY = motion
+            }
+            .shadow(
+                elevation = 2.dp,
+                shape = RoundedCornerShape(12.dp),
+                ambientColor = Color.Black.copy(alpha = 0.1f),
+                spotColor = Color.Black.copy(alpha = 0.1f)
+            )
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AsyncImage(
+            model = imageRequest,
+            contentDescription = "${app.name} icon",
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(8.dp))
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = app.name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1
+            )
+            Text(
+                text = "${bytesToMB(app.apkSizeBytes)} MB",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Text(
+            text = "Open",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }
 
@@ -291,10 +517,10 @@ fun StorageImpactMeter(
     allApps: List<GetInstalledAppsUseCase.InstalledAppInfo>
 ) {
     if (allApps.isEmpty()) return
-    
+
     val totalSize = allApps.sumOf { it.apkSizeBytes }
     val wasteSize = unusedApps.sumOf { it.apkSizeBytes }
-    
+
     val wasteRatio = if (totalSize > 0) (wasteSize.toFloat() / totalSize.toFloat()) else 0f
     val percentage = (wasteRatio * 100).roundToInt()
 
@@ -328,10 +554,9 @@ fun StorageImpactMeter(
                     color = if (percentage > 15) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
-            // Progress Bar Graphic
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -360,9 +585,16 @@ fun SmartDeclutterCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .shadow(
+                elevation = 2.dp,
+                shape = RoundedCornerShape(16.dp),
+                ambientColor = Color.Black.copy(alpha = 0.1f),
+                spotColor = Color.Black.copy(alpha = 0.1f)
+            )
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Row(
             modifier = Modifier
