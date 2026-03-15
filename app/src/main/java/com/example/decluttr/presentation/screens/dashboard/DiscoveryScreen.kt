@@ -75,6 +75,7 @@ import com.example.decluttr.BuildConfig
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 import com.example.decluttr.presentation.util.AppIconModel
 import kotlinx.coroutines.flow.distinctUntilChanged
+import java.util.Locale
 import kotlin.math.roundToInt
 
 enum class DiscoveryViewState {
@@ -269,6 +270,9 @@ fun DiscoveryDashboard(
             }
         }
     }
+    val firstVisibleItemIndex by remember {
+        derivedStateOf { listState.firstVisibleItemIndex }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -354,7 +358,7 @@ fun DiscoveryDashboard(
                 contentType = { "all_apps_row" }
             ) { app ->
                 val isSelected = app.packageId in selectedApps
-                val motionScale = 0.85f - ((listState.firstVisibleItemIndex % 8) * 0.05f)
+                val motionScale = 0.85f - ((firstVisibleItemIndex % 8) * 0.05f)
                 AllAppsSelectableCard(
                     app = app,
                     isSelected = isSelected,
@@ -1030,9 +1034,9 @@ fun AppListCard(
 private fun bytesToMB(bytes: Long): String {
     val mb = bytes / (1024.0 * 1024.0)
     return if (mb < 1.0) {
-        String.format("%.1f", mb)
+        String.format(Locale.US, "%.1f", mb)
     } else {
-        String.format("%.0f", mb)
+        String.format(Locale.US, "%.0f", mb)
     }
 }
 
