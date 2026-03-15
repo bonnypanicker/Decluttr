@@ -42,7 +42,7 @@ class GetInstalledAppsUseCase @Inject constructor(
 
         val processedApps = mutableListOf<InstalledAppInfo>()
         coroutineScope {
-            userApps.chunked(12).forEach { appBatch ->
+            userApps.chunked(10).forEach { appBatch ->
                 val chunkResults = appBatch.map { appInfo ->
                     async(Dispatchers.IO) {
                     val packageId = appInfo.packageName
@@ -54,31 +54,18 @@ class GetInstalledAppsUseCase @Inject constructor(
                         false
                     }
 
-                    val installerName = try {
-                        if (android.os.Build.VERSION.SDK_INT >= 30) {
-                            packageManager.getInstallSourceInfo(packageId).installingPackageName
-                        } else {
-                            @Suppress("DEPRECATION")
-                            packageManager.getInstallerPackageName(packageId)
-                        }
-                    } catch (e: Exception) {
-                        null
-                    }
-                    
-                    val isPlayStore = installerName == "com.android.vending"
-
                     InstalledAppInfo(
                         packageId = packageId,
                         name = packageManager.getApplicationLabel(appInfo).toString(),
                         apkSizeBytes = apkSizeBytes,
                         isOsArchived = isArchived,
-                        isPlayStoreInstalled = isPlayStore
+                        isPlayStoreInstalled = true
                     )
                     }
                 }.awaitAll()
                 processedApps += chunkResults
             }
         }
-        processedApps.sortedBy { it.name.lowercase() }
+        processedApps.sortedBy { it.name }
     }
 }
