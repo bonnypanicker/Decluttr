@@ -1,6 +1,9 @@
 package com.example.decluttr.presentation.screens.dashboard
 
+import android.os.SystemClock
 import android.text.format.DateUtils
+import android.util.Log
+import android.view.Choreographer
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,11 +39,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.decluttr.BuildConfig
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 import com.example.decluttr.presentation.util.AppIconModel
 import kotlin.math.roundToInt
@@ -391,6 +398,12 @@ fun SpecificAppListDisplay(
     }
 
     val listState = rememberLazyListState()
+    ScrollPerfDebugProbe(
+        listState = listState,
+        listType = listType,
+        listSize = filteredList.size,
+        selectedCount = selectedApps.size
+    )
 
     // Selection stats
     val selectedSize = remember(selectedApps, appList) {
@@ -731,16 +744,67 @@ private fun bytesToMB(bytes: Long): String {
     }
 }
 
+@Composable
+private fun ScrollPerfDebugProbe(
+    listState: LazyListState,
+    listType: DiscoveryViewState,
+    listSize: Int,
+    selectedCount: Int
+) {
+    if (!BuildConfig.DEBUG) return
+    val currentListSize by rememberUpdatedState(listSize)
+    val currentSelectedCount by rememberUpdatedState(selectedCount)
+    val currentListType by rememberUpdatedState(listType)
+    DisposableEffect(listState) {
+        Log.i("DecluttrScroll", "adb logcat -c")
+        Log.i("DecluttrScroll", "adb logcat -s DecluttrScroll")
+        Log.i("DecluttrScroll", "adb logcat -v time -s DecluttrScroll > decluttr_scroll_trace.txt")
+        val choreographer = Choreographer.getInstance()
+        var previousFrameNanos = 0L
+        val callback = object : Choreographer.FrameCallback {
+            override fun doFrame(frameTimeNanos: Long) {
+                if (previousFrameNanos != 0L) {
+                    val deltaMs = (frameTimeNanos - previousFrameNanos) / 1_000_000
+                    if (deltaMs > 20 && listState.isScrollInProgress) {
+                        val layoutInfo = listState.layoutInfo
+                        Log.w(
+                            "DecluttrScroll",
+                            "jank_frame_ms=$deltaMs type=$currentListType first=${listState.firstVisibleItemIndex}:${listState.firstVisibleItemScrollOffset} visible=${layoutInfo.visibleItemsInfo.size} total=${layoutInfo.totalItemsCount} filtered=$currentListSize selected=$currentSelectedCount"
+                        )
+                    }
+                }
+                previousFrameNanos = frameTimeNanos
+                choreographer.postFrameCallback(this)
+            }
+        }
+        choreographer.postFrameCallback(callback)
+        onDispose {
+            choreographer.removeFrameCallback(callback)
+        }
+    }
+}
+
 internal fun filterAndSortApps(
     appList: List<GetInstalledAppsUseCase.InstalledAppInfo>,
     searchQuery: String,
     sortOption: SortOption
 ): List<GetInstalledAppsUseCase.InstalledAppInfo> {
+    val startNanos = if (BuildConfig.DEBUG) SystemClock.elapsedRealtimeNanos() else 0L
     val filtered = if (searchQuery.isBlank()) appList
     else appList.filter { it.name.contains(searchQuery, ignoreCase = true) }
-    return when (sortOption) {
+    val result = when (sortOption) {
         SortOption.NAME -> filtered.sortedBy { it.name.lowercase() }
         SortOption.SIZE -> filtered.sortedByDescending { it.apkSizeBytes }
         SortOption.LAST_USED -> filtered.sortedBy { it.lastTimeUsed }
     }
+    if (BuildConfig.DEBUG) {
+        val durationMs = (SystemClock.elapsedRealtimeNanos() - startNanos) / 1_000_000.0
+        if (durationMs >= 8.0) {
+            Log.d(
+                "DecluttrScroll",
+                "filter_sort_ms=${"%.2f".format(durationMs)} input=${appList.size} output=${result.size} queryLen=${searchQuery.length} sort=$sortOption"
+            )
+        }
+    }
+    return result
 }
