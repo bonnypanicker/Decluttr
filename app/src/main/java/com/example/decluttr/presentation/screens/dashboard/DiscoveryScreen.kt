@@ -56,6 +56,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -421,7 +422,7 @@ private fun AllAppsSection(
                     )
                 ),
                 modifier = Modifier
-                    .align(androidx.compose.ui.Alignment(horizontalBias = headerBias, verticalBias = 0f))
+                    .align(BiasAlignment(horizontalBias = headerBias, verticalBias = 0f))
                     .graphicsLayer {
                         scaleX = headerScale
                         scaleY = headerScale
