@@ -55,6 +55,9 @@ class DashboardViewModel @Inject constructor(
     private val _isPreparingAllApps = MutableStateFlow(false)
     val isPreparingAllApps = _isPreparingAllApps.asStateFlow()
 
+    private val _isStartupReady = MutableStateFlow(false)
+    val isStartupReady = _isStartupReady.asStateFlow()
+
     private val _hasUsagePermission = MutableStateFlow(checkUsagePermissionUseCase())
     val hasUsagePermission = _hasUsagePermission.asStateFlow()
 
@@ -82,6 +85,7 @@ class DashboardViewModel @Inject constructor(
     private var lastRefreshTime = 0L
     private val REFRESH_COOLDOWN_MS = 30_000L  // 30 seconds
     private val INITIAL_ICON_PRELOAD_COUNT = 60
+    private val STARTUP_BLOCKING_ICON_PRELOAD_COUNT = 24
     private val ICON_PREFETCH_CHUNK_SIZE = 12
 
     init {
@@ -97,11 +101,19 @@ class DashboardViewModel @Inject constructor(
         discoveryJob = viewModelScope.launch {
             _isLoadingDiscovery.value = true
             try {
+                val isInitialLoad = !_isStartupReady.value
                 val result = getUnusedAppsUseCase.fetchAll()
                 _unusedApps.value = result.unusedApps
                 _allInstalledApps.value = result.allApps
-                primeIconCaches(result.allApps, awaitInitial = false)
+                primeIconCaches(
+                    apps = result.allApps,
+                    awaitInitial = isInitialLoad,
+                    awaitCount = if (isInitialLoad) STARTUP_BLOCKING_ICON_PRELOAD_COUNT else 0
+                )
                 lastRefreshTime = System.currentTimeMillis()
+                if (!_isStartupReady.value) {
+                    _isStartupReady.value = true
+                }
             } finally {
                 _isLoadingDiscovery.value = false
             }
@@ -139,11 +151,20 @@ class DashboardViewModel @Inject constructor(
 
     private suspend fun primeIconCaches(
         apps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
-        awaitInitial: Boolean
+        awaitInitial: Boolean,
+        awaitCount: Int = INITIAL_ICON_PRELOAD_COUNT
     ) {
         val initialPackages = apps.take(INITIAL_ICON_PRELOAD_COUNT).map { it.packageId }
         if (awaitInitial) {
-            warmPackageIds(initialPackages)
+            val blockingCount = awaitCount.coerceIn(0, initialPackages.size)
+            if (blockingCount > 0) {
+                warmPackageIds(initialPackages.take(blockingCount))
+            }
+            if (blockingCount < initialPackages.size) {
+                viewModelScope.launch {
+                    warmPackageIds(initialPackages.drop(blockingCount))
+                }
+            }
         } else {
             viewModelScope.launch {
                 warmPackageIds(initialPackages)
