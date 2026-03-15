@@ -431,9 +431,11 @@ fun SpecificAppListDisplay(
         selectedCount = selectedApps.size
     )
 
-    // Selection stats
-    val selectedSize = remember(selectedApps, appList) {
-        appList.filter { it.packageId in selectedApps }.sumOf { it.apkSizeBytes }
+    val appSizeByPackageId = remember(appList) {
+        appList.associate { it.packageId to it.apkSizeBytes }
+    }
+    val selectedSize = remember(selectedApps, appSizeByPackageId) {
+        selectedApps.sumOf { packageId -> appSizeByPackageId[packageId] ?: 0L }
     }
 
     if (showSideloadWarning) {
