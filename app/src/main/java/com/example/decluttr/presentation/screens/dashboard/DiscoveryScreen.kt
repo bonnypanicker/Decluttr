@@ -630,6 +630,7 @@ fun SpecificAppListDisplay(
                     AppListCard(
                         app = app,
                         isSelected = isSelected,
+                        isScrolling = listState.isScrollInProgress,
                         listType = listType,
                         onToggle = {
                             selectedApps = if (isSelected) {
@@ -649,13 +650,22 @@ fun SpecificAppListDisplay(
 fun AppListCard(
     app: GetInstalledAppsUseCase.InstalledAppInfo,
     isSelected: Boolean,
+    isScrolling: Boolean,
     listType: DiscoveryViewState = DiscoveryViewState.ALL_APPS,
     onToggle: () -> Unit
 ) {
     val context = LocalContext.current
     val now = remember { System.currentTimeMillis() }
     val sizeLabel = remember(app.apkSizeBytes) { "${bytesToMB(app.apkSizeBytes)} MB" }
-    val imageRequest = remember(app.packageId) {
+    val fullImageRequest = remember(app.packageId) {
+        ImageRequest.Builder(context)
+            .data(AppIconModel(app.packageId))
+            .memoryCacheKey(app.packageId)
+            .size(128)
+            .crossfade(false)
+            .build()
+    }
+    val thumbnailImageRequest = remember(app.packageId) {
         ImageRequest.Builder(context)
             .data(AppIconModel(app.packageId))
             .memoryCacheKey(app.packageId)
@@ -696,7 +706,7 @@ fun AppListCard(
         Spacer(modifier = Modifier.width(8.dp))
         
         AsyncImage(
-            model = imageRequest,
+            model = if (isScrolling) thumbnailImageRequest else fullImageRequest,
             contentDescription = "App Icon",
             modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
         )
@@ -820,7 +830,7 @@ internal fun filterAndSortApps(
     val filtered = if (searchQuery.isBlank()) appList
     else appList.filter { it.name.contains(searchQuery, ignoreCase = true) }
     val result = when (sortOption) {
-        SortOption.NAME -> filtered.sortedBy { it.name }
+        SortOption.NAME -> filtered.sortedBy { it.name.lowercase() }
         SortOption.SIZE -> filtered.sortedByDescending { it.apkSizeBytes }
         SortOption.LAST_USED -> filtered.sortedBy { it.lastTimeUsed }
     }

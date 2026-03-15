@@ -174,7 +174,6 @@ class DashboardViewModel @Inject constructor(
                 val request = ImageRequest.Builder(context)
                     .data(AppIconModel(packageId))
                     .memoryCacheKey(packageId)
-                    .size(48)
                     .crossfade(false)
                     .build()
                 imageLoader.execute(request)

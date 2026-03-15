@@ -22,7 +22,7 @@ class AppIconFetcher(
     private val data: AppIconModel,
     private val iconCacheManager: IconCacheManager? = null
 ) : Fetcher {
-    private val cacheSizePx = 48
+    private val cacheSizePx = 128
 
     override suspend fun fetch(): FetchResult? {
         // 1. Try Memory Cache first (if available)
