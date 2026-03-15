@@ -657,19 +657,12 @@ fun AppListCard(
     val context = LocalContext.current
     val now = remember { System.currentTimeMillis() }
     val sizeLabel = remember(app.apkSizeBytes) { "${bytesToMB(app.apkSizeBytes)} MB" }
-    val fullImageRequest = remember(app.packageId) {
+    val imageRequest = remember(app.packageId, isScrolling) {
+        val size = if (isScrolling) 48 else 128
         ImageRequest.Builder(context)
             .data(AppIconModel(app.packageId))
             .memoryCacheKey(app.packageId)
-            .size(128)
-            .crossfade(false)
-            .build()
-    }
-    val thumbnailImageRequest = remember(app.packageId) {
-        ImageRequest.Builder(context)
-            .data(AppIconModel(app.packageId))
-            .memoryCacheKey(app.packageId)
-            .size(48)
+            .size(size)
             .crossfade(false)
             .build()
     }
@@ -706,7 +699,7 @@ fun AppListCard(
         Spacer(modifier = Modifier.width(8.dp))
         
         AsyncImage(
-            model = if (isScrolling) thumbnailImageRequest else fullImageRequest,
+            model = imageRequest,
             contentDescription = "App Icon",
             modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
         )
