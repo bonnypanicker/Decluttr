@@ -170,6 +170,7 @@ fun DashboardScreen(
                         isPreparingAllApps = isPreparingAllApps,
                         onRefresh = { viewModel.loadDiscoveryDataIfStale() },
                         onPrepareAllApps = { viewModel.prepareAllAppsForDisplay() },
+                        onPrefetchPackages = { packageIds -> viewModel.prefetchIcons(packageIds) },
                         onBatchUninstall = { packageIds ->
                             viewModel.archiveAndUninstallSelected(packageIds)
                         },

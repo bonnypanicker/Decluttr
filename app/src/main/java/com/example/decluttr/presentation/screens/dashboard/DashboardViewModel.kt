@@ -13,14 +13,17 @@ import com.example.decluttr.presentation.util.AppIconModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 @HiltViewModel
@@ -74,8 +77,12 @@ class DashboardViewModel @Inject constructor(
     val celebrationEvent = _celebrationEvent.asSharedFlow()
 
     private var discoveryJob: kotlinx.coroutines.Job? = null
+    private var lazyWarmIconsJob: kotlinx.coroutines.Job? = null
+    private val preloadedIconPackages = ConcurrentHashMap.newKeySet<String>()
     private var lastRefreshTime = 0L
     private val REFRESH_COOLDOWN_MS = 30_000L  // 30 seconds
+    private val INITIAL_ICON_PRELOAD_COUNT = 60
+    private val ICON_PREFETCH_CHUNK_SIZE = 12
 
     init {
         loadDiscoveryData()
@@ -93,7 +100,7 @@ class DashboardViewModel @Inject constructor(
                 val result = getUnusedAppsUseCase.fetchAll()
                 _unusedApps.value = result.unusedApps
                 _allInstalledApps.value = result.allApps
-                warmIcons(result.allApps)
+                primeIconCaches(result.allApps, awaitInitial = false)
                 lastRefreshTime = System.currentTimeMillis()
             } finally {
                 _isLoadingDiscovery.value = false
@@ -116,24 +123,61 @@ class DashboardViewModel @Inject constructor(
                 }
                 _unusedApps.value = result.unusedApps
                 _allInstalledApps.value = result.allApps
-                warmIcons(result.allApps)
+                primeIconCaches(result.allApps, awaitInitial = true)
             } finally {
                 _isPreparingAllApps.value = false
             }
         }
     }
 
-    private suspend fun warmIcons(apps: List<GetInstalledAppsUseCase.InstalledAppInfo>) {
+    fun prefetchIcons(packageIds: List<String>) {
+        if (packageIds.isEmpty()) return
+        viewModelScope.launch {
+            warmPackageIds(packageIds, limit = ICON_PREFETCH_CHUNK_SIZE)
+        }
+    }
+
+    private suspend fun primeIconCaches(
+        apps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
+        awaitInitial: Boolean
+    ) {
+        val initialPackages = apps.take(INITIAL_ICON_PRELOAD_COUNT).map { it.packageId }
+        if (awaitInitial) {
+            warmPackageIds(initialPackages)
+        } else {
+            viewModelScope.launch {
+                warmPackageIds(initialPackages)
+            }
+        }
+        lazyWarmIconsJob?.cancel()
+        lazyWarmIconsJob = viewModelScope.launch {
+            val remainingPackages = apps.drop(INITIAL_ICON_PRELOAD_COUNT).map { it.packageId }
+            remainingPackages.chunked(ICON_PREFETCH_CHUNK_SIZE).forEach { chunk ->
+                if (!isActive) return@launch
+                warmPackageIds(chunk)
+                delay(35)
+            }
+        }
+    }
+
+    private suspend fun warmPackageIds(
+        packageIds: List<String>,
+        limit: Int = packageIds.size
+    ) {
         withContext(Dispatchers.IO) {
             val imageLoader = context.imageLoader
-            apps.forEach { app ->
+            packageIds
+                .asSequence()
+                .filter { preloadedIconPackages.add(it) }
+                .take(limit)
+                .forEach { packageId ->
                 val request = ImageRequest.Builder(context)
-                    .data(AppIconModel(app.packageId))
-                    .memoryCacheKey(app.packageId)
+                    .data(AppIconModel(packageId))
+                    .memoryCacheKey(packageId)
                     .crossfade(false)
                     .build()
                 imageLoader.execute(request)
-            }
+                }
         }
     }
 

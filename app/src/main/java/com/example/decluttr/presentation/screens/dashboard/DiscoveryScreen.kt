@@ -47,6 +47,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,6 +61,7 @@ import coil.request.ImageRequest
 import com.example.decluttr.BuildConfig
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 import com.example.decluttr.presentation.util.AppIconModel
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlin.math.roundToInt
 
 enum class DiscoveryViewState {
@@ -79,6 +81,7 @@ fun DiscoveryScreen(
     isPreparingAllApps: Boolean,
     onRefresh: () -> Unit,
     onPrepareAllApps: () -> Unit,
+    onPrefetchPackages: (List<String>) -> Unit,
     onBatchUninstall: (Set<String>) -> Unit,
     onBatchUninstallOnly: (Set<String>) -> Unit,
     hasUsagePermission: Boolean,
@@ -153,6 +156,7 @@ fun DiscoveryScreen(
                     title = "Rarely Used Apps",
                     appList = unusedApps,
                     listType = DiscoveryViewState.RARELY_USED,
+                    onPrefetchPackages = onPrefetchPackages,
                     onBack = { viewState = DiscoveryViewState.DASHBOARD },
                     onBatchUninstall = { ids -> 
                         viewState = DiscoveryViewState.DASHBOARD
@@ -169,6 +173,7 @@ fun DiscoveryScreen(
                     title = "Large Apps (>100MB)",
                     appList = largeApps,
                     listType = DiscoveryViewState.LARGE_APPS,
+                    onPrefetchPackages = onPrefetchPackages,
                     onBack = { viewState = DiscoveryViewState.DASHBOARD },
                     onBatchUninstall = { ids -> 
                         viewState = DiscoveryViewState.DASHBOARD
@@ -185,6 +190,7 @@ fun DiscoveryScreen(
                     title = "All Installed Apps",
                     appList = allApps,
                     listType = DiscoveryViewState.ALL_APPS,
+                    onPrefetchPackages = onPrefetchPackages,
                     onBack = { viewState = DiscoveryViewState.DASHBOARD },
                     onBatchUninstall = { ids -> 
                         viewState = DiscoveryViewState.DASHBOARD
@@ -383,6 +389,7 @@ fun SpecificAppListDisplay(
     title: String,
     appList: List<GetInstalledAppsUseCase.InstalledAppInfo>,
     listType: DiscoveryViewState = DiscoveryViewState.ALL_APPS,
+    onPrefetchPackages: (List<String>) -> Unit = {},
     onBack: () -> Unit,
     onBatchUninstall: (Set<String>) -> Unit,
     onBatchUninstallOnly: (Set<String>) -> Unit
@@ -398,6 +405,25 @@ fun SpecificAppListDisplay(
     }
 
     val listState = rememberLazyListState()
+    LaunchedEffect(listState, filteredList) {
+        snapshotFlow {
+            Pair(
+                listState.firstVisibleItemIndex,
+                listState.layoutInfo.visibleItemsInfo.size
+            )
+        }
+            .distinctUntilChanged()
+            .collect { (firstIndex, visibleCount) ->
+                if (filteredList.isEmpty()) return@collect
+                val start = (firstIndex - 4).coerceAtLeast(0)
+                val window = (visibleCount + 10).coerceAtLeast(12)
+                val endExclusive = (start + window).coerceAtMost(filteredList.size)
+                if (start >= endExclusive) return@collect
+                onPrefetchPackages(
+                    filteredList.subList(start, endExclusive).map { it.packageId }
+                )
+            }
+    }
     ScrollPerfDebugProbe(
         listState = listState,
         listType = listType,
@@ -604,7 +630,6 @@ fun SpecificAppListDisplay(
                     AppListCard(
                         app = app,
                         isSelected = isSelected,
-                        isScrolling = listState.isScrollInProgress,
                         listType = listType,
                         onToggle = {
                             selectedApps = if (isSelected) {
@@ -624,7 +649,6 @@ fun SpecificAppListDisplay(
 fun AppListCard(
     app: GetInstalledAppsUseCase.InstalledAppInfo,
     isSelected: Boolean,
-    isScrolling: Boolean,
     listType: DiscoveryViewState = DiscoveryViewState.ALL_APPS,
     onToggle: () -> Unit
 ) {
@@ -670,28 +694,11 @@ fun AppListCard(
         
         Spacer(modifier = Modifier.width(8.dp))
         
-        if (isScrolling) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = app.name.firstOrNull()?.uppercase() ?: "?",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        } else {
-            AsyncImage(
-                model = imageRequest,
-                contentDescription = "App Icon",
-                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
-            )
-        }
+        AsyncImage(
+            model = imageRequest,
+            contentDescription = "App Icon",
+            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
+        )
         
         Spacer(modifier = Modifier.width(16.dp))
         
