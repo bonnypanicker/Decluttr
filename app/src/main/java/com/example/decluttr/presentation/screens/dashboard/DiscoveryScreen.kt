@@ -29,7 +29,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
@@ -102,7 +101,6 @@ fun DiscoveryScreen(
     onRequestPermission: () -> Unit
 ) {
     var viewState by remember { mutableStateOf(DiscoveryViewState.DASHBOARD) }
-    var pendingAllAppsOpen by remember { mutableStateOf(false) }
     
     val context = LocalContext.current
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -125,13 +123,6 @@ fun DiscoveryScreen(
     // Handle back button when not in Dashboard mode
     BackHandler(enabled = viewState != DiscoveryViewState.DASHBOARD) {
         viewState = DiscoveryViewState.DASHBOARD
-    }
-
-    LaunchedEffect(pendingAllAppsOpen, isPreparingAllApps) {
-        if (pendingAllAppsOpen && !isPreparingAllApps) {
-            viewState = DiscoveryViewState.ALL_APPS
-            pendingAllAppsOpen = false
-        }
     }
 
     if (isLoading || isPreparingAllApps) {
@@ -159,10 +150,8 @@ fun DiscoveryScreen(
                         }
                     },
                     onNavigateToSpecificList = { newState -> viewState = newState },
-                    onBrowseAllApps = {
-                        pendingAllAppsOpen = true
-                        onPrepareAllApps()
-                    }
+                    onBatchUninstall = onBatchUninstall,
+                    onBatchUninstallOnly = onBatchUninstallOnly
                 )
             }
             DiscoveryViewState.RARELY_USED -> {
@@ -228,12 +217,14 @@ fun DiscoveryDashboard(
     hasUsagePermission: Boolean,
     onRequestPermission: () -> Unit,
     onNavigateToSpecificList: (DiscoveryViewState) -> Unit,
-    onBrowseAllApps: () -> Unit
+    onBatchUninstall: (Set<String>) -> Unit,
+    onBatchUninstallOnly: (Set<String>) -> Unit
 ) {
     val listState = rememberLazyListState()
     val configuration = LocalConfiguration.current
     val horizontalPadding = if (configuration.screenWidthDp >= 840) 24.dp else 16.dp
     var scrollImpulseTarget by remember { mutableFloatStateOf(0f) }
+    var selectedApps by remember { mutableStateOf<Set<String>>(emptySet()) }
 
     LaunchedEffect(listState) {
         var lastIndex = 0
@@ -279,86 +270,141 @@ fun DiscoveryDashboard(
         }
     }
 
-    LazyColumn(
-        state = listState,
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item(key = "storage_meter") {
-            DashboardMotionContainer(
-                motion = scrollImpulse,
-                intensity = 0.35f
-            ) {
-                StorageImpactMeter(unusedApps = unusedApps, allApps = allApps)
-            }
-        }
-
-        item(key = "rarely_used_card") {
-            if (!hasUsagePermission) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item(key = "storage_meter") {
                 DashboardMotionContainer(
                     motion = scrollImpulse,
-                    intensity = 0.55f
+                    intensity = 0.35f
                 ) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                        modifier = Modifier.fillMaxWidth()
+                    StorageImpactMeter(unusedApps = unusedApps, allApps = allApps)
+                }
+            }
+
+            item(key = "rarely_used_card") {
+                if (!hasUsagePermission) {
+                    DashboardMotionContainer(
+                        motion = scrollImpulse,
+                        intensity = 0.55f
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Usage Access Required", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onErrorContainer)
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                "We need permission to detect which apps you haven't used recently.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Button(onClick = onRequestPermission) {
-                                Text("Grant Permission")
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Usage Access Required", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onErrorContainer)
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "We need permission to detect which apps you haven't used recently.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(onClick = onRequestPermission) {
+                                    Text("Grant Permission")
+                                }
                             }
                         }
                     }
+                } else {
+                    DashboardMotionContainer(
+                        motion = scrollImpulse,
+                        intensity = 0.55f
+                    ) {
+                        SmartDeclutterCard(
+                            icon = "📦",
+                            title = "Rarely Used Apps",
+                            description = "${unusedApps.size} apps • ${bytesToMB(unusedApps.sumOf { it.apkSizeBytes })} MB",
+                            onClick = { onNavigateToSpecificList(DiscoveryViewState.RARELY_USED) }
+                        )
+                    }
                 }
-            } else {
+            }
+
+            item(key = "large_apps_card") {
                 DashboardMotionContainer(
                     motion = scrollImpulse,
-                    intensity = 0.55f
+                    intensity = 0.75f
                 ) {
                     SmartDeclutterCard(
-                        icon = "📦",
-                        title = "Rarely Used Apps",
-                        description = "${unusedApps.size} apps • ${bytesToMB(unusedApps.sumOf { it.apkSizeBytes })} MB",
-                        onClick = { onNavigateToSpecificList(DiscoveryViewState.RARELY_USED) }
+                        icon = "💾",
+                        title = "Large Apps",
+                        description = "${largeApps.size} apps • ${bytesToMB(largeApps.sumOf { it.apkSizeBytes })} MB",
+                        onClick = { onNavigateToSpecificList(DiscoveryViewState.LARGE_APPS) }
                     )
                 }
             }
-        }
 
-        item(key = "large_apps_card") {
-            DashboardMotionContainer(
-                motion = scrollImpulse,
-                intensity = 0.75f
-            ) {
-                SmartDeclutterCard(
-                    icon = "💾",
-                    title = "Large Apps",
-                    description = "${largeApps.size} apps • ${bytesToMB(largeApps.sumOf { it.apkSizeBytes })} MB",
-                    onClick = { onNavigateToSpecificList(DiscoveryViewState.LARGE_APPS) }
+            item(key = "all_apps_header") {
+                AllAppsSection(headerProgress = allAppsHeaderProgress)
+            }
+
+            items(
+                items = allApps,
+                key = { it.packageId },
+                contentType = { "all_apps_row" }
+            ) { app ->
+                val isSelected = app.packageId in selectedApps
+                val motionScale = 0.85f - ((listState.firstVisibleItemIndex % 8) * 0.05f)
+                AllAppsSelectableCard(
+                    app = app,
+                    isSelected = isSelected,
+                    motion = scrollImpulse * motionScale.coerceAtLeast(0.4f),
+                    onToggle = {
+                        selectedApps = if (isSelected) {
+                            selectedApps - app.packageId
+                        } else {
+                            selectedApps + app.packageId
+                        }
+                    }
                 )
+            }
+
+            if (selectedApps.isNotEmpty()) {
+                item(key = "all_apps_bottom_spacer") {
+                    Spacer(modifier = Modifier.height(88.dp))
+                }
             }
         }
 
-        item(key = "all_apps_section") {
-            AllAppsSection(
-                allApps = allApps,
-                onBrowseAllApps = onBrowseAllApps,
-                headerProgress = allAppsHeaderProgress,
-                scrollImpulse = scrollImpulse
-            )
+        if (selectedApps.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = horizontalPadding, vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                androidx.compose.material3.OutlinedButton(
+                    onClick = {
+                        val selected = selectedApps.toSet()
+                        selectedApps = emptySet()
+                        onBatchUninstallOnly(selected)
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Uninstall Only", textAlign = TextAlign.Center)
+                }
+                Button(
+                    onClick = {
+                        val selected = selectedApps.toSet()
+                        selectedApps = emptySet()
+                        onBatchUninstall(selected)
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Archive & Uninstall", textAlign = TextAlign.Center)
+                }
+            }
         }
     }
 }
@@ -380,10 +426,7 @@ private fun DashboardMotionContainer(
 
 @Composable
 private fun AllAppsSection(
-    allApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
-    onBrowseAllApps: () -> Unit,
-    headerProgress: Float,
-    scrollImpulse: Float
+    headerProgress: Float
 ) {
     val transitionEasing = remember { CubicBezierEasing(0.2f, 0f, 0f, 1f) }
     val headerScale by animateFloatAsState(
@@ -401,59 +444,39 @@ private fun AllAppsSection(
         animationSpec = tween(durationMillis = 300, easing = transitionEasing),
         label = "allAppsHeaderBias"
     )
-    val previewApps = remember(allApps) { allApps.take(5) }
-
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .zIndex(1f),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .zIndex(1f)
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "All Apps",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    shadow = Shadow(
-                        color = Color.Black.copy(alpha = 0.12f),
-                        offset = androidx.compose.ui.geometry.Offset(0f, 1f),
-                        blurRadius = 2f
-                    )
-                ),
-                modifier = Modifier
-                    .align(BiasAlignment(horizontalBias = headerBias, verticalBias = 0f))
-                    .graphicsLayer {
-                        scaleX = headerScale
-                        scaleY = headerScale
-                        alpha = headerAlpha
-                    }
-            )
-        }
-
-        previewApps.forEachIndexed { index, app ->
-            val cardMotion = scrollImpulse * (0.9f - index * 0.08f).coerceAtLeast(0.4f)
-            AllAppsMiniCard(
-                app = app,
-                motion = cardMotion,
-                onClick = onBrowseAllApps
-            )
-        }
-
-        TextButton(
-            onClick = onBrowseAllApps,
-            modifier = Modifier.align(Alignment.Start)
-        ) {
-            Text("Browse all apps")
-        }
+        Text(
+            text = "All Apps",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                shadow = Shadow(
+                    color = Color.Black.copy(alpha = 0.12f),
+                    offset = androidx.compose.ui.geometry.Offset(0f, 1f),
+                    blurRadius = 2f
+                )
+            ),
+            modifier = Modifier
+                .align(BiasAlignment(horizontalBias = headerBias, verticalBias = 0f))
+                .graphicsLayer {
+                    scaleX = headerScale
+                    scaleY = headerScale
+                    alpha = headerAlpha
+                }
+        )
     }
 }
 
 @Composable
-private fun AllAppsMiniCard(
+private fun AllAppsSelectableCard(
     app: GetInstalledAppsUseCase.InstalledAppInfo,
+    isSelected: Boolean,
     motion: Float,
-    onClick: () -> Unit
+    onToggle: () -> Unit
 ) {
     val context = LocalContext.current
     val imageRequest = remember(app.packageId) {
@@ -478,11 +501,19 @@ private fun AllAppsMiniCard(
                 spotColor = Color.Black.copy(alpha = 0.1f)
             )
             .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .clickable(onClick = onClick)
+            .background(
+                if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                else MaterialTheme.colorScheme.surface
+            )
+            .clickable(onClick = onToggle)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Checkbox(
+            checked = isSelected,
+            onCheckedChange = { onToggle() }
+        )
+        Spacer(modifier = Modifier.width(8.dp))
         AsyncImage(
             model = imageRequest,
             contentDescription = "${app.name} icon",
@@ -496,19 +527,15 @@ private fun AllAppsMiniCard(
                 text = app.name,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1
             )
             Text(
                 text = "${bytesToMB(app.apkSizeBytes)} MB",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        Text(
-            text = "Open",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary
-        )
     }
 }
 
