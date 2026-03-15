@@ -62,7 +62,6 @@ import com.example.decluttr.BuildConfig
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 import com.example.decluttr.presentation.util.AppIconModel
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 enum class DiscoveryViewState {
@@ -400,52 +399,12 @@ fun SpecificAppListDisplay(
     var appsToUninstall by remember { mutableStateOf<Set<String>>(emptySet()) }
     var searchQuery by remember { mutableStateOf("") }
     var sortOption by remember { mutableStateOf(SortOption.NAME) }
-    var isFastScrolling by remember { mutableStateOf(false) }
 
     val filteredList by remember(appList, searchQuery, sortOption) {
         derivedStateOf { filterAndSortApps(appList, searchQuery, sortOption) }
     }
 
     val listState = rememberLazyListState()
-    LaunchedEffect(listState) {
-        var previousIndex = 0
-        var previousOffset = 0
-        var previousTimeNanos = 0L
-        var lastFastScrollNanos = 0L
-        snapshotFlow {
-            Triple(
-                listState.firstVisibleItemIndex,
-                listState.firstVisibleItemScrollOffset,
-                listState.isScrollInProgress
-            )
-        }.collect { (index, offset, inProgress) ->
-            val nowNanos = SystemClock.elapsedRealtimeNanos()
-            if (!inProgress) {
-                isFastScrolling = false
-                previousIndex = index
-                previousOffset = offset
-                previousTimeNanos = nowNanos
-                return@collect
-            }
-            if (previousTimeNanos == 0L) {
-                previousIndex = index
-                previousOffset = offset
-                previousTimeNanos = nowNanos
-                return@collect
-            }
-            val dtMs = (nowNanos - previousTimeNanos) / 1_000_000f
-            if (dtMs <= 0f) return@collect
-            val distanceUnits = abs((index - previousIndex) * 1000 + (offset - previousOffset))
-            val speedUnitsPerMs = distanceUnits / dtMs
-            if (speedUnitsPerMs > 14f) {
-                lastFastScrollNanos = nowNanos
-            }
-            isFastScrolling = nowNanos - lastFastScrollNanos < 180_000_000L
-            previousIndex = index
-            previousOffset = offset
-            previousTimeNanos = nowNanos
-        }
-    }
     LaunchedEffect(listState, filteredList) {
         snapshotFlow {
             Pair(
@@ -671,7 +630,7 @@ fun SpecificAppListDisplay(
                     AppListCard(
                         app = app,
                         isSelected = isSelected,
-                        isFastScrolling = isFastScrolling,
+                        isScrolling = listState.isScrollInProgress,
                         listType = listType,
                         onToggle = {
                             selectedApps = if (isSelected) {
@@ -691,17 +650,26 @@ fun SpecificAppListDisplay(
 fun AppListCard(
     app: GetInstalledAppsUseCase.InstalledAppInfo,
     isSelected: Boolean,
-    isFastScrolling: Boolean,
+    isScrolling: Boolean,
     listType: DiscoveryViewState = DiscoveryViewState.ALL_APPS,
     onToggle: () -> Unit
 ) {
     val context = LocalContext.current
     val now = remember { System.currentTimeMillis() }
     val sizeLabel = remember(app.apkSizeBytes) { "${bytesToMB(app.apkSizeBytes)} MB" }
-    val imageRequest = remember(app.packageId) {
+    val fullImageRequest = remember(app.packageId) {
         ImageRequest.Builder(context)
             .data(AppIconModel(app.packageId))
             .memoryCacheKey(app.packageId)
+            .size(128)
+            .crossfade(false)
+            .build()
+    }
+    val thumbnailImageRequest = remember(app.packageId) {
+        ImageRequest.Builder(context)
+            .data(AppIconModel(app.packageId))
+            .memoryCacheKey(app.packageId)
+            .size(48)
             .crossfade(false)
             .build()
     }
@@ -737,28 +705,11 @@ fun AppListCard(
         
         Spacer(modifier = Modifier.width(8.dp))
         
-        if (isFastScrolling) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = app.name.firstOrNull()?.uppercase() ?: "?",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-        } else {
-            AsyncImage(
-                model = imageRequest,
-                contentDescription = "App Icon",
-                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
-            )
-        }
+        AsyncImage(
+            model = if (isScrolling) thumbnailImageRequest else fullImageRequest,
+            contentDescription = "App Icon",
+            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
+        )
         
         Spacer(modifier = Modifier.width(16.dp))
         
