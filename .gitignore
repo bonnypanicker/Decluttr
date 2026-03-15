@@ -1,0 +1,32 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Gradle
+gradle-8.10.2/
+gradle-8.10.2-bin.zip
+
+# App logs and traces if they are temporary (but user might want them? Analysiscomp.md etc)
+# I will keep the .md files for now unless they are clearly log dumps.
+# Analysiscomp.md
+# AppKiller_logs.md
+# Decluttr_logs.md
+# decluttr_scroll_trace.md
+
+# Actually, I'll ignore the logs and traces as they sound like temporary debug info.
+*_logs.md
+*_trace.md
+erre.md
+errer2.md
