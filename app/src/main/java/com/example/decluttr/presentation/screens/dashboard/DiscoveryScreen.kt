@@ -247,6 +247,7 @@ fun DiscoveryScreen(
             }
         }
     }
+    }
 }
 
 @Composable
