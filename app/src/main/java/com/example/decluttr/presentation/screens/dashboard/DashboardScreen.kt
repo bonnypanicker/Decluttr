@@ -185,7 +185,7 @@ fun DashboardScreen(
                     // Archive List
                     ArchivedAppsList(
                         apps = archivedApps,
-                        onUpdateApp = { viewModel.updateArchivedApp(it) },
+                        onAppClick = onNavigateToAppDetails,
                         onDeleteClick = { viewModel.deleteArchivedApp(it) },
                         onNavigateToDiscover = { selectedTabIndex = 0 }
                     )
