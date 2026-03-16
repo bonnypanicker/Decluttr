@@ -543,7 +543,10 @@ private fun FolderDrawerItem(
                         modifier = Modifier.size(22.dp)
                     )
                 } else {
-                    PlaceholderIcon(modifier = Modifier.size(22.dp))
+                    AppIconFallback(
+                        label = app.name,
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
             }
         }
@@ -601,6 +604,14 @@ fun AppDrawerItem(
     } else {
         Modifier
     }
+    val interactionModifier = if (enableDrag) {
+        Modifier.clickable(onClick = onClick)
+    } else {
+        Modifier.combinedClickable(
+            onClick = onClick,
+            onLongClick = { showMenu = true }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -613,10 +624,7 @@ fun AppDrawerItem(
                 if (isDragTarget) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f) else Color.Transparent
             )
             .then(dragModifier)
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = { showMenu = true }
-            )
+            .then(interactionModifier)
             .padding(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -627,7 +635,7 @@ fun AppDrawerItem(
                 modifier = Modifier.size(56.dp)
             )
         } else {
-            PlaceholderIcon()
+            AppIconFallback(label = app.name)
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -679,4 +687,25 @@ fun PlaceholderIcon(modifier: Modifier = Modifier) {
             .size(56.dp)
             .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
     )
+}
+
+@Composable
+private fun AppIconFallback(
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    val text = label.trim().firstOrNull()?.uppercase() ?: "?"
+    Box(
+        modifier = modifier
+            .size(56.dp)
+            .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(12.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+    }
 }
