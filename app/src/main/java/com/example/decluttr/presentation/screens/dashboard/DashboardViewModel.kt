@@ -300,7 +300,7 @@ class DashboardViewModel @Inject constructor(
                         if (removedPkg !in targetPackages) return
                         removedPackages.add(removedPkg)
                         if (removedPackages.size == targetPackages.size && continuation.isActive) {
-                            runCatching { context.unregisterReceiver(this) }
+                            runCatching { this@DashboardViewModel.context.unregisterReceiver(this) }
                             continuation.resume(removedPackages.toSet())
                         }
                     }

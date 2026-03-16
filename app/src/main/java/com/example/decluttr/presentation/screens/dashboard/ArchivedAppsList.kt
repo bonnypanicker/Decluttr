@@ -63,7 +63,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.input.pointer.consume
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -593,7 +592,6 @@ fun AppDrawerItem(
                     onDragStart(app.packageId, startOffset)
                 },
                 onDrag = { change, dragAmount ->
-                    change.consume()
                     onDrag(dragAmount)
                 },
                 onDragEnd = { onDragEnd() },
