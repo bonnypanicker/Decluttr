@@ -433,8 +433,9 @@ fun ArchivedAppsList(
                                     onDrag = { delta ->
                                         draggingOffsetState.value += delta
                                         val draggingId = draggingIdState.value
+                                        val currentPos = draggingOffsetState.value
                                         hoverTargetState.value = itemBounds.entries.firstOrNull { (key, rect) ->
-                                            draggingId != null && key != draggingId && rect.contains(draggingOffsetState.value)
+                                            draggingId != null && key != draggingId && rect.contains(currentPos)
                                         }?.key
                                     },
                                     onDragEnd = {
@@ -456,37 +457,49 @@ fun ArchivedAppsList(
                     }
                 }
 
-                val draggingApp = draggingIdState.value?.let { allAppsById[it] }
-                if (draggingApp != null) {
-                    val bitmap = remember(draggingApp.iconBytes) {
-                        draggingApp.iconBytes?.let { bytes -> 
-                            try {
-                                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() 
-                            } catch (e: Exception) {
-                                null
+                    val draggingApp = draggingIdState.value?.let { allAppsById[it] }
+                    if (draggingApp != null) {
+                        val bitmap = remember(draggingApp.iconBytes) {
+                            draggingApp.iconBytes?.let { bytes -> 
+                                try {
+                                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() 
+                                } catch (e: Exception) {
+                                    null
+                                }
+                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                        ) {
+                            if (bitmap != null) {
+                                Image(
+                                    bitmap = bitmap,
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .offset {
+                                            androidx.compose.ui.unit.IntOffset(
+                                                (draggingOffsetState.value.x - 28f).roundToInt(),
+                                                (draggingOffsetState.value.y - 28f).roundToInt()
+                                            )
+                                        }
+                                )
+                            } else {
+                                AppIconFallback(
+                                    label = draggingApp.name,
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .offset {
+                                            androidx.compose.ui.unit.IntOffset(
+                                                (draggingOffsetState.value.x - 28f).roundToInt(),
+                                                (draggingOffsetState.value.y - 28f).roundToInt()
+                                            )
+                                        }
+                                )
                             }
                         }
                     }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                    ) {
-                        if (bitmap != null) {
-                            Image(
-                                bitmap = bitmap,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .offset {
-                                        androidx.compose.ui.unit.IntOffset(
-                                            (draggingOffsetState.value.x - 28f).roundToInt(),
-                                            (draggingOffsetState.value.y - 28f).roundToInt()
-                                        )
-                                    }
-                            )
-                        }
-                    }
-                }
             }
         }
     }
@@ -617,23 +630,20 @@ fun AppDrawerItem(
                     onDragStart(app.packageId, startOffset)
                 },
                 onDrag = { change, dragAmount ->
+                    change.consume()
                     onDrag(dragAmount)
                 },
-                onDragEnd = { onDragEnd() },
-                onDragCancel = { onDragCancel() }
+                onDragEnd = onDragEnd,
+                onDragCancel = onDragCancel
             )
         }
     } else {
         Modifier
     }
-    val interactionModifier = if (enableDrag) {
-        Modifier.clickable(onClick = onClick)
-    } else {
-        Modifier.combinedClickable(
-            onClick = onClick,
-            onLongClick = { showMenu = true }
-        )
-    }
+    val interactionModifier = Modifier.combinedClickable(
+        onClick = onClick,
+        onLongClick = { showMenu = true }
+    )
 
     Column(
         modifier = Modifier
