@@ -14,7 +14,8 @@ data class AppEntity(
     val iconBytes: ByteArray?,
     val isPlayStoreInstalled: Boolean = true,
     val archivedAt: Long = System.currentTimeMillis(),
-    val lastTimeUsed: Long = 0L
+    val lastTimeUsed: Long = 0L,
+    val folderName: String? = null
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -34,6 +35,7 @@ data class AppEntity(
         if (archivedAt != other.archivedAt) return false
         if (isPlayStoreInstalled != other.isPlayStoreInstalled) return false
         if (lastTimeUsed != other.lastTimeUsed) return false
+        if (folderName != other.folderName) return false
 
         return true
     }
@@ -48,6 +50,7 @@ data class AppEntity(
         result = 31 * result + archivedAt.hashCode()
         result = 31 * result + isPlayStoreInstalled.hashCode()
         result = 31 * result + lastTimeUsed.hashCode()
+        result = 31 * result + (folderName?.hashCode() ?: 0)
         return result
     }
 }

@@ -93,6 +93,7 @@ fun DiscoveryScreen(
     allApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
     isLoading: Boolean,
     isPreparingAllApps: Boolean,
+    uninstallProgress: DashboardViewModel.UninstallProgress,
     onRefresh: () -> Unit,
     onPrepareAllApps: () -> Unit,
     onPrefetchPackages: (List<String>) -> Unit,
@@ -133,11 +134,12 @@ fun DiscoveryScreen(
         return
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        when (viewState) {
-            DiscoveryViewState.DASHBOARD -> {
-                DiscoveryDashboard(
-                    unusedApps = unusedApps,
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            when (viewState) {
+                DiscoveryViewState.DASHBOARD -> {
+                    DiscoveryDashboard(
+                        unusedApps = unusedApps,
                     largeApps = largeApps,
                     allApps = allApps,
                     hasUsagePermission = hasUsagePermission,
@@ -205,6 +207,43 @@ fun DiscoveryScreen(
                         onBatchUninstallOnly(ids) 
                     }
                 )
+            }
+        }
+    }
+        
+    if (uninstallProgress.isUninstalling) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.6f))
+                .clickable(enabled = false) {}, // Intercept clicks
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                modifier = Modifier.padding(32.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Uninstalling app ${uninstallProgress.current} of ${uninstallProgress.total}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Please wait...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }

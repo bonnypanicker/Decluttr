@@ -9,7 +9,8 @@ data class ArchivedApp(
     val notes: String? = null,
     val iconBytes: ByteArray? = null,
     val archivedAt: Long = System.currentTimeMillis(),
-    val lastTimeUsed: Long = 0L
+    val lastTimeUsed: Long = 0L,
+    val folderName: String? = null
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -27,6 +28,7 @@ data class ArchivedApp(
             if (!iconBytes.contentEquals(other.iconBytes)) return false
         } else if (other.iconBytes != null) return false
         if (archivedAt != other.archivedAt) return false
+        if (folderName != other.folderName) return false
 
         return true
     }
@@ -39,6 +41,7 @@ data class ArchivedApp(
         result = 31 * result + (notes?.hashCode() ?: 0)
         result = 31 * result + (iconBytes?.contentHashCode() ?: 0)
         result = 31 * result + archivedAt.hashCode()
+        result = 31 * result + (folderName?.hashCode() ?: 0)
         return result
     }
 }

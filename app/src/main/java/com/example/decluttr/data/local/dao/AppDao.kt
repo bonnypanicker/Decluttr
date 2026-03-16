@@ -24,4 +24,7 @@ interface AppDao {
     
     @Query("DELETE FROM archived_apps WHERE packageId = :packageId")
     suspend fun deleteAppById(packageId: String)
+    
+    @androidx.room.Update
+    suspend fun updateApp(app: AppEntity)
 }

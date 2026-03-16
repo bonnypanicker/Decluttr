@@ -1,6 +1,5 @@
 package com.example.decluttr.presentation.screens.appdetails
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.decluttr.domain.model.ArchivedApp
@@ -15,11 +14,10 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AppDetailsViewModel @Inject constructor(
-    private val repository: AppRepository,
-    savedStateHandle: SavedStateHandle
+    private val repository: AppRepository
 ) : ViewModel() {
 
-    private val packageId: String = checkNotNull(savedStateHandle["packageId"])
+    private var packageId: String? = null
 
     private val _appState = MutableStateFlow<ArchivedApp?>(null)
     val appState = _appState.asStateFlow()
@@ -27,11 +25,9 @@ class AppDetailsViewModel @Inject constructor(
     private var saveJob: Job? = null
     private val SAVE_DEBOUNCE_MS = 500L
 
-    init {
-        loadApp()
-    }
-
-    private fun loadApp() {
+    fun loadAppDetails(packageId: String) {
+        if (this.packageId == packageId && _appState.value != null) return
+        this.packageId = packageId
         viewModelScope.launch {
             _appState.value = repository.getAppById(packageId)
         }
@@ -69,3 +65,4 @@ class AppDetailsViewModel @Inject constructor(
         }
     }
 }
+

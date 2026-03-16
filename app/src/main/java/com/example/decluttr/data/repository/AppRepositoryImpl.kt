@@ -33,4 +33,8 @@ class AppRepositoryImpl(
     override suspend fun deleteAppById(packageId: String) {
         dao.deleteAppById(packageId)
     }
+
+    override suspend fun updateApp(app: ArchivedApp) {
+        dao.updateApp(app.toAppEntity())
+    }
 }

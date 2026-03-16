@@ -23,7 +23,9 @@ object AppModule {
             app,
             DecluttrDatabase::class.java,
             DecluttrDatabase.DATABASE_NAME
-        ).fallbackToDestructiveMigration().build()
+        ).addMigrations(DecluttrDatabase.MIGRATION_2_3)
+         .fallbackToDestructiveMigration()
+         .build()
     }
 
     @Provides

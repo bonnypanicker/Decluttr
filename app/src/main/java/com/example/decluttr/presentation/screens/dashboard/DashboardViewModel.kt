@@ -1,6 +1,7 @@
 package com.example.decluttr.presentation.screens.dashboard
 
 import android.content.Context
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.imageLoader
@@ -24,9 +25,11 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.coroutines.resume
 import javax.inject.Inject
 
 @HiltViewModel
@@ -221,44 +224,119 @@ class DashboardViewModel @Inject constructor(
         loadDiscoveryData()
     }
     
+    data class UninstallProgress(val current: Int, val total: Int, val isUninstalling: Boolean)
+    private val _uninstallProgress = MutableStateFlow(UninstallProgress(0, 0, false))
+    val uninstallProgress = _uninstallProgress.asStateFlow()
+
     fun deleteArchivedApp(app: ArchivedApp) {
         viewModelScope.launch {
             appRepository.deleteApp(app)
         }
     }
 
+    fun updateArchivedApp(app: ArchivedApp) {
+        viewModelScope.launch {
+            appRepository.updateApp(app)
+        }
+    }
+
     fun archiveAndUninstallSelected(packageIds: Set<String>) {
         if (packageIds.isEmpty()) return
         
-        // Calculate size before removing
         val appsToUninstall = allInstalledApps.value.filter { it.packageId in packageIds }
         val savedBytes = appsToUninstall.sumOf { it.apkSizeBytes }
         
-        // Build metadata map for archive entries
         val appInfoMap = appsToUninstall.associate { 
             it.packageId to Pair(it.isPlayStoreInstalled, it.lastTimeUsed)
         }
         
         viewModelScope.launch {
-            archiveAndUninstallUseCase(packageIds.toList(), appInfoMap)
-            loadDiscoveryData() // Refresh list after uninstall queue is fired
-            _celebrationEvent.emit(CelebrationData(packageIds.size, savedBytes))
+            _uninstallProgress.value = UninstallProgress(0, packageIds.size, true)
+            var uninstalledCount = 0
+
+            for (packageId in packageIds) {
+                _uninstallProgress.value = UninstallProgress(uninstalledCount + 1, packageIds.size, true)
+                val success = awaitUninstall(packageId) {
+                    viewModelScope.launch {
+                        archiveAndUninstallUseCase(listOf(packageId), appInfoMap)
+                    }
+                }
+                if (success) {
+                    uninstalledCount++
+                }
+            }
+
+            _uninstallProgress.value = UninstallProgress(0, 0, false)
+            loadDiscoveryData()
+            
+            if (uninstalledCount > 0) {
+                _celebrationEvent.emit(CelebrationData(uninstalledCount, appsToUninstall.take(uninstalledCount).sumOf { it.apkSizeBytes }))
+            }
         }
     }
 
     fun uninstallSelectedOnly(packageIds: Set<String>) {
         if (packageIds.isEmpty()) return
         
-        // Calculate size before removing
         val appsToUninstall = allInstalledApps.value.filter { it.packageId in packageIds }
         val savedBytes = appsToUninstall.sumOf { it.apkSizeBytes }
         
         viewModelScope.launch {
-            packageIds.forEach { pkg ->
-                uninstallAppUseCase(pkg)
+            _uninstallProgress.value = UninstallProgress(0, packageIds.size, true)
+            var uninstalledCount = 0
+
+            for (packageId in packageIds) {
+                _uninstallProgress.value = UninstallProgress(uninstalledCount + 1, packageIds.size, true)
+                val success = awaitUninstall(packageId) {
+                    uninstallAppUseCase(packageId)
+                }
+                if (success) {
+                    uninstalledCount++
+                }
             }
+            
+            _uninstallProgress.value = UninstallProgress(0, 0, false)
             loadDiscoveryData()
-            _celebrationEvent.emit(CelebrationData(packageIds.size, savedBytes))
+            
+            if (uninstalledCount > 0) {
+                _celebrationEvent.emit(CelebrationData(uninstalledCount, appsToUninstall.take(uninstalledCount).sumOf { it.apkSizeBytes }))
+            }
         }
+    }
+
+    private suspend fun awaitUninstall(packageId: String, triggerUninstall: () -> Unit): Boolean = kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                val removedPkg = intent.data?.schemeSpecificPart
+                if (removedPkg == packageId) {
+                    val isReplacing = intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)
+                    if (!isReplacing) {
+                        try {
+                            context.unregisterReceiver(this)
+                        } catch (e: Exception) {}
+                        if (continuation.isActive) {
+                            continuation.resume(true, null)
+                        }
+                    }
+                }
+            }
+        }
+        val filter = android.content.IntentFilter(Intent.ACTION_PACKAGE_REMOVED).apply {
+            addDataScheme("package")
+        }
+        
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            context.registerReceiver(receiver, filter)
+        }
+
+        continuation.invokeOnCancellation {
+            try {
+                context.unregisterReceiver(receiver)
+            } catch (e: Exception) {}
+        }
+
+        triggerUninstall()
     }
 }

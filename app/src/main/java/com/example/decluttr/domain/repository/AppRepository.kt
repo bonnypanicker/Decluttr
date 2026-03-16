@@ -13,4 +13,6 @@ interface AppRepository {
     suspend fun deleteApp(app: ArchivedApp)
     
     suspend fun deleteAppById(packageId: String)
+    
+    suspend fun updateApp(app: ArchivedApp)
 }

@@ -43,12 +43,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.decluttr.presentation.screens.appdetails.AppDetailsDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     onNavigateToSettings: () -> Unit,
-    onNavigateToAppDetails: (String) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val archivedApps by viewModel.archivedApps.collectAsState()
@@ -121,6 +121,15 @@ fun DashboardScreen(
         }
     }
 
+    var selectedAppId by remember { mutableStateOf<String?>(null) }
+
+    if (selectedAppId != null) {
+        AppDetailsDialog(
+            packageId = selectedAppId!!,
+            onDismissRequest = { selectedAppId = null }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -162,12 +171,14 @@ fun DashboardScreen(
             when (selectedTabIndex) {
                 0 -> {
                     // Discovery Dashboard
+                    val uninstallProgress by viewModel.uninstallProgress.collectAsState()
                     DiscoveryScreen(
                         unusedApps = unusedApps,
                         largeApps = largeApps,
                         allApps = allInstalledApps,
                         isLoading = isLoadingDiscovery,
                         isPreparingAllApps = isPreparingAllApps,
+                        uninstallProgress = uninstallProgress,
                         onRefresh = { viewModel.loadDiscoveryDataIfStale() },
                         onPrepareAllApps = { viewModel.prepareAllAppsForDisplay() },
                         onPrefetchPackages = { packageIds -> viewModel.prefetchIcons(packageIds) },
@@ -185,8 +196,9 @@ fun DashboardScreen(
                     // Archive List
                     ArchivedAppsList(
                         apps = archivedApps,
-                        onAppClick = onNavigateToAppDetails,
+                        onAppClick = { selectedAppId = it },
                         onDeleteClick = { viewModel.deleteArchivedApp(it) },
+                        onAppUpdate = { viewModel.updateArchivedApp(it) },
                         onNavigateToDiscover = { selectedTabIndex = 0 }
                     )
                 }
