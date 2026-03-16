@@ -237,7 +237,13 @@ fun ArchivedAppsList(
         val context = LocalContext.current
         var whyKept by remember(app.packageId) { mutableStateOf(app.notes.orEmpty()) }
         val iconBitmap = remember(app.iconBytes) {
-            app.iconBytes?.let { bytes -> BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() }
+            app.iconBytes?.let { bytes -> 
+                try {
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() 
+                } catch (e: Exception) {
+                    null
+                }
+            }
         }
         Dialog(onDismissRequest = { detailApp = null }) {
             Card(
@@ -453,7 +459,13 @@ fun ArchivedAppsList(
                 val draggingApp = draggingIdState.value?.let { allAppsById[it] }
                 if (draggingApp != null) {
                     val bitmap = remember(draggingApp.iconBytes) {
-                        draggingApp.iconBytes?.let { bytes -> BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() }
+                        draggingApp.iconBytes?.let { bytes -> 
+                            try {
+                                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() 
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
                     }
                     Box(
                         modifier = Modifier
@@ -534,7 +546,13 @@ private fun FolderDrawerItem(
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             previewApps.forEach { app ->
                 val bitmap = remember(app.iconBytes) {
-                    app.iconBytes?.let { bytes -> BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() }
+                    app.iconBytes?.let { bytes -> 
+                        try {
+                            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() 
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
                 }
                 if (bitmap != null) {
                     Image(
@@ -584,7 +602,11 @@ fun AppDrawerItem(
     var showMenu by remember { mutableStateOf(false) }
     val cachedBitmap = remember(app.iconBytes) {
         app.iconBytes?.let { bytes ->
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+            try {
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+            } catch (e: Exception) {
+                null
+            }
         }
     }
 
