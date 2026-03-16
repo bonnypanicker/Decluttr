@@ -6,7 +6,6 @@ import javax.inject.Inject
 
 class ArchiveAndUninstallUseCase @Inject constructor(
     private val getAppDetailsUseCase: GetAppDetailsUseCase,
-    private val uninstallAppUseCase: UninstallAppUseCase,
     private val repository: AppRepository
 ) {
     suspend operator fun invoke(packageIds: List<String>, appInfoMap: Map<String, Pair<Boolean, Long>> = emptyMap()) {
@@ -26,9 +25,6 @@ class ArchiveAndUninstallUseCase @Inject constructor(
             
             // Save to DB
             repository.insertApp(app)
-            
-            // Trigger OS Uninstall (async, requires user confirm for each)
-            uninstallAppUseCase(packageId)
         }
     }
 }

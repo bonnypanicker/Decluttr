@@ -1,6 +1,10 @@
 package com.example.decluttr.presentation.screens.dashboard
 
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.imageLoader
@@ -24,10 +28,13 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
+import kotlin.coroutines.resume
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
@@ -227,6 +234,12 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
+    fun updateArchivedApp(app: ArchivedApp) {
+        viewModelScope.launch {
+            appRepository.insertApp(app)
+        }
+    }
+
     fun archiveAndUninstallSelected(packageIds: Set<String>) {
         if (packageIds.isEmpty()) return
         
@@ -241,8 +254,11 @@ class DashboardViewModel @Inject constructor(
         
         viewModelScope.launch {
             archiveAndUninstallUseCase(packageIds.toList(), appInfoMap)
-            loadDiscoveryData() // Refresh list after uninstall queue is fired
-            _celebrationEvent.emit(CelebrationData(packageIds.size, savedBytes))
+            val removedCount = uninstallAndAwaitCompletion(packageIds.toList())
+            loadDiscoveryData()
+            if (removedCount == packageIds.size) {
+                _celebrationEvent.emit(CelebrationData(packageIds.size, savedBytes))
+            }
         }
     }
 
@@ -254,11 +270,63 @@ class DashboardViewModel @Inject constructor(
         val savedBytes = appsToUninstall.sumOf { it.apkSizeBytes }
         
         viewModelScope.launch {
-            packageIds.forEach { pkg ->
-                uninstallAppUseCase(pkg)
-            }
+            val removedCount = uninstallAndAwaitCompletion(packageIds.toList())
             loadDiscoveryData()
-            _celebrationEvent.emit(CelebrationData(packageIds.size, savedBytes))
+            if (removedCount == packageIds.size) {
+                _celebrationEvent.emit(CelebrationData(packageIds.size, savedBytes))
+            }
         }
+    }
+
+    private suspend fun uninstallAndAwaitCompletion(packageIds: List<String>): Int {
+        val uniquePackageIds = packageIds.distinct()
+        if (uniquePackageIds.isEmpty()) return 0
+        uniquePackageIds.forEach { uninstallAppUseCase(it) }
+        val removed = awaitRemovedPackages(uniquePackageIds.toSet())
+        return removed.size
+    }
+
+    private suspend fun awaitRemovedPackages(targetPackages: Set<String>): Set<String> {
+        val removedPackages = targetPackages.filterNot { isPackageInstalled(it) }.toMutableSet()
+        if (removedPackages.size == targetPackages.size) return removedPackages
+
+        val observed = withTimeoutOrNull(10 * 60 * 1000L) {
+            suspendCancellableCoroutine<Set<String>> { continuation ->
+                val receiver = object : android.content.BroadcastReceiver() {
+                    override fun onReceive(context: Context?, intent: Intent?) {
+                        if (intent?.action != Intent.ACTION_PACKAGE_REMOVED) return
+                        if (intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)) return
+                        val removedPkg = intent.data?.schemeSpecificPart ?: return
+                        if (removedPkg !in targetPackages) return
+                        removedPackages.add(removedPkg)
+                        if (removedPackages.size == targetPackages.size && continuation.isActive) {
+                            runCatching { context.unregisterReceiver(this) }
+                            continuation.resume(removedPackages.toSet())
+                        }
+                    }
+                }
+
+                val filter = IntentFilter(Intent.ACTION_PACKAGE_REMOVED).apply {
+                    addDataScheme("package")
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+                } else {
+                    context.registerReceiver(receiver, filter)
+                }
+
+                continuation.invokeOnCancellation {
+                    runCatching { context.unregisterReceiver(receiver) }
+                }
+            }
+        }
+        return observed ?: removedPackages
+    }
+
+    private fun isPackageInstalled(packageId: String): Boolean {
+        return runCatching {
+            context.packageManager.getPackageInfo(packageId, PackageManager.GET_ACTIVITIES)
+            true
+        }.getOrElse { false }
     }
 }
