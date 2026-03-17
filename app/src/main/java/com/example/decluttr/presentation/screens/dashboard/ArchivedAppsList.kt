@@ -288,7 +288,10 @@ fun AppDrawerItemDraggable(
             .clip(RoundedCornerShape(12.dp))
             .combinedClickable(
                 onClick = onClick,
-                onLongClick = { showMenu = true }
+                onLongClick = { 
+                    showMenu = true
+                    onDragStart()
+                }
             )
             .padding(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally

@@ -47,19 +47,8 @@ class ArchivedAppsAdapter(
             composeView.tag = item
 
             if (item is ArchivedItem.App) {
-                composeView.setOnLongClickListener { view ->
-                    onAppStartDrag(item.app)
-                    val clipData = ClipData.newPlainText("packageId", item.app.packageId)
-                    val shadowBuilder = View.DragShadowBuilder(view)
-                    
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                        view.startDragAndDrop(clipData, shadowBuilder, item.app, 0)
-                    } else {
-                        @Suppress("DEPRECATION")
-                        view.startDrag(clipData, shadowBuilder, item.app, 0)
-                    }
-                    true
-                }
+                // Remove native long click listener; Compose will handle it and call onDragStart
+                composeView.setOnLongClickListener(null)
             } else {
                 // Folders aren't natively draggable in our current spec
                 composeView.setOnLongClickListener(null)
@@ -74,7 +63,17 @@ class ArchivedAppsAdapter(
                             isDragging = false, // Flow handles native shadow, item remains visible
                             onClick = { onAppClick(item.app.packageId) },
                             onDeleteClick = { onDeleteClick(item.app) },
-                            onDragStart = { /* Handled natively by setOnLongClickListener */ },
+                            onDragStart = {
+                                onAppStartDrag(item.app)
+                                val clipData = ClipData.newPlainText("packageId", item.app.packageId)
+                                val shadowBuilder = View.DragShadowBuilder(composeView)
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                                    composeView.startDragAndDrop(clipData, shadowBuilder, item.app, 0)
+                                } else {
+                                    @Suppress("DEPRECATION")
+                                    composeView.startDrag(clipData, shadowBuilder, item.app, 0)
+                                }
+                            },
                             onDrag = { /* Native */ },
                             onDragEnd = { /* Native */ }
                         )
