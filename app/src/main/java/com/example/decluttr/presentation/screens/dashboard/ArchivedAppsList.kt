@@ -56,8 +56,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.decluttr.domain.model.ArchivedApp
-
-@OptIn(ExperimentalMaterial3Api::class)
+import androidx.compose.ui.geometry.Offset
 @Composable
 fun ArchivedAppsList(
     apps: List<ArchivedApp>,
@@ -366,8 +365,9 @@ fun FolderDrawerItem(
                 for (row in rows) {
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         for (app in row) {
+                            val context = LocalContext.current
                             val imageRequest = remember(app.packageId) {
-                                coil.request.ImageRequest.Builder(LocalContext.current)
+                                coil.request.ImageRequest.Builder(context)
                                     .data(com.example.decluttr.presentation.screens.dashboard.AppIconModel(app.packageId))
                                     .memoryCacheKey(app.packageId)
                                     .size(44) // 22dp * density
