@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -94,6 +95,7 @@ fun ArchivedAppsList(
 
     var newFolderAppPair by remember { mutableStateOf<Pair<ArchivedApp, ArchivedApp>?>(null) }
     var newFolderName by remember { mutableStateOf("") }
+    var expandedFolder by remember { mutableStateOf<String?>(null) }
     
     // Group apps into folders or standalones
     val groupedItems = remember(filteredApps) {
@@ -223,9 +225,69 @@ fun ArchivedAppsList(
                             onAppUpdate(app.copy(folderName = null))
                         }
                     },
+                    onFolderClick = { folderName ->
+                        expandedFolder = folderName
+                    },
                     modifier = Modifier.weight(1f)
                 )
             }
+        }
+    }
+
+    if (expandedFolder != null) {
+        val folderApps = apps.filter { it.folderName == expandedFolder }
+        if (folderApps.isNotEmpty()) {
+            androidx.compose.ui.window.Dialog(onDismissRequest = { expandedFolder = null }) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 8.dp,
+                    modifier = Modifier.fillMaxWidth().padding(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = expandedFolder!!,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+                            columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(4),
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            androidx.compose.foundation.lazy.grid.items(folderApps) { app ->
+                                AppDrawerItemDraggable(
+                                    app = app,
+                                    isDragging = false,
+                                    onClick = { 
+                                        expandedFolder = null
+                                        onAppClick(app.packageId)
+                                    },
+                                    onDeleteClick = { onDeleteClick(app) },
+                                    onDragStart = {},
+                                    onDrag = {},
+                                    onDragEnd = {}
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        androidx.compose.material3.TextButton(
+                            onClick = { expandedFolder = null }
+                        ) {
+                            Text("Close")
+                        }
+                    }
+                }
+            }
+        } else {
+            expandedFolder = null
         }
     }
 }

@@ -17,7 +17,8 @@ class ArchivedAppsAdapter(
     private val onAppStartDrag: (ArchivedApp) -> Unit,
     private val onAppDropOnApp: (ArchivedApp, ArchivedApp) -> Unit,
     private val onAppDropOnFolder: (ArchivedApp, String) -> Unit,
-    private val onRemoveFolder: (List<ArchivedApp>) -> Unit
+    private val onRemoveFolder: (List<ArchivedApp>) -> Unit,
+    private val onFolderClick: (String) -> Unit
 ) : RecyclerView.Adapter<ArchivedAppsAdapter.ComposeViewHolder>() {
 
     fun updateItems(newItems: List<ArchivedItem>) {
@@ -82,7 +83,7 @@ class ArchivedAppsAdapter(
                         FolderDrawerItem(
                             folderName = item.name,
                             apps = item.apps,
-                            onClick = { /* Expand folder if needed */ },
+                            onClick = { onFolderClick(item.name) },
                             onDeleteClick = { onRemoveFolder(item.apps) }
                         )
                     }

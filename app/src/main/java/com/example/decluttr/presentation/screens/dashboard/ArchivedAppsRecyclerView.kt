@@ -21,6 +21,7 @@ fun ArchivedAppsRecyclerView(
     onAppDropOnApp: (ArchivedApp, ArchivedApp) -> Unit,
     onAppDropOnFolder: (ArchivedApp, String) -> Unit,
     onRemoveFolder: (List<ArchivedApp>) -> Unit,
+    onFolderClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -33,7 +34,8 @@ fun ArchivedAppsRecyclerView(
             onAppStartDrag = onAppStartDrag,
             onAppDropOnApp = onAppDropOnApp,
             onAppDropOnFolder = onAppDropOnFolder,
-            onRemoveFolder = onRemoveFolder
+            onRemoveFolder = onRemoveFolder,
+            onFolderClick = onFolderClick
         )
     }
 
