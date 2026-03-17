@@ -21,9 +21,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -60,14 +57,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.decluttr.domain.model.ArchivedApp
 
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
-import kotlinx.coroutines.launch
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArchivedAppsList(
@@ -102,9 +91,6 @@ fun ArchivedAppsList(
         }
     }
 
-    var draggedApp by remember { mutableStateOf<ArchivedApp?>(null) }
-    var dragPosition by remember { mutableStateOf(Offset.Zero) }
-    var dropTargetApp by remember { mutableStateOf<ArchivedApp?>(null) }
     var newFolderAppPair by remember { mutableStateOf<Pair<ArchivedApp, ArchivedApp>?>(null) }
     var newFolderName by remember { mutableStateOf("") }
     
@@ -189,102 +175,55 @@ fun ArchivedAppsList(
                 }
             }
         } else {
-            Box(modifier = Modifier.fillMaxSize()) {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 80.dp),
-                    contentPadding = PaddingValues(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    if (newFolderAppPair != null) {
-                        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
-                            Column(
-                                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text("Name your new folder", fontWeight = FontWeight.Bold)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                OutlinedTextField(
-                                    value = newFolderName,
-                                    onValueChange = { newFolderName = it },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth(0.8f)
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                androidx.compose.material3.Button(
-                                    onClick = {
-                                        val folderName = newFolderName.trim().ifEmpty { "New Folder" }
-                                        newFolderAppPair?.let { (app1, app2) ->
-                                            onAppUpdate(app1.copy(folderName = folderName))
-                                            onAppUpdate(app2.copy(folderName = folderName))
-                                        }
-                                        newFolderAppPair = null
-                                        newFolderName = ""
-                                    }
-                                ) {
-                                    Text("Create Folder")
+            Column(modifier = Modifier.fillMaxSize()) {
+                if (newFolderAppPair != null) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp).background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp)).padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("Name your new folder", fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = newFolderName,
+                            onValueChange = { newFolderName = it },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(0.8f)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        androidx.compose.material3.Button(
+                            onClick = {
+                                val folderName = newFolderName.trim().ifEmpty { "New Folder" }
+                                newFolderAppPair?.let { (app1, app2) ->
+                                    onAppUpdate(app1.copy(folderName = folderName))
+                                    onAppUpdate(app2.copy(folderName = folderName))
                                 }
+                                newFolderAppPair = null
+                                newFolderName = ""
                             }
-                        }
-                    }
-
-                    items(groupedItems, key = { 
-                        when (it) {
-                            is ArchivedItem.App -> it.app.packageId
-                            is ArchivedItem.Folder -> "folder_${it.name}"
-                        } 
-                    }) { item ->
-                        when (item) {
-                            is ArchivedItem.App -> {
-                                var position by remember { mutableStateOf(Offset.Zero) }
-                                val isDropTarget = dropTargetApp?.packageId == item.app.packageId
-                                
-                                Box(
-                                    modifier = Modifier
-                                        .onGloballyPositioned { coordinates ->
-                                            position = coordinates.positionInRoot()
-                                        }
-                                        .background(if (isDropTarget) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else Color.Transparent, RoundedCornerShape(12.dp))
-                                ) {
-                                    AppDrawerItemDraggable(
-                                        app = item.app,
-                                        isDragging = draggedApp?.packageId == item.app.packageId,
-                                        onClick = { onAppClick(item.app.packageId) },
-                                        onDeleteClick = { onDeleteClick(item.app) },
-                                        onDragStart = { draggedApp = item.app },
-                                        onDrag = { delta -> 
-                                            dragPosition += delta 
-                                            
-                                            // Check drop target (approximate, usually doing bounding box checks is better but simple center distance works)
-                                            val potentialTarget = apps.filter { it.folderName == null && it.packageId != draggedApp?.packageId }
-                                                .firstOrNull { /* simplistic bounds check would go here in full impl, let's keep it simple for now and rely on actual layout coordinates if possible. For simplicity of the snippet, we omit full layout coordinate checking unless we add a LocalLayoutCoordinates context. */ false }
-                                        },
-                                        onDragEnd = { 
-                                            draggedApp = null 
-                                            dropTargetApp = null
-                                        }
-                                    )
-                                }
-                            }
-                            is ArchivedItem.Folder -> {
-                                FolderDrawerItem(
-                                    folderName = item.name,
-                                    apps = item.apps,
-                                    onClick = { /* Could open folder view, or just handle clicks differently */ },
-                                    onDeleteClick = {
-                                        item.apps.forEach { app ->
-                                            // Extract from folder instead of delete entirely? Or delete all?
-                                            // Usually long press -> remove from folder makes sense.
-                                            // Let's implement removing the folder container (un-folder)
-                                            onAppUpdate(app.copy(folderName = null))
-                                        }
-                                    }
-                                )
-                            }
+                        ) {
+                            Text("Create Folder")
                         }
                     }
                 }
+
+                ArchivedAppsRecyclerView(
+                    items = groupedItems,
+                    onAppClick = onAppClick,
+                    onDeleteClick = onDeleteClick,
+                    onAppStartDrag = { /* Only needed for compose-drawn drag shadow, native draws own */ },
+                    onAppDropOnApp = { draggedApp, targetApp ->
+                        newFolderAppPair = Pair(draggedApp, targetApp)
+                    },
+                    onAppDropOnFolder = { draggedApp, folderName ->
+                        onAppUpdate(draggedApp.copy(folderName = folderName))
+                    },
+                    onRemoveFolder = { folderApps ->
+                        folderApps.forEach { app ->
+                            onAppUpdate(app.copy(folderName = null))
+                        }
+                    },
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
@@ -333,27 +272,19 @@ fun AppDrawerItemDraggable(
     val context = LocalContext.current
     var showMenu by remember { mutableStateOf(false) }
 
-    val cachedBitmap = remember(app.iconBytes) {
-        app.iconBytes?.let { bytes ->
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-        }
+    val imageRequest = remember(app.packageId) {
+        coil.request.ImageRequest.Builder(context)
+            .data(com.example.decluttr.presentation.screens.dashboard.AppIconModel(app.packageId))
+            .memoryCacheKey(app.packageId)
+            .size(112) // 56dp * density
+            .crossfade(false)
+            .build()
     }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .pointerInput(app.packageId) {
-                detectDragGesturesAfterLongPress(
-                    onDragStart = { onDragStart() },
-                    onDrag = { change, dragAmount -> 
-                        change.consume()
-                        onDrag(dragAmount)
-                    },
-                    onDragEnd = { onDragEnd() },
-                    onDragCancel = { onDragEnd() }
-                )
-            }
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = { showMenu = true }
@@ -362,15 +293,11 @@ fun AppDrawerItemDraggable(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val modifier = if (isDragging) Modifier.size(56.dp).graphicsLayer { alpha = 0.5f } else Modifier.size(56.dp)
-        if (cachedBitmap != null) {
-            Image(
-                bitmap = cachedBitmap,
-                contentDescription = "App Icon",
-                modifier = modifier
-            )
-        } else {
-            PlaceholderIcon(modifier)
-        }
+        coil.compose.AsyncImage(
+            model = imageRequest,
+            contentDescription = "App Icon",
+            modifier = modifier
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
         Text(
@@ -439,14 +366,19 @@ fun FolderDrawerItem(
                 for (row in rows) {
                     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                         for (app in row) {
-                            val cachedBitmap = remember(app.iconBytes) {
-                                app.iconBytes?.let { BitmapFactory.decodeByteArray(it, 0, it.size)?.asImageBitmap() }
+                            val imageRequest = remember(app.packageId) {
+                                coil.request.ImageRequest.Builder(LocalContext.current)
+                                    .data(com.example.decluttr.presentation.screens.dashboard.AppIconModel(app.packageId))
+                                    .memoryCacheKey(app.packageId)
+                                    .size(44) // 22dp * density
+                                    .crossfade(false)
+                                    .build()
                             }
-                            if (cachedBitmap != null) {
-                                Image(bitmap = cachedBitmap, contentDescription = null, modifier = Modifier.size(22.dp).clip(RoundedCornerShape(4.dp)))
-                            } else {
-                                Box(modifier = Modifier.size(22.dp).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha=0.3f), RoundedCornerShape(4.dp)))
-                            }
+                            coil.compose.AsyncImage(
+                                model = imageRequest,
+                                contentDescription = null, 
+                                modifier = Modifier.size(22.dp).clip(RoundedCornerShape(4.dp))
+                            )
                         }
                     }
                 }
