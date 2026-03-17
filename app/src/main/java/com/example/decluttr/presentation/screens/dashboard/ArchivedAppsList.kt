@@ -57,6 +57,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.decluttr.domain.model.ArchivedApp
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.material3.ExperimentalMaterial3Api
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArchivedAppsList(
     apps: List<ArchivedApp>,
@@ -273,7 +276,7 @@ fun AppDrawerItemDraggable(
 
     val imageRequest = remember(app.packageId) {
         coil.request.ImageRequest.Builder(context)
-            .data(com.example.decluttr.presentation.screens.dashboard.AppIconModel(app.packageId))
+            .data(com.example.decluttr.presentation.util.AppIconModel(app.packageId))
             .memoryCacheKey(app.packageId)
             .size(112) // 56dp * density
             .crossfade(false)
@@ -368,7 +371,7 @@ fun FolderDrawerItem(
                             val context = LocalContext.current
                             val imageRequest = remember(app.packageId) {
                                 coil.request.ImageRequest.Builder(context)
-                                    .data(com.example.decluttr.presentation.screens.dashboard.AppIconModel(app.packageId))
+                                    .data(com.example.decluttr.presentation.util.AppIconModel(app.packageId))
                                     .memoryCacheKey(app.packageId)
                                     .size(44) // 22dp * density
                                     .crossfade(false)
