@@ -271,7 +271,6 @@ fun AppDrawerItemDraggable(
     onDragEnd: () -> Unit
 ) {
     val context = LocalContext.current
-    var showMenu by remember { mutableStateOf(false) }
 
     val imageRequest = remember(app.packageId) {
         coil.request.ImageRequest.Builder(context)
@@ -289,7 +288,6 @@ fun AppDrawerItemDraggable(
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = { 
-                    showMenu = true
                     onDragStart()
                 }
             )
@@ -313,25 +311,6 @@ fun AppDrawerItemDraggable(
             overflow = TextOverflow.Ellipsis,
             lineHeight = MaterialTheme.typography.bodySmall.fontSize * 1.2
         )
-
-        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-            DropdownMenuItem(
-                text = { Text("Re-install App") },
-                leadingIcon = { Icon(Icons.Default.PlayArrow, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                onClick = {
-                    showMenu = false
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${app.packageId}")).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
-                    try { context.startActivity(intent) } catch (e: Exception) {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${app.packageId}")))
-                    }
-                }
-            )
-            DropdownMenuItem(
-                text = { Text("Delete from DB") },
-                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-                onClick = { showMenu = false; onDeleteClick() }
-            )
-        }
     }
 }
 

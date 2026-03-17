@@ -124,9 +124,14 @@ fun DashboardScreen(
     var selectedAppId by remember { mutableStateOf<String?>(null) }
 
     if (selectedAppId != null) {
+        val appToDelete = archivedApps.find { it.packageId == selectedAppId }
         AppDetailsDialog(
             packageId = selectedAppId!!,
-            onDismissRequest = { selectedAppId = null }
+            onDismissRequest = { selectedAppId = null },
+            onDeleteClick = {
+                appToDelete?.let { viewModel.deleteArchivedApp(it) }
+                selectedAppId = null
+            }
         )
     }
 

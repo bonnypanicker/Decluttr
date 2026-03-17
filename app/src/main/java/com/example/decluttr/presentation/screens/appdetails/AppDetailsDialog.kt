@@ -48,6 +48,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 fun AppDetailsDialog(
     packageId: String,
     onDismissRequest: () -> Unit,
+    onDeleteClick: () -> Unit = {},
     viewModel: AppDetailsViewModel = hiltViewModel()
 ) {
     val appState by viewModel.appState.collectAsState()
@@ -171,21 +172,36 @@ fun AppDetailsDialog(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Re-install Button
-                    Button(
-                        onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${app.packageId}"))
-                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            try {
-                                context.startActivity(intent)
-                            } catch (e: Exception) {
-                                val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${app.packageId}"))
-                                context.startActivity(webIntent)
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
+                    // Action Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)
                     ) {
-                        Text("Re-install from Play Store")
+                        androidx.compose.material3.OutlinedButton(
+                            onClick = onDeleteClick,
+                            modifier = Modifier.weight(1f),
+                            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text("Delete")
+                        }
+                        
+                        Button(
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${app.packageId}"))
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                try {
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${app.packageId}"))
+                                    context.startActivity(webIntent)
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Reinstall")
+                        }
                     }
                 }
             }
