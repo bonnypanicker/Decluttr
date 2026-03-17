@@ -114,12 +114,15 @@ class ArchivedAppsAdapter(
                 DragEvent.ACTION_DROP -> {
                     val draggedApp = event.localState as? ArchivedApp
                     if (draggedApp != null && targetItem != null) {
+                        android.widget.Toast.makeText(view.context, "Dropped ${draggedApp.name} on ${if (targetItem is ArchivedItem.App) targetItem.app.name else "folder"}", android.widget.Toast.LENGTH_SHORT).show()
                         if (targetItem is ArchivedItem.App && draggedApp.packageId != targetItem.app.packageId) {
                             onAppDropOnApp(draggedApp, targetItem.app)
                         } else if (targetItem is ArchivedItem.Folder) {
                             onAppDropOnFolder(draggedApp, targetItem.name)
                         }
                         return true
+                    } else {
+                        android.widget.Toast.makeText(view.context, "Drop failed: null state", android.widget.Toast.LENGTH_SHORT).show()
                     }
                     return false
                 }
