@@ -10,12 +10,10 @@
     android:clickable="true"
     android:focusable="true">
 
-    <androidx.cardview.widget.CardView
+    <FrameLayout
         android:layout_width="56dp"
         android:layout_height="56dp"
-        app:cardCornerRadius="16dp"
-        app:cardBackgroundColor="#40808080"
-        app:cardElevation="0dp">
+        android:background="@drawable/bg_folder_icon">
 
         <GridLayout
             android:layout_width="wrap_content"
@@ -29,7 +27,7 @@
             <ImageView android:id="@+id/folder_icon_3" android:layout_width="22dp" android:layout_height="22dp" android:layout_margin="1dp"/>
             <ImageView android:id="@+id/folder_icon_4" android:layout_width="22dp" android:layout_height="22dp" android:layout_margin="1dp"/>
         </GridLayout>
-    </androidx.cardview.widget.CardView>
+    </FrameLayout>
 
     <TextView
         android:id="@+id/folder_name"
