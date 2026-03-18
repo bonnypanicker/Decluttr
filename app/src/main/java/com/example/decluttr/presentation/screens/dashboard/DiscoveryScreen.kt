@@ -25,7 +25,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -61,6 +61,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -905,150 +906,47 @@ fun SpecificAppListDisplay(
                 }
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                state = listState,
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(
-                    items = filteredList,
-                    key = { it.packageId },
-                    contentType = { "app" }
-                ) { app ->
-                    val isSelected = selectedApps.contains(app.packageId)
-
-                    AppListCard(
-                        app = app,
-                        isSelected = isSelected,
-                        listType = listType,
-                        onToggle = {
-                            selectedApps = if (isSelected) {
-                                selectedApps - app.packageId
-                            } else {
-                                selectedApps + app.packageId
+            AndroidView(
+                modifier = Modifier.fillMaxWidth().weight(1f).padding(16.dp),
+                factory = { ctx ->
+                    androidx.recyclerview.widget.RecyclerView(ctx).apply {
+                        layoutManager = androidx.recyclerview.widget.LinearLayoutManager(ctx)
+                        adapter = DiscoveryAppsAdapter(
+                            onToggle = { packageId ->
+                                selectedApps = if (packageId in selectedApps) {
+                                    selectedApps - packageId
+                                } else {
+                                    selectedApps + packageId
+                                }
                             }
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun AppListCard(
-    app: GetInstalledAppsUseCase.InstalledAppInfo,
-    isSelected: Boolean,
-    listType: DiscoveryViewState = DiscoveryViewState.ALL_APPS,
-    onToggle: () -> Unit
-) {
-    val context = LocalContext.current
-    val now = remember { System.currentTimeMillis() }
-    val sizeLabel = remember(app.apkSizeBytes) { "${bytesToMB(app.apkSizeBytes)} MB" }
-    val imageRequest = remember(app.packageId) {
-        ImageRequest.Builder(context)
-            .data(AppIconModel(app.packageId))
-            .memoryCacheKey(app.packageId)
-            .size(96)
-            .crossfade(false)
-            .build()
-    }
-    val timeString = remember(app.lastTimeUsed) {
-        if (app.lastTimeUsed > 0) {
-            val daysAgo = ((now - app.lastTimeUsed) / DateUtils.DAY_IN_MILLIS).toInt()
-            when {
-                daysAgo <= 0 -> "Today"
-                daysAgo == 1 -> "1 day ago"
-                else -> "$daysAgo days ago"
-            }
-        } else {
-            "Never used"
-        }
-    }
-    
-    // Flat Row design instead of Card
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(8.dp)
-            )
-            .clickable(onClick = onToggle)
-            .padding(vertical = 12.dp, horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Checkbox(
-            checked = isSelected,
-            onCheckedChange = { onToggle() }
-        )
-        
-        Spacer(modifier = Modifier.width(8.dp))
-        
-        AsyncImage(
-            model = imageRequest,
-            contentDescription = "App Icon",
-            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp))
-        )
-        
-        Spacer(modifier = Modifier.width(16.dp))
-        
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = app.name, 
-                    fontWeight = FontWeight.Bold, 
-                    style = MaterialTheme.typography.titleMedium,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
-                if (!app.isPlayStoreInstalled) {
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = "Sideloaded App",
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(2.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = sizeLabel,
-                    style = MaterialTheme.typography.bodySmall, 
-                    fontWeight = FontWeight.Medium,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = " • $timeString", 
-                    style = MaterialTheme.typography.bodySmall, 
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
-            }
-            // Contextual label based on list type
-            val contextLabel = remember(listType, app.lastTimeUsed, app.apkSizeBytes) {
-                when (listType) {
-                    DiscoveryViewState.RARELY_USED -> {
-                        if (app.lastTimeUsed > 0) {
-                            val daysAgo = ((now - app.lastTimeUsed) / DateUtils.DAY_IN_MILLIS).toInt()
-                            "Not used in $daysAgo days"
-                        } else "Never opened"
+                        )
                     }
-                    DiscoveryViewState.LARGE_APPS -> "Takes $sizeLabel"
-                    else -> null
+                },
+                update = { recyclerView ->
+                    val adapter = recyclerView.adapter as DiscoveryAppsAdapter
+                    val mappedItems = filteredList.map { app ->
+                        val now = System.currentTimeMillis()
+                        val sizeLabel = "${bytesToMB(app.apkSizeBytes)} MB"
+                        val ctxLabel = when (listType) {
+                            DiscoveryViewState.RARELY_USED -> {
+                                if (app.lastTimeUsed > 0) {
+                                    val daysAgo = ((now - app.lastTimeUsed) / DateUtils.DAY_IN_MILLIS).toInt()
+                                    "Not used in $daysAgo days"
+                                } else "Never opened"
+                            }
+                            DiscoveryViewState.LARGE_APPS -> "Takes $sizeLabel"
+                            else -> null
+                        }
+                        
+                        AppListItem(
+                            info = app,
+                            isSelected = app.packageId in selectedApps,
+                            contextLabel = ctxLabel
+                        )
+                    }
+                    adapter.submitList(mappedItems)
                 }
-            }
-            if (contextLabel != null) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = contextLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.tertiary
-                )
-            }
+            )
         }
     }
 }
