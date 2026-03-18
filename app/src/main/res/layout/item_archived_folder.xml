@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:padding="4dp"
+    android:background="?android:attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true">
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        app:cardCornerRadius="16dp"
+        app:cardBackgroundColor="#40808080"
+        app:cardElevation="0dp">
+
+        <GridLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:columnCount="2"
+            android:rowCount="2"
+            android:layout_gravity="center">
+
+            <ImageView android:id="@+id/folder_icon_1" android:layout_width="22dp" android:layout_height="22dp" android:layout_margin="1dp"/>
+            <ImageView android:id="@+id/folder_icon_2" android:layout_width="22dp" android:layout_height="22dp" android:layout_margin="1dp"/>
+            <ImageView android:id="@+id/folder_icon_3" android:layout_width="22dp" android:layout_height="22dp" android:layout_margin="1dp"/>
+            <ImageView android:id="@+id/folder_icon_4" android:layout_width="22dp" android:layout_height="22dp" android:layout_margin="1dp"/>
+        </GridLayout>
+    </androidx.cardview.widget.CardView>
+
+    <TextView
+        android:id="@+id/folder_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:textColor="?android:attr/textColorPrimary" />
+</LinearLayout>

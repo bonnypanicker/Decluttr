@@ -28,7 +28,6 @@ fun ArchivedAppsRecyclerView(
 
     val adapter = remember {
         ArchivedAppsAdapter(
-            items = items,
             onAppClick = onAppClick,
             onDeleteClick = onDeleteClick,
             onAppStartDrag = onAppStartDrag,
@@ -40,7 +39,7 @@ fun ArchivedAppsRecyclerView(
     }
 
     // Update adapter whenever items change
-    adapter.updateItems(items)
+    adapter.submitList(items)
 
     AndroidView(
         modifier = modifier.fillMaxSize(),

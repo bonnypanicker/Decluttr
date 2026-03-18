@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -261,7 +262,7 @@ fun ArchivedAppsList(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            androidx.compose.foundation.lazy.grid.items(folderApps) { app ->
+                            items(folderApps) { app ->
                                 AppDrawerItemDraggable(
                                     app = app,
                                     isDragging = false,

@@ -3,15 +3,38 @@ package com.example.decluttr.presentation.screens.dashboard
 import android.content.ClipData
 import android.os.Build
 import android.view.DragEvent
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.ViewCompositionStrategy
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import coil.load
+import com.example.decluttr.R
 import com.example.decluttr.domain.model.ArchivedApp
+import com.example.decluttr.presentation.util.AppIconModel
+
+class ArchiveDiffCallback : DiffUtil.ItemCallback<ArchivedItem>() {
+    override fun areItemsTheSame(oldItem: ArchivedItem, newItem: ArchivedItem): Boolean {
+        return when {
+            oldItem is ArchivedItem.App && newItem is ArchivedItem.App -> {
+                oldItem.app.packageId == newItem.app.packageId
+            }
+            oldItem is ArchivedItem.Folder && newItem is ArchivedItem.Folder -> {
+                oldItem.name == newItem.name
+            }
+            else -> false
+        }
+    }
+
+    override fun areContentsTheSame(oldItem: ArchivedItem, newItem: ArchivedItem): Boolean {
+        return oldItem == newItem
+    }
+}
 
 class ArchivedAppsAdapter(
-    private var items: List<ArchivedItem>,
     private val onAppClick: (String) -> Unit,
     private val onDeleteClick: (ArchivedApp) -> Unit,
     private val onAppStartDrag: (ArchivedApp) -> Unit,
@@ -19,76 +42,94 @@ class ArchivedAppsAdapter(
     private val onAppDropOnFolder: (ArchivedApp, String) -> Unit,
     private val onRemoveFolder: (List<ArchivedApp>) -> Unit,
     private val onFolderClick: (String) -> Unit
-) : RecyclerView.Adapter<ArchivedAppsAdapter.ComposeViewHolder>() {
+) : ListAdapter<ArchivedItem, RecyclerView.ViewHolder>(ArchiveDiffCallback()) {
 
-    fun updateItems(newItems: List<ArchivedItem>) {
-        items = newItems
-        notifyDataSetChanged()
-    }
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ComposeViewHolder {
-        val composeView = ComposeView(parent.context).apply {
-            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-            // Enable drag listening on the root ComposeView
-            setOnDragListener(DragListener())
+    override fun getItemViewType(position: Int): Int {
+        return when(getItem(position)) {
+            is ArchivedItem.App -> 0
+            is ArchivedItem.Folder -> 1
         }
-        return ComposeViewHolder(composeView)
     }
 
-    override fun onBindViewHolder(holder: ComposeViewHolder, position: Int) {
-        val item = items[position]
-        holder.bind(item)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        val inflater = LayoutInflater.from(parent.context)
+        return if (viewType == 0) {
+            val view = inflater.inflate(R.layout.item_archived_app, parent, false)
+            AppViewHolder(view)
+        } else {
+            val view = inflater.inflate(R.layout.item_archived_folder, parent, false)
+            FolderViewHolder(view)
+        }
     }
 
-    override fun getItemCount(): Int = items.size
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        val item = getItem(position)
+        if (holder is AppViewHolder && item is ArchivedItem.App) {
+            holder.bind(item)
+        } else if (holder is FolderViewHolder && item is ArchivedItem.Folder) {
+            holder.bind(item)
+        }
+    }
 
-    inner class ComposeViewHolder(val composeView: ComposeView) : RecyclerView.ViewHolder(composeView) {
-        fun bind(item: ArchivedItem) {
-            // Attach data to the view tag for the DragListener to identify drop targets
-            composeView.tag = item
+    inner class AppViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        private val icon = view.findViewById<ImageView>(R.id.app_icon)
+        private val name = view.findViewById<TextView>(R.id.app_name)
 
-            if (item is ArchivedItem.App) {
-                // Remove native long click listener; Compose will handle it and call onDragStart
-                composeView.setOnLongClickListener(null)
-            } else {
-                // Folders aren't natively draggable in our current spec
-                composeView.setOnLongClickListener(null)
+        fun bind(appItem: ArchivedItem.App) {
+            val app = appItem.app
+            itemView.tag = appItem
+            name.text = app.name
+            icon.load(AppIconModel(app.packageId)) {
+                memoryCacheKey(app.packageId)
+                crossfade(false)
             }
 
-            composeView.setContent {
-                when (item) {
-                    is ArchivedItem.App -> {
-                        // Render standard App item (without Compose drag gesture detectors)
-                        AppDrawerItemDraggable(
-                            app = item.app,
-                            isDragging = false, // Flow handles native shadow, item remains visible
-                            onClick = { onAppClick(item.app.packageId) },
-                            onDeleteClick = { onDeleteClick(item.app) },
-                            onDragStart = {
-                                onAppStartDrag(item.app)
-                                val clipData = ClipData.newPlainText("packageId", item.app.packageId)
-                                val shadowBuilder = View.DragShadowBuilder(composeView)
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                                    composeView.startDragAndDrop(clipData, shadowBuilder, item.app, 0)
-                                } else {
-                                    @Suppress("DEPRECATION")
-                                    composeView.startDrag(clipData, shadowBuilder, item.app, 0)
-                                }
-                            },
-                            onDrag = { /* Native */ },
-                            onDragEnd = { /* Native */ }
-                        )
-                    }
-                    is ArchivedItem.Folder -> {
-                        FolderDrawerItem(
-                            folderName = item.name,
-                            apps = item.apps,
-                            onClick = { onFolderClick(item.name) },
-                            onDeleteClick = { onRemoveFolder(item.apps) }
-                        )
-                    }
+            itemView.setOnClickListener { onAppClick(app.packageId) }
+            itemView.setOnLongClickListener {
+                onAppStartDrag(app)
+                val clipData = ClipData.newPlainText("packageId", app.packageId)
+                val shadowBuilder = View.DragShadowBuilder(itemView)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    itemView.startDragAndDrop(clipData, shadowBuilder, app, 0)
+                } else {
+                    @Suppress("DEPRECATION")
+                    itemView.startDrag(clipData, shadowBuilder, app, 0)
+                }
+                true
+            }
+            itemView.setOnDragListener(DragListener())
+        }
+    }
+
+    inner class FolderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        private val folderName = view.findViewById<TextView>(R.id.folder_name)
+        private val icon1 = view.findViewById<ImageView>(R.id.folder_icon_1)
+        private val icon2 = view.findViewById<ImageView>(R.id.folder_icon_2)
+        private val icon3 = view.findViewById<ImageView>(R.id.folder_icon_3)
+        private val icon4 = view.findViewById<ImageView>(R.id.folder_icon_4)
+
+        fun bind(folderItem: ArchivedItem.Folder) {
+            itemView.tag = folderItem
+            folderName.text = folderItem.name
+            
+            val apps = folderItem.apps.take(4)
+            val icons = listOf(icon1, icon2, icon3, icon4)
+            
+            icons.forEach { it.setImageDrawable(null) } // Clear previous
+            apps.forEachIndexed { index, app ->
+                icons[index].load(AppIconModel(app.packageId)) {
+                    memoryCacheKey(app.packageId)
+                    crossfade(false)
                 }
             }
+
+            itemView.setOnClickListener { onFolderClick(folderItem.name) }
+            itemView.setOnLongClickListener {
+                // Allows Long Click to delete Folder since we dropped DropdownMenu earlier
+                onRemoveFolder(folderItem.apps)
+                true
+            }
+            itemView.setOnDragListener(DragListener())
         }
     }
 
@@ -98,37 +139,27 @@ class ArchivedAppsAdapter(
 
             when (event.action) {
                 DragEvent.ACTION_DRAG_STARTED -> {
-                    // Only accept if the dragged item provides our expected data
                     return event.clipDescription.hasMimeType(android.content.ClipDescription.MIMETYPE_TEXT_PLAIN)
                 }
                 DragEvent.ACTION_DRAG_ENTERED -> {
-                    // Optional: highlight view via Compose state if it's a valid target
-                    if (targetItem != null && event.localState != targetItem) {
-                        // For a seamless look, we could pass a `isDropTarget = true` state down via a map or SharedFlow
-                    }
                     return true
                 }
                 DragEvent.ACTION_DRAG_EXITED -> {
-                    // Remove highlight
                     return true
                 }
                 DragEvent.ACTION_DROP -> {
                     val draggedApp = event.localState as? ArchivedApp
                     if (draggedApp != null && targetItem != null) {
-                        android.widget.Toast.makeText(view.context, "Dropped ${draggedApp.name} on ${if (targetItem is ArchivedItem.App) targetItem.app.name else "folder"}", android.widget.Toast.LENGTH_SHORT).show()
                         if (targetItem is ArchivedItem.App && draggedApp.packageId != targetItem.app.packageId) {
                             onAppDropOnApp(draggedApp, targetItem.app)
                         } else if (targetItem is ArchivedItem.Folder) {
                             onAppDropOnFolder(draggedApp, targetItem.name)
                         }
                         return true
-                    } else {
-                        android.widget.Toast.makeText(view.context, "Drop failed: null state", android.widget.Toast.LENGTH_SHORT).show()
                     }
                     return false
                 }
                 DragEvent.ACTION_DRAG_ENDED -> {
-                    // Cleanup any highlight states
                     return true
                 }
                 else -> return false
