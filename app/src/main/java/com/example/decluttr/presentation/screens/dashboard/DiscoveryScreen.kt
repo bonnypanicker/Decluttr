@@ -4,13 +4,6 @@ import android.content.Intent
 import android.provider.Settings
 import android.text.format.DateUtils
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -33,28 +25,19 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -73,6 +56,15 @@ enum class DiscoveryViewState {
 
 enum class SortOption(val label: String) {
     NAME("Name"), SIZE("Size"), LAST_USED("Last Used")
+}
+
+/**
+ * Mutable callback reference bridging native TextWatcher → Compose state.
+ * Stored as a View tag on the root layout; the update block refreshes the lambda.
+ */
+internal class SearchQueryCallback {
+    var onQueryChange: ((String) -> Unit)? = null
+    var onExitSearch: (() -> Unit)? = null
 }
 
 @Composable
@@ -237,7 +229,6 @@ fun DiscoveryScreen(
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun DiscoveryDashboard(
     unusedApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
@@ -252,16 +243,6 @@ fun DiscoveryDashboard(
     var selectedApps by remember { mutableStateOf<Set<String>>(emptySet()) }
     var isSearchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-
-    // Keyboard controller for dismissing keyboard
-    val keyboardController = LocalSoftwareKeyboardController.current
-
-    // Dismiss keyboard when exiting search
-    LaunchedEffect(isSearchActive) {
-        if (!isSearchActive) {
-            keyboardController?.hide()
-        }
-    }
 
     // Extract Compose theme colors for native views
     val themeColors = NativeThemeColors(
@@ -282,7 +263,7 @@ fun DiscoveryDashboard(
     // Build the list of items for RecyclerView
     val dashboardItems = remember(unusedApps, largeApps, filteredApps, hasUsagePermission, isSearchActive, searchQuery, selectedApps) {
         buildList {
-            // TOP CARDS: Only shown when NOT in search mode
+            // ═══ TOP CARDS: Only shown when NOT searching ═══
             if (!isSearchActive) {
                 // Storage meter
                 if (allApps.isNotEmpty()) {
@@ -313,10 +294,10 @@ fun DiscoveryDashboard(
                 ))
             }
 
-            // All apps header (always shown — icon toggles between search/close)
+            // All Apps header — always shown
             add(DashboardItem.AllAppsHeader(isSearchActive))
 
-            // NO DashboardItem.SearchBar added here — search bar is now pinned in Compose
+            // NO DashboardItem.SearchBar — search bar is now a pinned native View
 
             // App items
             filteredApps.forEach { app ->
@@ -325,7 +306,7 @@ fun DiscoveryDashboard(
         }
     }
 
-    // Handle back press: two-step cancel (clear text first, then exit search)
+    // Two-step back handler: clear text first, then exit search
     BackHandler(enabled = isSearchActive) {
         if (searchQuery.isNotEmpty()) {
             searchQuery = ""
@@ -335,114 +316,202 @@ fun DiscoveryDashboard(
         }
     }
 
-    // Keep a reference to the RecyclerView for imperative scroll control
-    var recyclerViewRef by remember { mutableStateOf<RecyclerView?>(null) }
-
-    // Scroll to top when entering search mode
-    LaunchedEffect(isSearchActive) {
-        if (isSearchActive) {
-            // Small delay to let the list update propagate
-            kotlinx.coroutines.delay(100)
-            recyclerViewRef?.smoothScrollToPosition(0)
-        }
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        AndroidView(
+            modifier = Modifier.fillMaxSize(),
+            factory = { context ->
+                val density = context.resources.displayMetrics.density
+                val queryCallback = SearchQueryCallback()
 
-            // ═══════════════════════════════════════════════════
-            // PINNED SEARCH BAR (Compose element, above RecyclerView)
-            // ═══════════════════════════════════════════════════
-            AnimatedVisibility(
-                visible = isSearchActive,
-                enter = slideInVertically(
-                    initialOffsetY = { fullHeight -> -fullHeight },
-                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
-                ) + fadeIn(animationSpec = tween(durationMillis = 300)),
-                exit = slideOutVertically(
-                    targetOffsetY = { fullHeight -> -fullHeight },
-                    animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing)
-                ) + fadeOut(animationSpec = tween(durationMillis = 250))
-            ) {
-                PinnedSearchBar(
-                    query = searchQuery,
-                    onQueryChange = { searchQuery = it },
-                    onClose = {
-                        if (searchQuery.isNotEmpty()) {
-                            searchQuery = ""  // First tap: just clear the text
-                        } else {
-                            isSearchActive = false  // Second tap: exit search entirely
-                            searchQuery = ""
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.background)
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-
-            // ═══════════════════════════════════════════════════
-            // RECYCLERVIEW (takes remaining space)
-            // ═══════════════════════════════════════════════════
-            AndroidView(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                factory = { context ->
-                    RecyclerView(context).apply {
-                        layoutManager = LinearLayoutManager(context)
-                        adapter = DiscoveryDashboardAdapter(
-                            onNavigateToList = onNavigateToSpecificList,
-                            onRequestPermission = onRequestPermission,
-                            onToggleApp = { packageId ->
-                                selectedApps = if (packageId in selectedApps) {
-                                    selectedApps - packageId
-                                } else {
-                                    selectedApps + packageId
-                                }
-                            },
-                            onSearchToggle = {
-                                if (isSearchActive) {
-                                    isSearchActive = false
-                                    searchQuery = ""
-                                } else {
-                                    isSearchActive = true
-                                }
-                            },
-                            onSearchQueryChange = { query ->
-                                searchQuery = query
-                            },
-                            themeColors = themeColors
-                        )
-                        // Enable item change animations for smooth card removal/addition
-                        itemAnimator = androidx.recyclerview.widget.DefaultItemAnimator().apply {
-                            addDuration = 250
-                            removeDuration = 200
-                            moveDuration = 250
-                        }
-                        val dp12 = (12 * context.resources.displayMetrics.density).toInt()
-                        val dp80 = (80 * context.resources.displayMetrics.density).toInt()
-                        setPadding(dp12, dp12, dp12, if (selectedApps.isNotEmpty()) dp80 else dp12)
-                        clipToPadding = false
-                        recyclerViewRef = this  // Store reference for imperative scroll
-                    }
-                },
-                update = { recyclerView ->
-                    val adapter = recyclerView.adapter as DiscoveryDashboardAdapter
-                    adapter.themeColors = themeColors
-                    adapter.submitList(dashboardItems)
-
-                    val dp12 = (12 * recyclerView.context.resources.displayMetrics.density).toInt()
-                    val dp80 = (80 * recyclerView.context.resources.displayMetrics.density).toInt()
-                    recyclerView.setPadding(dp12, dp12, dp12, if (selectedApps.isNotEmpty()) dp80 else dp12)
+                // ──────────────────────────────────────────────
+                // 1. PINNED SEARCH BAR (native View, above RV)
+                // ──────────────────────────────────────────────
+                val searchBarView = android.view.LayoutInflater.from(context)
+                    .inflate(com.example.decluttr.R.layout.item_search_bar, null, false)
+                searchBarView.visibility = android.view.View.GONE
+                searchBarView.layoutParams = android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    val dp8 = (8 * density).toInt()
+                    val dp12 = (12 * density).toInt()
+                    setMargins(dp12, dp8, dp12, dp8)
                 }
-            )
-        }
 
-        // ═══════════════════════════════════════════════════
-        // FLOATING ACTION BUTTONS (unchanged)
-        // ═══════════════════════════════════════════════════
+                val searchEditText = searchBarView.findViewById<android.widget.EditText>(com.example.decluttr.R.id.search_edit_text)
+                val clearButton = searchBarView.findViewById<android.widget.ImageView>(com.example.decluttr.R.id.clear_button)
+
+                // TextWatcher → bridges to Compose state via queryCallback
+                searchEditText.addTextChangedListener(object : android.text.TextWatcher {
+                    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                    override fun afterTextChanged(s: android.text.Editable?) {
+                        val query = s.toString()
+                        clearButton.visibility = if (query.isEmpty()) android.view.View.GONE else android.view.View.VISIBLE
+                        queryCallback.onQueryChange?.invoke(query)
+                    }
+                })
+
+                // Clear/close button: two-step cancel
+                clearButton.setOnClickListener {
+                    if (searchEditText.text.isNotEmpty()) {
+                        searchEditText.setText("")
+                    } else {
+                        queryCallback.onExitSearch?.invoke()
+                    }
+                }
+
+                // ──────────────────────────────────────────────
+                // 2. RECYCLERVIEW
+                // ──────────────────────────────────────────────
+                val recyclerView = RecyclerView(context).apply {
+                    layoutManager = LinearLayoutManager(context)
+                    adapter = DiscoveryDashboardAdapter(
+                        onNavigateToList = onNavigateToSpecificList,
+                        onRequestPermission = onRequestPermission,
+                        onToggleApp = { packageId ->
+                            selectedApps = if (packageId in selectedApps) {
+                                selectedApps - packageId
+                            } else {
+                                selectedApps + packageId
+                            }
+                        },
+                        onSearchToggle = {
+                            if (isSearchActive) {
+                                isSearchActive = false
+                                searchQuery = ""
+                            } else {
+                                isSearchActive = true
+                            }
+                        },
+                        onSearchQueryChange = { query ->
+                            searchQuery = query
+                        },
+                        themeColors = themeColors
+                    )
+                    itemAnimator = androidx.recyclerview.widget.DefaultItemAnimator().apply {
+                        addDuration = 250
+                        removeDuration = 200
+                        moveDuration = 250
+                    }
+                    val dp12 = (12 * density).toInt()
+                    val dp80 = (80 * density).toInt()
+                    setPadding(dp12, dp12, dp12, if (selectedApps.isNotEmpty()) dp80 else dp12)
+                    clipToPadding = false
+                    layoutParams = android.widget.LinearLayout.LayoutParams(
+                        android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                        0, 1f  // height=0, weight=1 → fill remaining space
+                    )
+                }
+
+                // ──────────────────────────────────────────────
+                // 3. ROOT CONTAINER (LinearLayout, vertical)
+                // ──────────────────────────────────────────────
+                android.widget.LinearLayout(context).apply {
+                    orientation = android.widget.LinearLayout.VERTICAL
+                    layoutParams = android.view.ViewGroup.LayoutParams(
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    addView(searchBarView)
+                    addView(recyclerView)
+
+                    // Store references via tag for the update block
+                    tag = Triple(searchBarView, recyclerView, queryCallback)
+                }
+            },
+            update = { rootLayout ->
+                val (searchBarView, recyclerView, queryCallback) =
+                    rootLayout.tag as Triple<android.view.View, RecyclerView, SearchQueryCallback>
+
+                val searchEditText = searchBarView.findViewById<android.widget.EditText>(com.example.decluttr.R.id.search_edit_text)
+                val clearButton = searchBarView.findViewById<android.widget.ImageView>(com.example.decluttr.R.id.clear_button)
+                val imm = rootLayout.context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
+                        as android.view.inputmethod.InputMethodManager
+                val density = rootLayout.context.resources.displayMetrics.density
+
+                // ── Bridge callbacks to current Compose state ──
+                queryCallback.onQueryChange = { query -> searchQuery = query }
+                queryCallback.onExitSearch = {
+                    isSearchActive = false
+                    searchQuery = ""
+                }
+
+                // ── Update clear button click handler ──
+                clearButton.setOnClickListener {
+                    if (searchEditText.text.isNotEmpty()) {
+                        searchEditText.setText("")
+                    } else {
+                        isSearchActive = false
+                        searchQuery = ""
+                    }
+                }
+
+                // ── Update adapter data ──
+                val adapter = recyclerView.adapter as DiscoveryDashboardAdapter
+                adapter.themeColors = themeColors
+                adapter.submitList(dashboardItems) {
+                    if (isSearchActive) {
+                        recyclerView.scrollToPosition(0)
+                    }
+                }
+
+                // ── Update RecyclerView bottom padding ──
+                val dp12 = (12 * density).toInt()
+                val dp80 = (80 * density).toInt()
+                recyclerView.setPadding(dp12, dp12, dp12, if (selectedApps.isNotEmpty()) dp80 else dp12)
+
+                // ── Animate pinned search bar in/out ──
+                val wasVisible = searchBarView.visibility == android.view.View.VISIBLE
+
+                if (isSearchActive && !wasVisible) {
+                    // ▸ SHOW: slide down + fade in
+                    searchBarView.visibility = android.view.View.VISIBLE
+                    searchBarView.translationY = -(200 * density)  // Start off-screen above
+                    searchBarView.alpha = 0f
+                    searchBarView.animate()
+                        .cancel()  // Cancel any in-flight animation
+                    searchBarView.animate()
+                        .translationY(0f)
+                        .alpha(1f)
+                        .setDuration(300)
+                        .setInterpolator(android.view.animation.DecelerateInterpolator())
+                        .withEndAction {
+                            searchEditText.requestFocus()
+                            imm.showSoftInput(searchEditText, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+                        }
+                        .start()
+
+                } else if (!isSearchActive && wasVisible) {
+                    // ▸ HIDE: slide up + fade out
+                    imm.hideSoftInputFromWindow(searchEditText.windowToken, 0)
+                    searchEditText.setText("")
+                    searchEditText.clearFocus()
+                    searchBarView.animate()
+                        .cancel()  // Cancel any in-flight animation
+                    searchBarView.animate()
+                        .translationY(-(200 * density))
+                        .alpha(0f)
+                        .setDuration(250)
+                        .setInterpolator(android.view.animation.AccelerateInterpolator())
+                        .withEndAction {
+                            searchBarView.visibility = android.view.View.GONE
+                            searchBarView.translationY = 0f
+                            searchBarView.alpha = 1f
+                        }
+                        .start()
+                }
+
+                // ── Sync EditText text with Compose state (avoid TextWatcher loop) ──
+                val currentText = searchEditText.text.toString()
+                if (currentText != searchQuery) {
+                    searchEditText.setText(searchQuery)
+                    searchEditText.setSelection(searchQuery.length)
+                }
+            }
+        )
+
+        // ═══ FLOATING ACTION BUTTONS (unchanged) ═══
         if (selectedApps.isNotEmpty()) {
             Row(
                 modifier = Modifier
@@ -791,60 +860,4 @@ internal fun filterAndSortApps(
         SortOption.SIZE -> filtered.sortedByDescending { it.apkSizeBytes }
         SortOption.LAST_USED -> filtered.sortedBy { it.lastTimeUsed }
     }
-}
-
-
-@Composable
-private fun PinnedSearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onClose: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val focusRequester = remember { FocusRequester() }
-    val keyboardController = LocalSoftwareKeyboardController.current
-
-    // Auto-focus and show keyboard when search bar appears
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(150)  // Let animation start first
-        focusRequester.requestFocus()
-        keyboardController?.show()
-    }
-
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
-        placeholder = {
-            Text(
-                "Search apps...",
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        },
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        },
-        trailingIcon = {
-            IconButton(onClick = onClose) {
-                Icon(
-                    imageVector = if (query.isNotEmpty()) Icons.Default.Clear else Icons.Default.ArrowBack,
-                    contentDescription = if (query.isNotEmpty()) "Clear text" else "Close search",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        },
-        modifier = modifier.focusRequester(focusRequester),
-        shape = RoundedCornerShape(28.dp),
-        singleLine = true,
-        colors = TextFieldDefaults.colors(
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            unfocusedIndicatorColor = Color.Transparent,
-            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-            cursorColor = MaterialTheme.colorScheme.primary
-        )
-    )
 }
