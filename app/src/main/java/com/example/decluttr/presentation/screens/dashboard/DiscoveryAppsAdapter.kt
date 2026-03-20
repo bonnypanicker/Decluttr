@@ -90,19 +90,14 @@ class DiscoveryAppsAdapter(
             }
 
             // Set background color based on selection
-            val context = itemView.context
-            val typedArray = context.obtainStyledAttributes(
-                intArrayOf(
-                    if (item.isSelected) com.google.android.material.R.attr.colorPrimaryContainer
-                    else com.google.android.material.R.attr.colorSurface
-                )
-            )
-            val backgroundColor = typedArray.getColor(0, 0)
-            typedArray.recycle()
-            itemView.setBackgroundColor(backgroundColor)
+            if (item.isSelected) {
+                itemView.setBackgroundColor(0x1A6750A4.toInt()) // Light purple tint for selection
+            } else {
+                itemView.setBackgroundColor(0x00000000) // Transparent
+            }
             
-            // Re-apply standard ripple after background color overrides it
-            val rippleTypedArray = context.obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackground))
+            // Re-apply standard ripple as foreground
+            val rippleTypedArray = itemView.context.obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackground))
             val rippleDrawable = rippleTypedArray.getDrawable(0)
             rippleTypedArray.recycle()
             itemView.foreground = rippleDrawable
