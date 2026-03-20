@@ -10,7 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.CheckBox
-import android.widget.EditText
+import android:widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
@@ -22,6 +22,9 @@ import coil.load
 import com.example.decluttr.R
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 import com.example.decluttr.presentation.util.AppIconModel
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import java.util.Locale
 
 sealed class DashboardItem {
@@ -138,25 +141,24 @@ class DiscoveryDashboardAdapter(
     inner class StorageMeterViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val storageValue: TextView = view.findViewById(R.id.storage_value)
         private val wasteScore: TextView = view.findViewById(R.id.waste_score)
-        private val progressBar: ProgressBar = view.findViewById(R.id.storage_progress)
+        private val progressBar: LinearProgressIndicator = view.findViewById(R.id.storage_progress)
 
         fun bind(item: DashboardItem.StorageMeter) {
             storageValue.text = "${bytesToMB(item.wasteSize)} MB"
             wasteScore.text = "Waste Score: ${item.percentage}%"
             progressBar.progress = item.percentage
 
-            // Apply theme colors
-            itemView.setBackgroundColor(themeColors.normalBackground)
+            // Apply Compose theme colors for dynamic color support
             storageValue.setTextColor(themeColors.checkboxTint)
             wasteScore.setTextColor(
-                if (item.percentage > 15) Color.RED else themeColors.checkboxTint
+                if (item.percentage > 15) Color.parseColor("#EF4444")
+                else themeColors.textSecondary
             )
-            progressBar.progressDrawable.setColorFilter(themeColors.checkboxTint, PorterDuff.Mode.SRC_IN)
         }
     }
 
     inner class PermissionWarningViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val button: Button = view.findViewById(R.id.grant_permission_button)
+        private val button: MaterialButton = view.findViewById(R.id.grant_permission_button)
 
         init {
             button.setOnClickListener { onRequestPermission() }
@@ -171,15 +173,14 @@ class DiscoveryDashboardAdapter(
         private val icon: TextView = view.findViewById(R.id.card_icon)
         private val title: TextView = view.findViewById(R.id.card_title)
         private val description: TextView = view.findViewById(R.id.card_description)
-        private val button: Button = view.findViewById(R.id.card_button)
-        private val cardRoot: LinearLayout = view.findViewById(R.id.card_root)
+        private val button: MaterialButton = view.findViewById(R.id.card_button)
 
         fun bind(item: DashboardItem.SmartCard) {
             icon.text = item.icon
             title.text = item.title
             description.text = item.description
 
-            cardRoot.setOnClickListener { onNavigateToList(item.viewState) }
+            itemView.setOnClickListener { onNavigateToList(item.viewState) }
             button.setOnClickListener { onNavigateToList(item.viewState) }
 
             // Apply theme colors
@@ -189,14 +190,14 @@ class DiscoveryDashboardAdapter(
     }
 
     inner class AllAppsHeaderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val searchIcon: ImageView = view.findViewById(R.id.search_icon)
+        private val searchButton: MaterialButton = view.findViewById(R.id.search_icon)
 
         init {
-            searchIcon.setOnClickListener { onSearchToggle() }
+            searchButton.setOnClickListener { onSearchToggle() }
         }
 
         fun bind(item: DashboardItem.AllAppsHeader) {
-            searchIcon.setImageResource(
+            searchButton.setIconResource(
                 if (item.isSearchActive) android.R.drawable.ic_menu_close_clear_cancel
                 else android.R.drawable.ic_menu_search
             )
@@ -246,6 +247,7 @@ class DiscoveryDashboardAdapter(
     }
 
     inner class AppItemViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        private val cardView = view as MaterialCardView
         private val checkBox: CheckBox = view.findViewById(R.id.app_checkbox)
         private val icon: ImageView = view.findViewById(R.id.app_icon)
         private val name: TextView = view.findViewById(R.id.app_name)
@@ -286,9 +288,9 @@ class DiscoveryDashboardAdapter(
             details.setTextColor(themeColors.textSecondary)
 
             if (item.isSelected) {
-                itemView.setBackgroundColor(themeColors.selectedBackground)
+                cardView.setCardBackgroundColor(themeColors.selectedBackground)
             } else {
-                itemView.setBackgroundColor(themeColors.normalBackground)
+                cardView.setCardBackgroundColor(themeColors.normalBackground)
             }
 
             // Load icon

@@ -1,56 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginHorizontal="4dp"
     android:layout_marginBottom="12dp"
-    android:background="@drawable/card_background"
-    android:orientation="vertical"
-    android:padding="20dp">
+    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="0dp"
+    style="@style/Widget.Material3.CardView.Filled">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:orientation="vertical"
+        android:padding="20dp">
 
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/storage_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Potential Storage Freed"
+                    android:textSize="13sp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:letterSpacing="0.02" />
+
+                <TextView
+                    android:id="@+id/storage_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="0 MB"
+                    android:textSize="28sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorPrimary" />
+            </LinearLayout>
 
             <TextView
-                android:id="@+id/storage_label"
+                android:id="@+id/waste_score"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Potential Storage Freed"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/storage_value"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0 MB"
-                android:textSize="28sp"
-                android:textStyle="bold" />
+                android:text="Waste Score: 0%"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/waste_score"
-            android:layout_width="wrap_content"
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/storage_progress"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Waste Score: 0%"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-    </LinearLayout>
+            android:layout_marginTop="16dp"
+            app:indicatorColor="?attr/colorPrimary"
+            app:trackColor="?attr/colorSurfaceVariant"
+            app:trackCornerRadius="6dp"
+            app:trackThickness="12dp"
+            android:max="100"
+            android:progress="0" />
 
-    <ProgressBar
-        android:id="@+id/storage_progress"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="match_parent"
-        android:layout_height="12dp"
-        android:layout_marginTop="16dp"
-        android:max="100"
-        android:progress="0" />
-</LinearLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

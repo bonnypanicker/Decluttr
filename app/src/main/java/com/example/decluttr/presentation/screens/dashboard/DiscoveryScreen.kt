@@ -332,12 +332,9 @@ fun DiscoveryDashboard(
                         },
                         themeColors = themeColors
                     )
-                    setPadding(
-                        resources.getDimensionPixelSize(android.R.dimen.app_icon_size) / 6,
-                        resources.getDimensionPixelSize(android.R.dimen.app_icon_size) / 6,
-                        resources.getDimensionPixelSize(android.R.dimen.app_icon_size) / 6,
-                        if (selectedApps.isNotEmpty()) resources.getDimensionPixelSize(android.R.dimen.app_icon_size) * 2 else resources.getDimensionPixelSize(android.R.dimen.app_icon_size) / 6
-                    )
+                    val dp12 = (12 * context.resources.displayMetrics.density).toInt()
+                    val dp80 = (80 * context.resources.displayMetrics.density).toInt()
+                    setPadding(dp12, dp12, dp12, if (selectedApps.isNotEmpty()) dp80 else dp12)
                     clipToPadding = false
                 }
             },
@@ -346,14 +343,9 @@ fun DiscoveryDashboard(
                 adapter.themeColors = themeColors
                 adapter.submitList(dashboardItems)
                 
-                // Update padding based on selection
-                recyclerView.setPadding(
-                    recyclerView.paddingLeft,
-                    recyclerView.paddingTop,
-                    recyclerView.paddingRight,
-                    if (selectedApps.isNotEmpty()) recyclerView.resources.getDimensionPixelSize(android.R.dimen.app_icon_size) * 2 
-                    else recyclerView.resources.getDimensionPixelSize(android.R.dimen.app_icon_size) / 6
-                )
+                val dp12 = (12 * recyclerView.context.resources.displayMetrics.density).toInt()
+                val dp80 = (80 * recyclerView.context.resources.displayMetrics.density).toInt()
+                recyclerView.setPadding(dp12, dp12, dp12, if (selectedApps.isNotEmpty()) dp80 else dp12)
             }
         )
 
@@ -679,12 +671,8 @@ fun SpecificAppListDisplay(
                             },
                             themeColors = themeColors
                         )
-                        setPadding(
-                            resources.getDimensionPixelSize(android.R.dimen.app_icon_size) / 6,
-                            resources.getDimensionPixelSize(android.R.dimen.app_icon_size) / 6,
-                            resources.getDimensionPixelSize(android.R.dimen.app_icon_size) / 6,
-                            resources.getDimensionPixelSize(android.R.dimen.app_icon_size) / 6
-                        )
+                        val dp12 = (12 * context.resources.displayMetrics.density).toInt()
+                        setPadding(dp12, dp12, dp12, dp12)
                         clipToPadding = false
                     }
                 },

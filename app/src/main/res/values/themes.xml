@@ -5,5 +5,16 @@
         <item name="windowSplashScreenBackground">@android:color/white</item>
         <item name="postSplashScreenTheme">@style/Theme.Decluttr</item>
     </style>
-    <style name="Theme.Decluttr" parent="android:Theme.Material.Light.NoActionBar" />
+    
+    <style name="Theme.Decluttr" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Material 3 base theme gives us all ?attr/colorSurface, 
+             ?attr/colorOnSurface, ?attr/colorSurfaceVariant etc.
+             Compose's DecluttrTheme overrides with dynamic colors at runtime,
+             but this gives native XML views proper fallback tokens. -->
+    </style>
+    
+    <style name="RoundedIconShape" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
+    </style>
 </resources>

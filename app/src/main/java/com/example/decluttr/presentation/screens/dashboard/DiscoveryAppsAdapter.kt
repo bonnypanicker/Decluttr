@@ -15,6 +15,7 @@ import coil.load
 import com.example.decluttr.R
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 import com.example.decluttr.presentation.util.AppIconModel
+import com.google.android.material.card.MaterialCardView
 import java.util.Locale
 
 data class AppListItem(
@@ -68,6 +69,7 @@ class DiscoveryAppsAdapter(
     }
 
     inner class AppViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        private val cardView = view as MaterialCardView
         private val checkBox: CheckBox = view.findViewById(R.id.app_checkbox)
         private val icon: ImageView = view.findViewById(R.id.app_icon)
         private val name: TextView = view.findViewById(R.id.app_name)
@@ -117,11 +119,11 @@ class DiscoveryAppsAdapter(
             details.setTextColor(themeColors.textSecondary)
             contextLabel.setTextColor(themeColors.textTertiary)
 
-            // Set background color based on selection
+            // Set card background color based on selection
             if (item.isSelected) {
-                itemView.setBackgroundColor(themeColors.selectedBackground)
+                cardView.setCardBackgroundColor(themeColors.selectedBackground)
             } else {
-                itemView.setBackgroundColor(themeColors.normalBackground)
+                cardView.setCardBackgroundColor(themeColors.normalBackground)
             }
 
             // Load icon using Coil View extension
