@@ -1,9 +1,13 @@
 package com.example.decluttr.presentation.screens.dashboard
 
+import android.view.LayoutInflater
 import android.os.SystemClock
 import android.text.format.DateUtils
 import android.util.Log
 import android.view.Choreographer
+import android.widget.CheckBox
+import android.widget.ImageView
+import android.widget.TextView
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
@@ -28,7 +32,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -75,8 +81,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.material3.OutlinedTextField
 import coil.compose.AsyncImage
+import coil.load
+import coil.request.ImageRequest
 import com.example.decluttr.BuildConfig
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
+import com.example.decluttr.presentation.util.AppIconModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -248,10 +257,10 @@ fun DiscoveryScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-}
-}
-}
-}
+            }
+        }
+    }
+    }
 }
 
 @Composable
@@ -265,6 +274,7 @@ fun DiscoveryDashboard(
     onBatchUninstall: (Set<String>) -> Unit,
     onBatchUninstallOnly: (Set<String>) -> Unit
 ) {
+    val listState = rememberLazyListState()
     val configuration = LocalConfiguration.current
     val horizontalPadding = if (configuration.screenWidthDp >= 840) 24.dp else 16.dp
     var selectedApps by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -288,23 +298,22 @@ fun DiscoveryDashboard(
         else allApps.filter { it.name.contains(searchQuery, ignoreCase = true) }
     }
 
-    // Cache mapped items for RecyclerView
-    val mappedItems = remember(filteredApps, selectedApps) {
-        filteredApps.map { app ->
-            val sizeLabel = "${bytesToMB(app.apkSizeBytes)} MB"
-            val timeString = if (app.lastTimeUsed > 0) {
-                val daysAgo = ((System.currentTimeMillis() - app.lastTimeUsed) / DateUtils.DAY_IN_MILLIS).toInt()
-                when {
-                    daysAgo <= 0 -> "Today"
-                    daysAgo == 1 -> "1 day ago"
-                    else -> "$daysAgo days ago"
-                }
-            } else "Never used"
-            AppListItem(
-                info = app,
-                isSelected = app.packageId in selectedApps,
-                contextLabel = null
-            )
+    // Header item count depends on permission state (storage + permission/rarely + large = 3 items)
+    // "All Apps" header is at index 3, search bar at index 4 when active
+    val allAppsHeaderIndex = 3
+
+    // Smooth scroll past headers when search activates
+    LaunchedEffect(isSearchActive) {
+        if (isSearchActive) {
+            listState.animateScrollToItem(allAppsHeaderIndex)
+        }
+    }
+
+    // Request focus on search field after it appears
+    LaunchedEffect(isSearchActive) {
+        if (isSearchActive) {
+            kotlinx.coroutines.delay(150) // wait for AnimatedVisibility
+            try { focusRequester.requestFocus() } catch (_: Exception) {}
         }
     }
 
@@ -314,139 +323,197 @@ fun DiscoveryDashboard(
         searchQuery = ""
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // Header cards (lightweight Compose)
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = horizontalPadding, vertical = 16.dp),
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            StorageImpactMeter(unusedApps = unusedApps, allApps = allApps)
-
-            if (!hasUsagePermission) {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Usage Access Required", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onErrorContainer)
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "We need permission to detect which apps you haven't used recently.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = onRequestPermission) {
-                            Text("Grant Permission")
-                        }
-                    }
-                }
-            } else {
-                SmartDeclutterCard(
-                    icon = "📦",
-                    title = "Rarely Used Apps",
-                    description = "${unusedApps.size} apps • ${bytesToMB(unusedApps.sumOf { it.apkSizeBytes })} MB",
-                    onClick = { onNavigateToSpecificList(DiscoveryViewState.RARELY_USED) }
-                )
+            // --- Header cards (lightweight Compose, only 3 items) ---
+            item(key = "storage_meter") {
+                StorageImpactMeter(unusedApps = unusedApps, allApps = allApps)
             }
 
-            SmartDeclutterCard(
-                icon = "💾",
-                title = "Large Apps",
-                description = "${largeApps.size} apps • ${bytesToMB(largeApps.sumOf { it.apkSizeBytes })} MB",
-                onClick = { onNavigateToSpecificList(DiscoveryViewState.LARGE_APPS) }
-            )
-
-            // "All Apps" header row with search icon
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "All Apps",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
-                )
-                IconButton(onClick = {
-                    if (isSearchActive) {
-                        isSearchActive = false
-                        searchQuery = ""
-                    } else {
-                        isSearchActive = true
+            item(key = "rarely_used_card") {
+                if (!hasUsagePermission) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Usage Access Required", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onErrorContainer)
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "We need permission to detect which apps you haven't used recently.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(onClick = onRequestPermission) {
+                                Text("Grant Permission")
+                            }
+                        }
                     }
-                }) {
-                    Icon(
-                        imageVector = if (isSearchActive) Icons.Default.Clear else Icons.Default.Search,
-                        contentDescription = if (isSearchActive) "Close Search" else "Search Apps"
+                } else {
+                    SmartDeclutterCard(
+                        icon = "\uD83D\uDCE6",
+                        title = "Rarely Used Apps",
+                        description = "${unusedApps.size} apps \u2022 ${bytesToMB(unusedApps.sumOf { it.apkSizeBytes })} MB",
+                        onClick = { onNavigateToSpecificList(DiscoveryViewState.RARELY_USED) }
                     )
                 }
             }
 
-            // Search bar (animated)
-            AnimatedVisibility(
-                visible = isSearchActive,
-                enter = expandVertically(),
-                exit = shrinkVertically()
-            ) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(focusRequester),
-                    placeholder = { Text("Search apps...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Clear")
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
+            item(key = "large_apps_card") {
+                SmartDeclutterCard(
+                    icon = "\uD83D\uDCBE",
+                    title = "Large Apps",
+                    description = "${largeApps.size} apps \u2022 ${bytesToMB(largeApps.sumOf { it.apkSizeBytes })} MB",
+                    onClick = { onNavigateToSpecificList(DiscoveryViewState.LARGE_APPS) }
                 )
             }
-        }
 
-        // App list using RecyclerView for smooth scrolling
-        Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
-            AndroidView(
-                modifier = Modifier.fillMaxSize().padding(horizontal = horizontalPadding),
-                factory = { ctx ->
-                    androidx.recyclerview.widget.RecyclerView(ctx).apply {
-                        layoutManager = androidx.recyclerview.widget.LinearLayoutManager(ctx)
-                        adapter = DiscoveryAppsAdapter(
-                            onToggle = { packageId ->
-                                selectedApps = if (packageId in selectedApps) {
-                                    selectedApps - packageId
-                                } else {
-                                    selectedApps + packageId
-                                }
-                            },
-                            themeColors = themeColors
+            // --- "All Apps" header row with search icon ---
+            item(key = "all_apps_header") {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "All Apps",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    IconButton(onClick = {
+                        if (isSearchActive) {
+                            isSearchActive = false
+                            searchQuery = ""
+                        } else {
+                            isSearchActive = true
+                        }
+                    }) {
+                        Icon(
+                            imageVector = if (isSearchActive) Icons.Default.Clear else Icons.Default.Search,
+                            contentDescription = if (isSearchActive) "Close Search" else "Search Apps"
                         )
                     }
-                },
-                update = { recyclerView ->
-                    val adapter = recyclerView.adapter as DiscoveryAppsAdapter
-                    adapter.themeColors = themeColors
-                    adapter.submitList(mappedItems)
                 }
-            )
+            }
+
+            // --- Search bar (animated) ---
+            item(key = "search_bar") {
+                AnimatedVisibility(
+                    visible = isSearchActive,
+                    enter = expandVertically(),
+                    exit = shrinkVertically()
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
+                        placeholder = { Text("Search apps...") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Clear")
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+            }
+
+            // --- App items using lightweight AndroidView per-row ---
+            items(
+                items = filteredApps,
+                key = { it.packageId },
+                contentType = { "app_item" }
+            ) { app ->
+                val isSelected = app.packageId in selectedApps
+                AndroidView(
+                    modifier = Modifier.fillMaxWidth(),
+                    factory = { ctx ->
+                        val parent = android.widget.FrameLayout(ctx)
+                        LayoutInflater.from(ctx).inflate(
+                            com.example.decluttr.R.layout.item_discovery_app, parent, false
+                        ) as android.view.View
+                    },
+                    update = { view: android.view.View ->
+                        // Bind data to native views
+                        (view.findViewById<android.view.View>(com.example.decluttr.R.id.app_name) as TextView).apply {
+                            text = app.name
+                            setTextColor(themeColors.textPrimary)
+                        }
+                        (view.findViewById<android.view.View>(com.example.decluttr.R.id.app_checkbox) as CheckBox).isChecked = isSelected
+                        view.findViewById<android.view.View>(com.example.decluttr.R.id.warning_icon).visibility =
+                            if (app.isPlayStoreInstalled) android.view.View.GONE else android.view.View.VISIBLE
+
+                        val sizeLabel = "${bytesToMB(app.apkSizeBytes)} MB"
+                        val now = System.currentTimeMillis()
+                        val timeString = if (app.lastTimeUsed > 0) {
+                            val daysAgo = ((now - app.lastTimeUsed) / DateUtils.DAY_IN_MILLIS).toInt()
+                            when {
+                                daysAgo <= 0 -> "Today"
+                                daysAgo == 1 -> "1 day ago"
+                                else -> "$daysAgo days ago"
+                            }
+                        } else "Never used"
+
+                        (view.findViewById<android.view.View>(com.example.decluttr.R.id.app_details) as TextView).apply {
+                            text = "$sizeLabel \u2022 $timeString"
+                            setTextColor(themeColors.textSecondary)
+                        }
+                        view.findViewById<android.view.View>(com.example.decluttr.R.id.app_context_label).visibility = android.view.View.GONE
+
+                        // Selection background
+                        if (isSelected) {
+                            view.setBackgroundColor(themeColors.selectedBackground)
+                        } else {
+                            view.setBackgroundColor(themeColors.normalBackground)
+                        }
+
+                        // Click handler (updated on each bind)
+                        view.setOnClickListener {
+                            selectedApps = if (app.packageId in selectedApps) {
+                                selectedApps - app.packageId
+                            } else {
+                                selectedApps + app.packageId
+                            }
+                        }
+
+                        // Load icon
+                        (view.findViewById<android.view.View>(com.example.decluttr.R.id.app_icon) as ImageView).load(AppIconModel(app.packageId)) {
+                            memoryCacheKey(app.packageId)
+                            crossfade(false)
+                            size(96)
+                        }
+                    }
+                )
+            }
+
+            if (selectedApps.isNotEmpty()) {
+                item(key = "bottom_spacer") {
+                    Spacer(modifier = Modifier.height(88.dp))
+                }
+            }
         }
 
         // Floating action buttons
         if (selectedApps.isNotEmpty()) {
             Row(
                 modifier = Modifier
+                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .padding(horizontal = horizontalPadding, vertical = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -471,14 +538,7 @@ fun DiscoveryDashboard(
                 ) {
                     Text("Archive & Uninstall", textAlign = TextAlign.Center)
                 }
-        }
-    }
-
-    // Request focus on search field after it appears
-    LaunchedEffect(isSearchActive) {
-        if (isSearchActive) {
-            kotlinx.coroutines.delay(150)
-            try { focusRequester.requestFocus() } catch (_: Exception) {}
+            }
         }
     }
 }
