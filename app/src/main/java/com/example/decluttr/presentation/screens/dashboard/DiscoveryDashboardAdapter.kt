@@ -8,7 +8,9 @@ import android.text.format.DateUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.CheckBox
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -20,8 +22,6 @@ import coil.load
 import com.example.decluttr.R
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 import com.example.decluttr.presentation.util.AppIconModel
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.textfield.TextInputEditText
 import java.util.Locale
 
 sealed class DashboardItem {
@@ -157,7 +157,7 @@ class DiscoveryDashboardAdapter(
     }
 
     inner class PermissionWarningViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val button: MaterialButton = view.findViewById(R.id.grant_permission_button)
+        private val button: Button = view.findViewById(R.id.grant_permission_button)
 
         init {
             button.setOnClickListener { onRequestPermission() }
@@ -172,7 +172,7 @@ class DiscoveryDashboardAdapter(
         private val icon: TextView = view.findViewById(R.id.card_icon)
         private val title: TextView = view.findViewById(R.id.card_title)
         private val description: TextView = view.findViewById(R.id.card_description)
-        private val button: MaterialButton = view.findViewById(R.id.card_button)
+        private val button: Button = view.findViewById(R.id.card_button)
         private val cardRoot: CardView = view.findViewById(R.id.card_root)
 
         fun bind(item: DashboardItem.SmartCard) {
@@ -205,8 +205,15 @@ class DiscoveryDashboardAdapter(
     }
 
     inner class SearchBarViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val editText: TextInputEditText = view.findViewById(R.id.search_edit_text)
+        private val editText: EditText = view.findViewById(R.id.search_edit_text)
+        private val clearButton: ImageView = view.findViewById(R.id.clear_button)
         private var textWatcher: TextWatcher? = null
+
+        init {
+            clearButton.setOnClickListener {
+                editText.setText("")
+            }
+        }
 
         fun bind(item: DashboardItem.SearchBar) {
             // Remove old watcher
@@ -217,12 +224,17 @@ class DiscoveryDashboardAdapter(
                 editText.setText(item.query)
             }
 
+            // Show/hide clear button
+            clearButton.visibility = if (item.query.isEmpty()) View.GONE else View.VISIBLE
+
             // Add new watcher
             textWatcher = object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
                 override fun afterTextChanged(s: Editable?) {
-                    onSearchQueryChange(s.toString())
+                    val query = s.toString()
+                    clearButton.visibility = if (query.isEmpty()) View.GONE else View.VISIBLE
+                    onSearchQueryChange(query)
                 }
             }
             editText.addTextChangedListener(textWatcher)
