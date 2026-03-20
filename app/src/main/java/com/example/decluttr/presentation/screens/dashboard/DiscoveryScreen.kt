@@ -78,6 +78,7 @@ import com.example.decluttr.presentation.util.AppIconModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import java.util.Locale
 import kotlin.math.roundToInt
+import androidx.compose.ui.graphics.toArgb
 
 enum class DiscoveryViewState {
     DASHBOARD, RARELY_USED, LARGE_APPS, ALL_APPS
@@ -262,157 +263,115 @@ fun DiscoveryDashboard(
     onBatchUninstall: (Set<String>) -> Unit,
     onBatchUninstallOnly: (Set<String>) -> Unit
 ) {
-    val listState = rememberLazyListState()
     val configuration = LocalConfiguration.current
     val horizontalPadding = if (configuration.screenWidthDp >= 840) 24.dp else 16.dp
-    var scrollImpulseTarget by remember { mutableFloatStateOf(0f) }
     var selectedApps by remember { mutableStateOf<Set<String>>(emptySet()) }
 
-    LaunchedEffect(listState) {
-        var lastIndex = 0
-        var lastOffset = 0
-        snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
-            .collect { (index, offset) ->
-                val delta = ((index - lastIndex) * 320 + (offset - lastOffset)).toFloat()
-                scrollImpulseTarget = (-delta * 0.15f).coerceIn(-20f, 20f)
-                lastIndex = index
-                lastOffset = offset
-            }
-    }
-
-    LaunchedEffect(listState) {
-        snapshotFlow { listState.isScrollInProgress }
-            .distinctUntilChanged()
-            .collect { isScrolling ->
-                if (!isScrolling) {
-                    scrollImpulseTarget = 0f
-                }
-            }
-    }
-
-    val scrollImpulse by animateFloatAsState(
-        targetValue = scrollImpulseTarget,
-        animationSpec = spring(dampingRatio = 0.82f, stiffness = 430f),
-        label = "dashboardScrollImpulse"
+    // Extract Compose theme colors once, pass to native adapter
+    val themeColors = NativeThemeColors(
+        textPrimary = MaterialTheme.colorScheme.onSurface.toArgb(),
+        textSecondary = MaterialTheme.colorScheme.onSurfaceVariant.toArgb(),
+        textTertiary = MaterialTheme.colorScheme.tertiary.toArgb(),
+        selectedBackground = MaterialTheme.colorScheme.primaryContainer.toArgb(),
+        normalBackground = MaterialTheme.colorScheme.surface.toArgb(),
+        checkboxTint = MaterialTheme.colorScheme.primary.toArgb()
     )
 
-    val allAppsHeaderProgress by remember {
-        derivedStateOf {
-            val layoutInfo = listState.layoutInfo
-            val largeCardItem = layoutInfo.visibleItemsInfo.firstOrNull { it.key == "large_apps_card" }
-            if (largeCardItem == null) {
-                if (listState.firstVisibleItemIndex > 2) 1f else 0f
-            } else {
-                val visibleStart = maxOf(layoutInfo.viewportStartOffset, largeCardItem.offset)
-                val visibleEnd = minOf(layoutInfo.viewportEndOffset, largeCardItem.offset + largeCardItem.size)
-                val visiblePx = (visibleEnd - visibleStart).coerceAtLeast(0)
-                val visibleFraction = if (largeCardItem.size > 0) visiblePx.toFloat() / largeCardItem.size else 0f
-                (1f - visibleFraction).coerceIn(0f, 1f)
-            }
+    // Cache mapped items — only recomputed when allApps or selectedApps changes
+    val mappedItems = remember(allApps, selectedApps) {
+        allApps.map { app ->
+            AppListItem(
+                info = app,
+                isSelected = app.packageId in selectedApps,
+                contextLabel = null
+            )
         }
     }
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item(key = "storage_meter") {
-                DashboardMotionContainer(
-                    motion = scrollImpulse,
-                    intensity = 0.35f
-                ) {
-                    StorageImpactMeter(unusedApps = unusedApps, allApps = allApps)
-                }
-            }
 
-            item(key = "rarely_used_card") {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Header cards — kept in Compose (small, static, no perf issue)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = horizontalPadding, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                StorageImpactMeter(unusedApps = unusedApps, allApps = allApps)
+
                 if (!hasUsagePermission) {
-                    DashboardMotionContainer(
-                        motion = scrollImpulse,
-                        intensity = 0.55f
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Usage Access Required", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onErrorContainer)
-                                }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    "We need permission to detect which apps you haven't used recently.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Button(onClick = onRequestPermission) {
-                                    Text("Grant Permission")
-                                }
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Usage Access Required", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onErrorContainer)
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "We need permission to detect which apps you haven't used recently.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Button(onClick = onRequestPermission) {
+                                Text("Grant Permission")
                             }
                         }
                     }
                 } else {
-                    DashboardMotionContainer(
-                        motion = scrollImpulse,
-                        intensity = 0.55f
-                    ) {
-                        SmartDeclutterCard(
-                            icon = "📦",
-                            title = "Rarely Used Apps",
-                            description = "${unusedApps.size} apps • ${bytesToMB(unusedApps.sumOf { it.apkSizeBytes })} MB",
-                            onClick = { onNavigateToSpecificList(DiscoveryViewState.RARELY_USED) }
-                        )
-                    }
-                }
-            }
-
-            item(key = "large_apps_card") {
-                DashboardMotionContainer(
-                    motion = scrollImpulse,
-                    intensity = 0.75f
-                ) {
                     SmartDeclutterCard(
-                        icon = "💾",
-                        title = "Large Apps",
-                        description = "${largeApps.size} apps • ${bytesToMB(largeApps.sumOf { it.apkSizeBytes })} MB",
-                        onClick = { onNavigateToSpecificList(DiscoveryViewState.LARGE_APPS) }
+                        icon = "\uD83D\uDCE6",
+                        title = "Rarely Used Apps",
+                        description = "${unusedApps.size} apps \u2022 ${bytesToMB(unusedApps.sumOf { it.apkSizeBytes })} MB",
+                        onClick = { onNavigateToSpecificList(DiscoveryViewState.RARELY_USED) }
                     )
                 }
-            }
 
-            item(key = "all_apps_header") {
-                AllAppsSection(headerProgress = allAppsHeaderProgress)
-            }
+                SmartDeclutterCard(
+                    icon = "\uD83D\uDCBE",
+                    title = "Large Apps",
+                    description = "${largeApps.size} apps \u2022 ${bytesToMB(largeApps.sumOf { it.apkSizeBytes })} MB",
+                    onClick = { onNavigateToSpecificList(DiscoveryViewState.LARGE_APPS) }
+                )
 
-            items(
-                items = allApps,
-                key = { it.packageId },
-                contentType = { "all_apps_row" }
-            ) { app ->
-                val isSelected = app.packageId in selectedApps
-                AllAppsSelectableCard(
-                    app = app,
-                    isSelected = isSelected,
-                    onToggle = {
-                        selectedApps = if (isSelected) {
-                            selectedApps - app.packageId
-                        } else {
-                            selectedApps + app.packageId
-                        }
-                    }
+                Text(
+                    text = "All Apps",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
                 )
             }
 
-            if (selectedApps.isNotEmpty()) {
-                item(key = "all_apps_bottom_spacer") {
-                    Spacer(modifier = Modifier.height(88.dp))
+            // Native RecyclerView for All Apps — smooth scroll, DiffUtil rebinding
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = horizontalPadding),
+                factory = { ctx ->
+                    androidx.recyclerview.widget.RecyclerView(ctx).apply {
+                        layoutManager = androidx.recyclerview.widget.LinearLayoutManager(ctx)
+                        adapter = DiscoveryAppsAdapter(
+                            onToggle = { packageId ->
+                                selectedApps = if (packageId in selectedApps) {
+                                    selectedApps - packageId
+                                } else {
+                                    selectedApps + packageId
+                                }
+                            },
+                            themeColors = themeColors
+                        )
+                    }
+                },
+                update = { recyclerView ->
+                    val adapter = recyclerView.adapter as DiscoveryAppsAdapter
+                    adapter.themeColors = themeColors
+                    adapter.submitList(mappedItems)
                 }
-            }
+            )
         }
 
         if (selectedApps.isNotEmpty()) {
@@ -906,6 +865,39 @@ fun SpecificAppListDisplay(
                 }
             }
         } else {
+            // Extract Compose theme colors for native views
+            val themeColors = NativeThemeColors(
+                textPrimary = MaterialTheme.colorScheme.onSurface.toArgb(),
+                textSecondary = MaterialTheme.colorScheme.onSurfaceVariant.toArgb(),
+                textTertiary = MaterialTheme.colorScheme.tertiary.toArgb(),
+                selectedBackground = MaterialTheme.colorScheme.primaryContainer.toArgb(),
+                normalBackground = MaterialTheme.colorScheme.surface.toArgb(),
+                checkboxTint = MaterialTheme.colorScheme.primary.toArgb()
+            )
+
+            // Cache mapped items — only recomputed when filteredList or selectedApps changes
+            val mappedItems = remember(filteredList, selectedApps) {
+                filteredList.map { app ->
+                    val sizeLabel = "${bytesToMB(app.apkSizeBytes)} MB"
+                    val ctxLabel = when (listType) {
+                        DiscoveryViewState.RARELY_USED -> {
+                            if (app.lastTimeUsed > 0) {
+                                val now = System.currentTimeMillis()
+                                val daysAgo = ((now - app.lastTimeUsed) / DateUtils.DAY_IN_MILLIS).toInt()
+                                "Not used in $daysAgo days"
+                            } else "Never opened"
+                        }
+                        DiscoveryViewState.LARGE_APPS -> "Takes $sizeLabel"
+                        else -> null
+                    }
+                    AppListItem(
+                        info = app,
+                        isSelected = app.packageId in selectedApps,
+                        contextLabel = ctxLabel
+                    )
+                }
+            }
+
             AndroidView(
                 modifier = Modifier.fillMaxWidth().weight(1f).padding(16.dp),
                 factory = { ctx ->
@@ -918,32 +910,14 @@ fun SpecificAppListDisplay(
                                 } else {
                                     selectedApps + packageId
                                 }
-                            }
+                            },
+                            themeColors = themeColors
                         )
                     }
                 },
                 update = { recyclerView ->
                     val adapter = recyclerView.adapter as DiscoveryAppsAdapter
-                    val mappedItems = filteredList.map { app ->
-                        val now = System.currentTimeMillis()
-                        val sizeLabel = "${bytesToMB(app.apkSizeBytes)} MB"
-                        val ctxLabel = when (listType) {
-                            DiscoveryViewState.RARELY_USED -> {
-                                if (app.lastTimeUsed > 0) {
-                                    val daysAgo = ((now - app.lastTimeUsed) / DateUtils.DAY_IN_MILLIS).toInt()
-                                    "Not used in $daysAgo days"
-                                } else "Never opened"
-                            }
-                            DiscoveryViewState.LARGE_APPS -> "Takes $sizeLabel"
-                            else -> null
-                        }
-                        
-                        AppListItem(
-                            info = app,
-                            isSelected = app.packageId in selectedApps,
-                            contextLabel = ctxLabel
-                        )
-                    }
+                    adapter.themeColors = themeColors
                     adapter.submitList(mappedItems)
                 }
             )
