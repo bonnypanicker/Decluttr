@@ -4,6 +4,13 @@ import android.content.Intent
 import android.provider.Settings
 import android.text.format.DateUtils
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -25,19 +33,28 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -220,6 +237,7 @@ fun DiscoveryScreen(
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun DiscoveryDashboard(
     unusedApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
@@ -234,6 +252,16 @@ fun DiscoveryDashboard(
     var selectedApps by remember { mutableStateOf<Set<String>>(emptySet()) }
     var isSearchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+
+    // Keyboard controller for dismissing keyboard
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    // Dismiss keyboard when exiting search
+    LaunchedEffect(isSearchActive) {
+        if (!isSearchActive) {
+            keyboardController?.hide()
+        }
+    }
 
     // Extract Compose theme colors for native views
     val themeColors = NativeThemeColors(
@@ -254,41 +282,41 @@ fun DiscoveryDashboard(
     // Build the list of items for RecyclerView
     val dashboardItems = remember(unusedApps, largeApps, filteredApps, hasUsagePermission, isSearchActive, searchQuery, selectedApps) {
         buildList {
-            // Storage meter
-            if (allApps.isNotEmpty()) {
-                val totalSize = allApps.sumOf { it.apkSizeBytes }
-                val wasteSize = unusedApps.sumOf { it.apkSizeBytes }
-                val percentage = if (totalSize > 0) ((wasteSize.toFloat() / totalSize.toFloat()) * 100).roundToInt() else 0
-                add(DashboardItem.StorageMeter(wasteSize, totalSize, percentage))
-            }
+            // TOP CARDS: Only shown when NOT in search mode
+            if (!isSearchActive) {
+                // Storage meter
+                if (allApps.isNotEmpty()) {
+                    val totalSize = allApps.sumOf { it.apkSizeBytes }
+                    val wasteSize = unusedApps.sumOf { it.apkSizeBytes }
+                    val percentage = if (totalSize > 0) ((wasteSize.toFloat() / totalSize.toFloat()) * 100).roundToInt() else 0
+                    add(DashboardItem.StorageMeter(wasteSize, totalSize, percentage))
+                }
 
-            // Permission warning or rarely used card
-            if (!hasUsagePermission) {
-                add(DashboardItem.PermissionWarning())
-            } else {
+                // Permission warning or rarely used card
+                if (!hasUsagePermission) {
+                    add(DashboardItem.PermissionWarning())
+                } else {
+                    add(DashboardItem.SmartCard(
+                        icon = "📦",
+                        title = "Rarely Used Apps",
+                        description = "${unusedApps.size} apps • ${bytesToMB(unusedApps.sumOf { it.apkSizeBytes })} MB",
+                        viewState = DiscoveryViewState.RARELY_USED
+                    ))
+                }
+
+                // Large apps card
                 add(DashboardItem.SmartCard(
-                    icon = "📦",
-                    title = "Rarely Used Apps",
-                    description = "${unusedApps.size} apps • ${bytesToMB(unusedApps.sumOf { it.apkSizeBytes })} MB",
-                    viewState = DiscoveryViewState.RARELY_USED
+                    icon = "💾",
+                    title = "Large Apps",
+                    description = "${largeApps.size} apps • ${bytesToMB(largeApps.sumOf { it.apkSizeBytes })} MB",
+                    viewState = DiscoveryViewState.LARGE_APPS
                 ))
             }
 
-            // Large apps card
-            add(DashboardItem.SmartCard(
-                icon = "💾",
-                title = "Large Apps",
-                description = "${largeApps.size} apps • ${bytesToMB(largeApps.sumOf { it.apkSizeBytes })} MB",
-                viewState = DiscoveryViewState.LARGE_APPS
-            ))
-
-            // All apps header
+            // All apps header (always shown — icon toggles between search/close)
             add(DashboardItem.AllAppsHeader(isSearchActive))
 
-            // Search bar (if active)
-            if (isSearchActive) {
-                add(DashboardItem.SearchBar(searchQuery))
-            }
+            // NO DashboardItem.SearchBar added here — search bar is now pinned in Compose
 
             // App items
             filteredApps.forEach { app ->
@@ -297,59 +325,124 @@ fun DiscoveryDashboard(
         }
     }
 
-    // Handle back press when search is active
+    // Handle back press: two-step cancel (clear text first, then exit search)
     BackHandler(enabled = isSearchActive) {
-        isSearchActive = false
-        searchQuery = ""
+        if (searchQuery.isNotEmpty()) {
+            searchQuery = ""
+        } else {
+            isSearchActive = false
+            searchQuery = ""
+        }
+    }
+
+    // Keep a reference to the RecyclerView for imperative scroll control
+    var recyclerViewRef by remember { mutableStateOf<RecyclerView?>(null) }
+
+    // Scroll to top when entering search mode
+    LaunchedEffect(isSearchActive) {
+        if (isSearchActive) {
+            // Small delay to let the list update propagate
+            kotlinx.coroutines.delay(100)
+            recyclerViewRef?.smoothScrollToPosition(0)
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        AndroidView(
-            modifier = Modifier.fillMaxSize(),
-            factory = { context ->
-                RecyclerView(context).apply {
-                    layoutManager = LinearLayoutManager(context)
-                    adapter = DiscoveryDashboardAdapter(
-                        onNavigateToList = onNavigateToSpecificList,
-                        onRequestPermission = onRequestPermission,
-                        onToggleApp = { packageId ->
-                            selectedApps = if (packageId in selectedApps) {
-                                selectedApps - packageId
-                            } else {
-                                selectedApps + packageId
-                            }
-                        },
-                        onSearchToggle = {
-                            if (isSearchActive) {
-                                isSearchActive = false
-                                searchQuery = ""
-                            } else {
-                                isSearchActive = true
-                            }
-                        },
-                        onSearchQueryChange = { query ->
-                            searchQuery = query
-                        },
-                        themeColors = themeColors
-                    )
-                    val dp12 = (12 * context.resources.displayMetrics.density).toInt()
-                    val dp80 = (80 * context.resources.displayMetrics.density).toInt()
-                    setPadding(dp12, dp12, dp12, if (selectedApps.isNotEmpty()) dp80 else dp12)
-                    clipToPadding = false
-                }
-            },
-            update = { recyclerView ->
-                val adapter = recyclerView.adapter as DiscoveryDashboardAdapter
-                adapter.themeColors = themeColors
-                adapter.submitList(dashboardItems)
-                
-                val dp12 = (12 * recyclerView.context.resources.displayMetrics.density).toInt()
-                val dp80 = (80 * recyclerView.context.resources.displayMetrics.density).toInt()
-                recyclerView.setPadding(dp12, dp12, dp12, if (selectedApps.isNotEmpty()) dp80 else dp12)
-            }
-        )
+        Column(modifier = Modifier.fillMaxSize()) {
 
-        // Floating action buttons
+            // ═══════════════════════════════════════════════════
+            // PINNED SEARCH BAR (Compose element, above RecyclerView)
+            // ═══════════════════════════════════════════════════
+            AnimatedVisibility(
+                visible = isSearchActive,
+                enter = slideInVertically(
+                    initialOffsetY = { fullHeight -> -fullHeight },
+                    animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+                ) + fadeIn(animationSpec = tween(durationMillis = 300)),
+                exit = slideOutVertically(
+                    targetOffsetY = { fullHeight -> -fullHeight },
+                    animationSpec = tween(durationMillis = 250, easing = FastOutSlowInEasing)
+                ) + fadeOut(animationSpec = tween(durationMillis = 250))
+            ) {
+                PinnedSearchBar(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    onClose = {
+                        if (searchQuery.isNotEmpty()) {
+                            searchQuery = ""  // First tap: just clear the text
+                        } else {
+                            isSearchActive = false  // Second tap: exit search entirely
+                            searchQuery = ""
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+
+            // ═══════════════════════════════════════════════════
+            // RECYCLERVIEW (takes remaining space)
+            // ═══════════════════════════════════════════════════
+            AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                factory = { context ->
+                    RecyclerView(context).apply {
+                        layoutManager = LinearLayoutManager(context)
+                        adapter = DiscoveryDashboardAdapter(
+                            onNavigateToList = onNavigateToSpecificList,
+                            onRequestPermission = onRequestPermission,
+                            onToggleApp = { packageId ->
+                                selectedApps = if (packageId in selectedApps) {
+                                    selectedApps - packageId
+                                } else {
+                                    selectedApps + packageId
+                                }
+                            },
+                            onSearchToggle = {
+                                if (isSearchActive) {
+                                    isSearchActive = false
+                                    searchQuery = ""
+                                } else {
+                                    isSearchActive = true
+                                }
+                            },
+                            onSearchQueryChange = { query ->
+                                searchQuery = query
+                            },
+                            themeColors = themeColors
+                        )
+                        // Enable item change animations for smooth card removal/addition
+                        itemAnimator = androidx.recyclerview.widget.DefaultItemAnimator().apply {
+                            addDuration = 250
+                            removeDuration = 200
+                            moveDuration = 250
+                        }
+                        val dp12 = (12 * context.resources.displayMetrics.density).toInt()
+                        val dp80 = (80 * context.resources.displayMetrics.density).toInt()
+                        setPadding(dp12, dp12, dp12, if (selectedApps.isNotEmpty()) dp80 else dp12)
+                        clipToPadding = false
+                        recyclerViewRef = this  // Store reference for imperative scroll
+                    }
+                },
+                update = { recyclerView ->
+                    val adapter = recyclerView.adapter as DiscoveryDashboardAdapter
+                    adapter.themeColors = themeColors
+                    adapter.submitList(dashboardItems)
+
+                    val dp12 = (12 * recyclerView.context.resources.displayMetrics.density).toInt()
+                    val dp80 = (80 * recyclerView.context.resources.displayMetrics.density).toInt()
+                    recyclerView.setPadding(dp12, dp12, dp12, if (selectedApps.isNotEmpty()) dp80 else dp12)
+                }
+            )
+        }
+
+        // ═══════════════════════════════════════════════════
+        // FLOATING ACTION BUTTONS (unchanged)
+        // ═══════════════════════════════════════════════════
         if (selectedApps.isNotEmpty()) {
             Row(
                 modifier = Modifier
@@ -698,4 +791,60 @@ internal fun filterAndSortApps(
         SortOption.SIZE -> filtered.sortedByDescending { it.apkSizeBytes }
         SortOption.LAST_USED -> filtered.sortedBy { it.lastTimeUsed }
     }
+}
+
+
+@Composable
+private fun PinnedSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    // Auto-focus and show keyboard when search bar appears
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(150)  // Let animation start first
+        focusRequester.requestFocus()
+        keyboardController?.show()
+    }
+
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        placeholder = {
+            Text(
+                "Search apps...",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        trailingIcon = {
+            IconButton(onClick = onClose) {
+                Icon(
+                    imageVector = if (query.isNotEmpty()) Icons.Default.Clear else Icons.Default.ArrowBack,
+                    contentDescription = if (query.isNotEmpty()) "Clear text" else "Close search",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        modifier = modifier.focusRequester(focusRequester),
+        shape = RoundedCornerShape(28.dp),
+        singleLine = true,
+        colors = TextFieldDefaults.colors(
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            unfocusedIndicatorColor = Color.Transparent,
+            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+            cursorColor = MaterialTheme.colorScheme.primary
+        )
+    )
 }
