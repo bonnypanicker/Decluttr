@@ -248,10 +248,10 @@ fun DiscoveryScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
-        }
-    }
-    }
+}
+}
+}
+}
 }
 
 @Composable
