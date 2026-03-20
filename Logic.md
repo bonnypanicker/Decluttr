@@ -1,3 +1,5 @@
+# Decluttr Project Logic
+
 **Your app's face should be: Declutter-first (Smart Bulk Uninstaller + Safe Archive)**  
 **Name: Keep “Decluttr”** (it’s catchy, short, and instantly tells users what it does — perfect).
 
