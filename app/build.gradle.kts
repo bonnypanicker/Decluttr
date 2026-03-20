@@ -58,6 +58,9 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.0")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     
+    // Material Components for native XML views
+    implementation("com.google.android.material:material:1.12.0")
+    
     // Compose
     implementation(platform("androidx.compose:compose-bom:2024.06.00"))
     implementation("androidx.compose.ui:ui")
