@@ -444,16 +444,19 @@ fun DiscoveryDashboard(
                 AndroidView(
                     modifier = Modifier.fillMaxWidth(),
                     factory = { ctx ->
-                        LayoutInflater.from(ctx).inflate(R.layout.item_discovery_app, android.widget.FrameLayout(ctx), false)
+                        val parent = android.widget.FrameLayout(ctx)
+                        LayoutInflater.from(ctx).inflate(
+                            com.example.decluttr.R.layout.item_discovery_app, parent, false
+                        ) as android.view.View
                     },
-                    update = { view ->
+                    update = { view: android.view.View ->
                         // Bind data to native views
-                        view.findViewById<TextView>(R.id.app_name).apply {
+                        (view.findViewById<android.view.View>(com.example.decluttr.R.id.app_name) as TextView).apply {
                             text = app.name
                             setTextColor(themeColors.textPrimary)
                         }
-                        view.findViewById<CheckBox>(R.id.app_checkbox).isChecked = isSelected
-                        view.findViewById<ImageView>(R.id.warning_icon).visibility =
+                        (view.findViewById<android.view.View>(com.example.decluttr.R.id.app_checkbox) as CheckBox).isChecked = isSelected
+                        view.findViewById<android.view.View>(com.example.decluttr.R.id.warning_icon).visibility =
                             if (app.isPlayStoreInstalled) android.view.View.GONE else android.view.View.VISIBLE
 
                         val sizeLabel = "${bytesToMB(app.apkSizeBytes)} MB"
@@ -467,11 +470,11 @@ fun DiscoveryDashboard(
                             }
                         } else "Never used"
 
-                        view.findViewById<TextView>(R.id.app_details).apply {
+                        (view.findViewById<android.view.View>(com.example.decluttr.R.id.app_details) as TextView).apply {
                             text = "$sizeLabel \u2022 $timeString"
                             setTextColor(themeColors.textSecondary)
                         }
-                        view.findViewById<TextView>(R.id.app_context_label).visibility = android.view.View.GONE
+                        view.findViewById<android.view.View>(com.example.decluttr.R.id.app_context_label).visibility = android.view.View.GONE
 
                         // Selection background
                         if (isSelected) {
@@ -490,7 +493,7 @@ fun DiscoveryDashboard(
                         }
 
                         // Load icon
-                        view.findViewById<ImageView>(R.id.app_icon).load(AppIconModel(app.packageId)) {
+                        (view.findViewById<android.view.View>(com.example.decluttr.R.id.app_icon) as ImageView).load(AppIconModel(app.packageId)) {
                             memoryCacheKey(app.packageId)
                             crossfade(false)
                             size(96)
