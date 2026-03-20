@@ -54,8 +54,7 @@
                 android:layout_marginStart="4dp"
                 android:src="@android:drawable/ic_dialog_alert"
                 android:visibility="gone"
-                app:tint="?android:attr/colorError"
-                xmlns:app="http://schemas.android.com/apk/res-auto" />
+                android:tint="?android:attr/colorError" />
         </LinearLayout>
 
         <TextView
