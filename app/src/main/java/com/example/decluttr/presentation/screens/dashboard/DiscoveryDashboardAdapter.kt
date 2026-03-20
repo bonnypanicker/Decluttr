@@ -12,9 +12,9 @@ import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
-import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -139,7 +139,6 @@ class DiscoveryDashboardAdapter(
         private val storageValue: TextView = view.findViewById(R.id.storage_value)
         private val wasteScore: TextView = view.findViewById(R.id.waste_score)
         private val progressBar: ProgressBar = view.findViewById(R.id.storage_progress)
-        private val cardView: CardView = view as CardView
 
         fun bind(item: DashboardItem.StorageMeter) {
             storageValue.text = "${bytesToMB(item.wasteSize)} MB"
@@ -147,7 +146,7 @@ class DiscoveryDashboardAdapter(
             progressBar.progress = item.percentage
 
             // Apply theme colors
-            cardView.setCardBackgroundColor(themeColors.normalBackground)
+            itemView.setBackgroundColor(themeColors.normalBackground)
             storageValue.setTextColor(themeColors.checkboxTint)
             wasteScore.setTextColor(
                 if (item.percentage > 15) Color.RED else themeColors.checkboxTint
@@ -173,7 +172,7 @@ class DiscoveryDashboardAdapter(
         private val title: TextView = view.findViewById(R.id.card_title)
         private val description: TextView = view.findViewById(R.id.card_description)
         private val button: Button = view.findViewById(R.id.card_button)
-        private val cardRoot: CardView = view.findViewById(R.id.card_root)
+        private val cardRoot: LinearLayout = view.findViewById(R.id.card_root)
 
         fun bind(item: DashboardItem.SmartCard) {
             icon.text = item.icon
