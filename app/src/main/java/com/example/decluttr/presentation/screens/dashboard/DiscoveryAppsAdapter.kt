@@ -15,8 +15,6 @@ import com.example.decluttr.R
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
 import com.example.decluttr.presentation.util.AppIconModel
 import java.util.Locale
-import android.R as AndroidR
-import com.google.android.material.R as MaterialR
 
 data class AppListItem(
     val info: GetInstalledAppsUseCase.InstalledAppInfo,
@@ -95,8 +93,8 @@ class DiscoveryAppsAdapter(
             val context = itemView.context
             val typedArray = context.obtainStyledAttributes(
                 intArrayOf(
-                    if (item.isSelected) MaterialR.attr.colorPrimaryContainer
-                    else MaterialR.attr.colorSurface
+                    if (item.isSelected) com.google.android.material.R.attr.colorPrimaryContainer
+                    else com.google.android.material.R.attr.colorSurface
                 )
             )
             val backgroundColor = typedArray.getColor(0, 0)
@@ -104,7 +102,7 @@ class DiscoveryAppsAdapter(
             itemView.setBackgroundColor(backgroundColor)
             
             // Re-apply standard ripple after background color overrides it
-            val rippleTypedArray = context.obtainStyledAttributes(intArrayOf(AndroidR.attr.selectableItemBackground))
+            val rippleTypedArray = context.obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackground))
             val rippleDrawable = rippleTypedArray.getDrawable(0)
             rippleTypedArray.recycle()
             itemView.foreground = rippleDrawable
