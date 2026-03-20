@@ -1,14 +1,21 @@
 package com.example.decluttr.presentation.screens.dashboard
 
+import android.view.LayoutInflater
 import android.os.SystemClock
 import android.text.format.DateUtils
 import android.util.Log
 import android.view.Choreographer
+import android.widget.CheckBox
+import android.widget.ImageView
+import android.widget.TextView
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -70,7 +77,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.material3.OutlinedTextField
 import coil.compose.AsyncImage
+import coil.load
 import coil.request.ImageRequest
 import com.example.decluttr.BuildConfig
 import com.example.decluttr.domain.usecase.GetInstalledAppsUseCase
@@ -263,11 +274,15 @@ fun DiscoveryDashboard(
     onBatchUninstall: (Set<String>) -> Unit,
     onBatchUninstallOnly: (Set<String>) -> Unit
 ) {
+    val listState = rememberLazyListState()
     val configuration = LocalConfiguration.current
     val horizontalPadding = if (configuration.screenWidthDp >= 840) 24.dp else 16.dp
     var selectedApps by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var isSearchActive by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    val focusRequester = remember { FocusRequester() }
 
-    // Extract Compose theme colors once, pass to native adapter
+    // Extract Compose theme colors for native views
     val themeColors = NativeThemeColors(
         textPrimary = MaterialTheme.colorScheme.onSurface.toArgb(),
         textSecondary = MaterialTheme.colorScheme.onSurfaceVariant.toArgb(),
@@ -277,28 +292,50 @@ fun DiscoveryDashboard(
         checkboxTint = MaterialTheme.colorScheme.primary.toArgb()
     )
 
-    // Cache mapped items — only recomputed when allApps or selectedApps changes
-    val mappedItems = remember(allApps, selectedApps) {
-        allApps.map { app ->
-            AppListItem(
-                info = app,
-                isSelected = app.packageId in selectedApps,
-                contextLabel = null
-            )
+    // Filter apps based on search query
+    val filteredApps = remember(allApps, searchQuery) {
+        if (searchQuery.isBlank()) allApps
+        else allApps.filter { it.name.contains(searchQuery, ignoreCase = true) }
+    }
+
+    // Header item count depends on permission state (storage + permission/rarely + large = 3 items)
+    // "All Apps" header is at index 3, search bar at index 4 when active
+    val allAppsHeaderIndex = 3
+
+    // Smooth scroll past headers when search activates
+    LaunchedEffect(isSearchActive) {
+        if (isSearchActive) {
+            listState.animateScrollToItem(allAppsHeaderIndex)
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Header cards — kept in Compose (small, static, no perf issue)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = horizontalPadding, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                StorageImpactMeter(unusedApps = unusedApps, allApps = allApps)
+    // Request focus on search field after it appears
+    LaunchedEffect(isSearchActive) {
+        if (isSearchActive) {
+            kotlinx.coroutines.delay(150) // wait for AnimatedVisibility
+            try { focusRequester.requestFocus() } catch (_: Exception) {}
+        }
+    }
 
+    // Handle back press when search is active
+    BackHandler(enabled = isSearchActive) {
+        isSearchActive = false
+        searchQuery = ""
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // --- Header cards (lightweight Compose, only 3 items) ---
+            item(key = "storage_meter") {
+                StorageImpactMeter(unusedApps = unusedApps, allApps = allApps)
+            }
+
+            item(key = "rarely_used_card") {
                 if (!hasUsagePermission) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
@@ -330,50 +367,146 @@ fun DiscoveryDashboard(
                         onClick = { onNavigateToSpecificList(DiscoveryViewState.RARELY_USED) }
                     )
                 }
+            }
 
+            item(key = "large_apps_card") {
                 SmartDeclutterCard(
                     icon = "\uD83D\uDCBE",
                     title = "Large Apps",
                     description = "${largeApps.size} apps \u2022 ${bytesToMB(largeApps.sumOf { it.apkSizeBytes })} MB",
                     onClick = { onNavigateToSpecificList(DiscoveryViewState.LARGE_APPS) }
                 )
+            }
 
-                Text(
-                    text = "All Apps",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
+            // --- "All Apps" header row with search icon ---
+            item(key = "all_apps_header") {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "All Apps",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    IconButton(onClick = {
+                        if (isSearchActive) {
+                            isSearchActive = false
+                            searchQuery = ""
+                        } else {
+                            isSearchActive = true
+                        }
+                    }) {
+                        Icon(
+                            imageVector = if (isSearchActive) Icons.Default.Clear else Icons.Default.Search,
+                            contentDescription = if (isSearchActive) "Close Search" else "Search Apps"
+                        )
+                    }
+                }
+            }
+
+            // --- Search bar (animated) ---
+            item(key = "search_bar") {
+                AnimatedVisibility(
+                    visible = isSearchActive,
+                    enter = expandVertically(),
+                    exit = shrinkVertically()
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester),
+                        placeholder = { Text("Search apps...") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Clear")
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+            }
+
+            // --- App items using lightweight AndroidView per-row ---
+            items(
+                items = filteredApps,
+                key = { it.packageId },
+                contentType = { "app_item" }
+            ) { app ->
+                val isSelected = app.packageId in selectedApps
+                AndroidView(
+                    modifier = Modifier.fillMaxWidth(),
+                    factory = { ctx ->
+                        LayoutInflater.from(ctx).inflate(R.layout.item_discovery_app, android.widget.FrameLayout(ctx), false)
+                    },
+                    update = { view ->
+                        // Bind data to native views
+                        view.findViewById<TextView>(R.id.app_name).apply {
+                            text = app.name
+                            setTextColor(themeColors.textPrimary)
+                        }
+                        view.findViewById<CheckBox>(R.id.app_checkbox).isChecked = isSelected
+                        view.findViewById<ImageView>(R.id.warning_icon).visibility =
+                            if (app.isPlayStoreInstalled) android.view.View.GONE else android.view.View.VISIBLE
+
+                        val sizeLabel = "${bytesToMB(app.apkSizeBytes)} MB"
+                        val now = System.currentTimeMillis()
+                        val timeString = if (app.lastTimeUsed > 0) {
+                            val daysAgo = ((now - app.lastTimeUsed) / DateUtils.DAY_IN_MILLIS).toInt()
+                            when {
+                                daysAgo <= 0 -> "Today"
+                                daysAgo == 1 -> "1 day ago"
+                                else -> "$daysAgo days ago"
+                            }
+                        } else "Never used"
+
+                        view.findViewById<TextView>(R.id.app_details).apply {
+                            text = "$sizeLabel \u2022 $timeString"
+                            setTextColor(themeColors.textSecondary)
+                        }
+                        view.findViewById<TextView>(R.id.app_context_label).visibility = android.view.View.GONE
+
+                        // Selection background
+                        if (isSelected) {
+                            view.setBackgroundColor(themeColors.selectedBackground)
+                        } else {
+                            view.setBackgroundColor(themeColors.normalBackground)
+                        }
+
+                        // Click handler (updated on each bind)
+                        view.setOnClickListener {
+                            selectedApps = if (app.packageId in selectedApps) {
+                                selectedApps - app.packageId
+                            } else {
+                                selectedApps + app.packageId
+                            }
+                        }
+
+                        // Load icon
+                        view.findViewById<ImageView>(R.id.app_icon).load(AppIconModel(app.packageId)) {
+                            memoryCacheKey(app.packageId)
+                            crossfade(false)
+                            size(96)
+                        }
+                    }
                 )
             }
 
-            // Native RecyclerView for All Apps — smooth scroll, DiffUtil rebinding
-            AndroidView(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = horizontalPadding),
-                factory = { ctx ->
-                    androidx.recyclerview.widget.RecyclerView(ctx).apply {
-                        layoutManager = androidx.recyclerview.widget.LinearLayoutManager(ctx)
-                        adapter = DiscoveryAppsAdapter(
-                            onToggle = { packageId ->
-                                selectedApps = if (packageId in selectedApps) {
-                                    selectedApps - packageId
-                                } else {
-                                    selectedApps + packageId
-                                }
-                            },
-                            themeColors = themeColors
-                        )
-                    }
-                },
-                update = { recyclerView ->
-                    val adapter = recyclerView.adapter as DiscoveryAppsAdapter
-                    adapter.themeColors = themeColors
-                    adapter.submitList(mappedItems)
+            if (selectedApps.isNotEmpty()) {
+                item(key = "bottom_spacer") {
+                    Spacer(modifier = Modifier.height(88.dp))
                 }
-            )
+            }
         }
 
+        // Floating action buttons
         if (selectedApps.isNotEmpty()) {
             Row(
                 modifier = Modifier
@@ -403,132 +536,6 @@ fun DiscoveryDashboard(
                     Text("Archive & Uninstall", textAlign = TextAlign.Center)
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun DashboardMotionContainer(
-    motion: Float,
-    intensity: Float,
-    content: @Composable () -> Unit
-) {
-    Box(
-        modifier = Modifier.graphicsLayer {
-            translationY = motion * intensity
-        }
-    ) {
-        content()
-    }
-}
-
-@Composable
-private fun AllAppsSection(
-    headerProgress: Float
-) {
-    val transitionEasing = remember { CubicBezierEasing(0.2f, 0f, 0f, 1f) }
-    val headerScale by animateFloatAsState(
-        targetValue = 1f + (0.5f * headerProgress),
-        animationSpec = tween(durationMillis = 300, easing = transitionEasing),
-        label = "allAppsHeaderScale"
-    )
-    val headerAlpha by animateFloatAsState(
-        targetValue = 1f - (0.1f * headerProgress),
-        animationSpec = tween(durationMillis = 300, easing = transitionEasing),
-        label = "allAppsHeaderAlpha"
-    )
-    val headerBias by animateFloatAsState(
-        targetValue = -1f + headerProgress,
-        animationSpec = tween(durationMillis = 300, easing = transitionEasing),
-        label = "allAppsHeaderBias"
-    )
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .zIndex(1f)
-    ) {
-        Text(
-            text = "All Apps",
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                shadow = Shadow(
-                    color = Color.Black.copy(alpha = 0.12f),
-                    offset = androidx.compose.ui.geometry.Offset(0f, 1f),
-                    blurRadius = 2f
-                )
-            ),
-            modifier = Modifier
-                .align(BiasAlignment(horizontalBias = headerBias, verticalBias = 0f))
-                .graphicsLayer {
-                    scaleX = headerScale
-                    scaleY = headerScale
-                    alpha = headerAlpha
-                }
-        )
-    }
-}
-
-@Composable
-private fun AllAppsSelectableCard(
-    app: GetInstalledAppsUseCase.InstalledAppInfo,
-    isSelected: Boolean,
-    onToggle: () -> Unit
-) {
-    val context = LocalContext.current
-    val imageRequest = remember(app.packageId) {
-        ImageRequest.Builder(context)
-            .data(AppIconModel(app.packageId))
-            .memoryCacheKey(app.packageId)
-            .size(96)
-            .crossfade(false)
-            .build()
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.surface
-            )
-            .border(
-                width = 1.dp,
-                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f),
-                shape = RoundedCornerShape(12.dp)
-            )
-            .clickable(onClick = onToggle)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Checkbox(
-            checked = isSelected,
-            onCheckedChange = { onToggle() }
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        AsyncImage(
-            model = imageRequest,
-            contentDescription = "${app.name} icon",
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(8.dp))
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = app.name,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
-            )
-            Text(
-                text = "${bytesToMB(app.apkSizeBytes)} MB",
-                style = MaterialTheme.typography.bodySmall,
-                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }
