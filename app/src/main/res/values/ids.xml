@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="chip_container" type="id" />
+    <item name="archive_search_callback" type="id" />
+    <item name="specific_search_callback" type="id" />
+    <item name="sort_chip_group" type="id" />
+    <item name="select_all_container" type="id" />
+    <item name="select_all_checkbox" type="id" />
+    <item name="select_all_label" type="id" />
+    <item name="selection_info" type="id" />
+</resources>

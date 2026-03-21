@@ -95,7 +95,6 @@ fun ArchivedAppsList(
     }
 
     var newFolderAppPair by remember { mutableStateOf<Pair<ArchivedApp, ArchivedApp>?>(null) }
-    var newFolderName by remember { mutableStateOf("") }
     var expandedFolder by remember { mutableStateOf<String?>(null) }
     
     // Group apps into folders or standalones
@@ -113,46 +112,121 @@ fun ArchivedAppsList(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Search Bar
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { searchQuery = it },
-            placeholder = { Text("Search") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { searchQuery = "" }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear Search")
-                    }
-                }
-            },
+        // Native search bar — identical pattern to DiscoveryDashboard
+        androidx.compose.ui.viewinterop.AndroidView(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(100),
-            singleLine = true,
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                unfocusedBorderColor = Color.Transparent,
-                focusedBorderColor = MaterialTheme.colorScheme.primary
-            )
+            factory = { ctx ->
+                val searchBarView = android.view.LayoutInflater.from(ctx)
+                    .inflate(com.example.decluttr.R.layout.item_search_bar, null, false)
+
+                val searchEditText = searchBarView
+                    .findViewById<android.widget.EditText>(com.example.decluttr.R.id.search_edit_text)
+                val clearButton = searchBarView
+                    .findViewById<android.widget.ImageView>(com.example.decluttr.R.id.clear_button)
+
+                searchEditText.hint = "Search"
+
+                val callback = SearchQueryCallback()
+                searchBarView.setTag(com.example.decluttr.R.id.archive_search_callback, callback)
+
+                searchEditText.addTextChangedListener(object : android.text.TextWatcher {
+                    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                    override fun afterTextChanged(s: android.text.Editable?) {
+                        val q = s.toString()
+                        clearButton.visibility =
+                            if (q.isEmpty()) android.view.View.GONE
+                            else android.view.View.VISIBLE
+                        callback.onQueryChange?.invoke(q)
+                    }
+                })
+
+                clearButton.setOnClickListener {
+                    searchEditText.setText("")
+                }
+
+                searchBarView
+            },
+            update = { view ->
+                val callback = view.getTag(com.example.decluttr.R.id.archive_search_callback) as SearchQueryCallback
+                callback.onQueryChange = { searchQuery = it }
+
+                val editText = view.findViewById<android.widget.EditText>(com.example.decluttr.R.id.search_edit_text)
+                if (editText.text.toString() != searchQuery) {
+                    editText.setText(searchQuery)
+                    editText.setSelection(searchQuery.length)
+                }
+            }
         )
 
         // Category Pills
-        if (categories.size > 1) { // Only show if we have actual categories beside "All"
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(categories) { category ->
-                    CategoryPill(
-                        text = category,
-                        isSelected = selectedCategory == category,
-                        onClick = { selectedCategory = category }
-                    )
+        if (categories.size > 1) {
+            androidx.compose.ui.viewinterop.AndroidView(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                factory = { ctx ->
+                    android.widget.HorizontalScrollView(ctx).apply {
+                        isHorizontalScrollBarEnabled = false
+                        clipToPadding = false
+                        val dp16 = (16 * ctx.resources.displayMetrics.density).toInt()
+                        setPadding(dp16, 0, dp16, 0)
+
+                        addView(
+                            android.widget.LinearLayout(ctx).apply {
+                                orientation = android.widget.LinearLayout.HORIZONTAL
+                                id = com.example.decluttr.R.id.chip_container
+                            }
+                        )
+                    }
+                },
+                update = { hsv ->
+                    val container = hsv.findViewById<android.widget.LinearLayout>(com.example.decluttr.R.id.chip_container)
+                    container.removeAllViews()
+
+                    val density = hsv.context.resources.displayMetrics.density
+                    val dp8 = (8 * density).toInt()
+
+                    categories.forEach { category ->
+                        com.google.android.material.chip.Chip(hsv.context).apply {
+                            text = category
+                            isCheckable = true
+                            isChecked = selectedCategory == category
+
+                            // Material 3 styling
+                            chipBackgroundColor = android.content.res.ColorStateList(
+                                arrayOf(
+                                    intArrayOf(android.R.attr.state_checked),
+                                    intArrayOf()
+                                ),
+                                intArrayOf(
+                                    com.google.android.material.R.attr.colorPrimary
+                                        .let { attr ->
+                                            val ta = hsv.context.obtainStyledAttributes(intArrayOf(attr))
+                                            ta.getColor(0, 0).also { ta.recycle() }
+                                        },
+                                    com.google.android.material.R.attr.colorSurfaceVariant
+                                        .let { attr ->
+                                            val ta = hsv.context.obtainStyledAttributes(intArrayOf(attr))
+                                            ta.getColor(0, 0).also { ta.recycle() }
+                                        }
+                                )
+                            )
+
+                            setOnClickListener { selectedCategory = category }
+
+                            layoutParams = android.widget.LinearLayout.LayoutParams(
+                                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                            ).apply {
+                                marginEnd = dp8
+                            }
+                        }.also { container.addView(it) }
+                    }
                 }
-            }
+            )
         } else {
             Spacer(modifier = Modifier.height(8.dp))
         }
@@ -180,34 +254,42 @@ fun ArchivedAppsList(
             }
         } else {
             Column(modifier = Modifier.fillMaxSize()) {
-                if (newFolderAppPair != null) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp).background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp)).padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("Name your new folder", fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = newFolderName,
-                            onValueChange = { newFolderName = it },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(0.8f)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        androidx.compose.material3.Button(
-                            onClick = {
-                                val folderName = newFolderName.trim().ifEmpty { "New Folder" }
-                                newFolderAppPair?.let { (app1, app2) ->
-                                    onAppUpdate(app1.copy(folderName = folderName))
-                                    onAppUpdate(app2.copy(folderName = folderName))
-                                }
-                                newFolderAppPair = null
-                                newFolderName = ""
-                            }
-                        ) {
-                            Text("Create Folder")
-                        }
+                val context = LocalContext.current
+
+                // Show native AlertDialog when drag-drop creates a new folder pair
+                androidx.compose.runtime.LaunchedEffect(newFolderAppPair) {
+                    val pair = newFolderAppPair ?: return@LaunchedEffect
+
+                    val editText = android.widget.EditText(context).apply {
+                        hint = "Folder name"
+                        inputType = android.text.InputType.TYPE_CLASS_TEXT
+                        val dp16 = (16 * resources.displayMetrics.density).toInt()
+                        setPadding(dp16, dp16, dp16, dp16)
                     }
+
+                    val frameLayout = android.widget.FrameLayout(context).apply {
+                        val dp24 = (24 * resources.displayMetrics.density).toInt()
+                        setPadding(dp24, 0, dp24, 0)
+                        addView(editText)
+                    }
+
+                    android.app.AlertDialog.Builder(context)
+                        .setTitle("Name your new folder")
+                        .setView(frameLayout)
+                        .setPositiveButton("Create") { _, _ ->
+                            val folderName = editText.text.toString().trim().ifEmpty { "New Folder" }
+                            onAppUpdate(pair.first.copy(folderName = folderName))
+                            onAppUpdate(pair.second.copy(folderName = folderName))
+                            newFolderAppPair = null
+                        }
+                        .setNegativeButton("Cancel") { dialog, _ ->
+                            dialog.dismiss()
+                            newFolderAppPair = null
+                        }
+                        .setOnCancelListener {
+                            newFolderAppPair = null
+                        }
+                        .show()
                 }
 
                 ArchivedAppsRecyclerView(
@@ -235,227 +317,49 @@ fun ArchivedAppsList(
         }
     }
 
-    if (expandedFolder != null) {
-        val folderApps = apps.filter { it.folderName == expandedFolder }
-        if (folderApps.isNotEmpty()) {
-            androidx.compose.ui.window.Dialog(onDismissRequest = { expandedFolder = null }) {
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    tonalElevation = 8.dp,
-                    modifier = Modifier.fillMaxWidth().padding(16.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = expandedFolder!!,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
-                            columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(4),
-                            modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(folderApps) { app ->
-                                AppDrawerItemDraggable(
-                                    app = app,
-                                    isDragging = false,
-                                    onClick = { 
-                                        expandedFolder = null
-                                        onAppClick(app.packageId)
-                                    },
-                                    onDeleteClick = { onDeleteClick(app) },
-                                    onDragStart = {},
-                                    onDrag = {},
-                                    onDragEnd = {}
-                                )
-                            }
-                        }
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-                        androidx.compose.material3.TextButton(
-                            onClick = { expandedFolder = null }
-                        ) {
-                            Text("Close")
-                        }
-                    }
-                }
-            }
-        } else {
+    val dialogContext = LocalContext.current
+
+    androidx.compose.runtime.LaunchedEffect(expandedFolder) {
+        val folderName = expandedFolder ?: return@LaunchedEffect
+        val folderApps = apps.filter { it.folderName == folderName }
+
+        if (folderApps.isEmpty()) {
             expandedFolder = null
+            return@LaunchedEffect
         }
+
+        val dialogView = android.view.LayoutInflater.from(dialogContext)
+            .inflate(com.example.decluttr.R.layout.dialog_expanded_folder, null)
+
+        val titleView = dialogView.findViewById<android.widget.TextView>(com.example.decluttr.R.id.folder_title)
+        val gridRv = dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(com.example.decluttr.R.id.folder_grid)
+
+        titleView.text = folderName
+        gridRv.layoutManager = androidx.recyclerview.widget.GridLayoutManager(dialogContext, 4)
+
+        val folderAdapter = FolderAppsAdapter(
+            apps = folderApps,
+            onAppClick = { packageId ->
+                expandedFolder = null
+                onAppClick(packageId)
+            }
+        )
+        gridRv.adapter = folderAdapter
+
+        android.app.AlertDialog.Builder(dialogContext)
+            .setView(dialogView)
+            .setNegativeButton("Close") { dialog, _ ->
+                dialog.dismiss()
+                expandedFolder = null
+            }
+            .setOnCancelListener {
+                expandedFolder = null
+            }
+            .show()
     }
 }
 
 sealed class ArchivedItem {
     data class App(val app: ArchivedApp) : ArchivedItem()
     data class Folder(val name: String, val apps: List<ArchivedApp>) : ArchivedItem()
-}
-
-@Composable
-fun CategoryPill(
-    text: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
-    val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-
-    Surface(
-        shape = CircleShape,
-        color = backgroundColor,
-        modifier = Modifier.clickable(onClick = onClick)
-    ) {
-        Text(
-            text = text,
-            color = contentColor,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun AppDrawerItemDraggable(
-    app: ArchivedApp,
-    isDragging: Boolean,
-    onClick: () -> Unit,
-    onDeleteClick: () -> Unit,
-    onDragStart: () -> Unit,
-    onDrag: (Offset) -> Unit,
-    onDragEnd: () -> Unit
-) {
-    val context = LocalContext.current
-
-    val imageRequest = remember(app.packageId) {
-        coil.request.ImageRequest.Builder(context)
-            .data(com.example.decluttr.presentation.util.AppIconModel(app.packageId))
-            .memoryCacheKey(app.packageId)
-            .size(112) // 56dp * density
-            .crossfade(false)
-            .build()
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = { 
-                    onDragStart()
-                }
-            )
-            .padding(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        val modifier = if (isDragging) Modifier.size(56.dp).graphicsLayer { alpha = 0.5f } else Modifier.size(56.dp)
-        coil.compose.AsyncImage(
-            model = imageRequest,
-            contentDescription = "App Icon",
-            modifier = modifier
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = app.name,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            lineHeight = MaterialTheme.typography.bodySmall.fontSize * 1.2
-        )
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun FolderDrawerItem(
-    folderName: String,
-    apps: List<ArchivedApp>,
-    onClick: () -> Unit,
-    onDeleteClick: () -> Unit
-) {
-    var showMenu by remember { mutableStateOf(false) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = { showMenu = true }
-            )
-            .padding(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Folder Icon grid (preview up to 4 apps)
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
-                .padding(4.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                val previewApps = apps.take(4)
-                val rows = previewApps.chunked(2)
-                for (row in rows) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        for (app in row) {
-                            val context = LocalContext.current
-                            val imageRequest = remember(app.packageId) {
-                                coil.request.ImageRequest.Builder(context)
-                                    .data(com.example.decluttr.presentation.util.AppIconModel(app.packageId))
-                                    .memoryCacheKey(app.packageId)
-                                    .size(44) // 22dp * density
-                                    .crossfade(false)
-                                    .build()
-                            }
-                            coil.compose.AsyncImage(
-                                model = imageRequest,
-                                contentDescription = null, 
-                                modifier = Modifier.size(22.dp).clip(RoundedCornerShape(4.dp))
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = folderName,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis
-        )
-
-        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-            DropdownMenuItem(
-                text = { Text("Remove Folder") },
-                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-                onClick = { showMenu = false; onDeleteClick() }
-            )
-        }
-    }
-}
-
-@Composable
-fun PlaceholderIcon(modifier: Modifier = Modifier.size(56.dp)) {
-    Box(
-        modifier = modifier
-            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
-    )
 }

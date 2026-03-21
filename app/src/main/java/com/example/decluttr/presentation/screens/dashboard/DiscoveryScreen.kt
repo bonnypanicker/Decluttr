@@ -647,90 +647,161 @@ fun SpecificAppListDisplay(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Search bar
-            androidx.compose.material3.OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text("Search apps") },
-                leadingIcon = {
-                    androidx.compose.material3.Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.Search,
-                        contentDescription = "Search"
-                    )
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        androidx.compose.material3.IconButton(onClick = { searchQuery = "" }) {
-                            androidx.compose.material3.Icon(
-                                imageVector = androidx.compose.material.icons.Icons.Default.Clear,
-                                contentDescription = "Clear"
-                            )
-                        }
-                    }
-                },
+            // Native search bar
+            AndroidView(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(100),
-                singleLine = true,
-                colors = androidx.compose.material3.TextFieldDefaults.colors(
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                    focusedIndicatorColor = MaterialTheme.colorScheme.primary
-                )
+                factory = { ctx ->
+                    val searchBarView = android.view.LayoutInflater.from(ctx)
+                        .inflate(com.example.decluttr.R.layout.item_search_bar, null, false)
+
+                    val searchEditText = searchBarView
+                        .findViewById<android.widget.EditText>(com.example.decluttr.R.id.search_edit_text)
+                    val clearButton = searchBarView
+                        .findViewById<android.widget.ImageView>(com.example.decluttr.R.id.clear_button)
+
+                    searchEditText.hint = "Search apps"
+
+                    val callback = SearchQueryCallback()
+                    searchBarView.setTag(com.example.decluttr.R.id.specific_search_callback, callback)
+
+                    searchEditText.addTextChangedListener(object : android.text.TextWatcher {
+                        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                        override fun afterTextChanged(s: android.text.Editable?) {
+                            val q = s.toString()
+                            clearButton.visibility =
+                                if (q.isEmpty()) android.view.View.GONE
+                                else android.view.View.VISIBLE
+                            callback.onQueryChange?.invoke(q)
+                        }
+                    })
+
+                    clearButton.setOnClickListener {
+                        searchEditText.setText("")
+                    }
+
+                    searchBarView
+                },
+                update = { view ->
+                    val callback = view.getTag(com.example.decluttr.R.id.specific_search_callback) as SearchQueryCallback
+                    callback.onQueryChange = { searchQuery = it }
+
+                    val editText = view.findViewById<android.widget.EditText>(com.example.decluttr.R.id.search_edit_text)
+                    if (editText.text.toString() != searchQuery) {
+                        editText.setText(searchQuery)
+                        editText.setSelection(searchQuery.length)
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Sort row
-            Row(
+            // Native sort chips
+            AndroidView(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                SortOption.entries.forEach { option ->
-                    androidx.compose.material3.FilterChip(
-                        selected = sortOption == option,
-                        onClick = { sortOption = option },
-                        label = { Text(option.label, style = MaterialTheme.typography.labelSmall) }
-                    )
-                }
-            }
+                factory = { ctx ->
+                    android.widget.HorizontalScrollView(ctx).apply {
+                        isHorizontalScrollBarEnabled = false
+                        addView(
+                            com.google.android.material.chip.ChipGroup(ctx).apply {
+                                id = com.example.decluttr.R.id.sort_chip_group
+                                isSingleSelection = true
+                                isSelectionRequired = true
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Select All toggle + selection info
-            if (filteredList.isNotEmpty()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    val allFilteredSelected = filteredList.all { it.packageId in selectedApps }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        androidx.compose.material3.Checkbox(
-                            checked = allFilteredSelected,
-                            onCheckedChange = { checked ->
-                                selectedApps = if (checked) {
-                                    selectedApps + filteredList.map { it.packageId }
-                                } else {
-                                    selectedApps - filteredList.map { it.packageId }.toSet()
+                                SortOption.entries.forEach { option ->
+                                    addView(
+                                        com.google.android.material.chip.Chip(ctx).apply {
+                                            text = option.label
+                                            isCheckable = true
+                                            isChecked = option == SortOption.NAME
+                                            tag = option
+                                            setOnClickListener {
+                                                sortOption = tag as SortOption
+                                            }
+                                        }
+                                    )
                                 }
                             }
                         )
-                        Text(
-                            text = if (allFilteredSelected) "Deselect All" else "Select All",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium
-                        )
                     }
-                    if (selectedApps.isNotEmpty()) {
-                        Text(
-                            text = "${selectedApps.size} of ${appList.size} • ${bytesToMB(selectedSize)} MB",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                },
+                update = { hsv ->
+                    val group = hsv.findViewById<com.google.android.material.chip.ChipGroup>(com.example.decluttr.R.id.sort_chip_group)
+                    for (i in 0 until group.childCount) {
+                        val chip = group.getChildAt(i) as com.google.android.material.chip.Chip
+                        chip.isChecked = chip.tag == sortOption
                     }
                 }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Native select all row
+            if (filteredList.isNotEmpty()) {
+                val allFilteredSelected = filteredList.all { it.packageId in selectedApps }
+
+                AndroidView(
+                    modifier = Modifier.fillMaxWidth(),
+                    factory = { ctx ->
+                        android.widget.LinearLayout(ctx).apply {
+                            id = com.example.decluttr.R.id.select_all_container
+                            orientation = android.widget.LinearLayout.HORIZONTAL
+                            gravity = android.view.Gravity.CENTER_VERTICAL
+                            val dp8 = (8 * ctx.resources.displayMetrics.density).toInt()
+                            setPadding(0, dp8, 0, dp8)
+
+                            // Checkbox
+                            addView(android.widget.CheckBox(ctx).apply {
+                                id = com.example.decluttr.R.id.select_all_checkbox
+                            })
+
+                            // Label
+                            addView(android.widget.TextView(ctx).apply {
+                                id = com.example.decluttr.R.id.select_all_label
+                                val dp4 = (4 * ctx.resources.displayMetrics.density).toInt()
+                                setPadding(dp4, 0, 0, 0)
+                                textSize = 14f
+                            })
+
+                            // Spacer
+                            addView(android.view.View(ctx).apply {
+                                layoutParams = android.widget.LinearLayout.LayoutParams(
+                                    0, 1, 1f
+                                )
+                            })
+
+                            // Selection info
+                            addView(android.widget.TextView(ctx).apply {
+                                id = com.example.decluttr.R.id.selection_info
+                                textSize = 12f
+                            })
+                        }
+                    },
+                    update = { layout ->
+                        val checkBox = layout.findViewById<android.widget.CheckBox>(com.example.decluttr.R.id.select_all_checkbox)
+                        val label = layout.findViewById<android.widget.TextView>(com.example.decluttr.R.id.select_all_label)
+                        val info = layout.findViewById<android.widget.TextView>(com.example.decluttr.R.id.selection_info)
+
+                        checkBox.setOnCheckedChangeListener(null)
+                        checkBox.isChecked = allFilteredSelected
+                        checkBox.setOnCheckedChangeListener { _, checked ->
+                            selectedApps = if (checked) {
+                                selectedApps + filteredList.map { it.packageId }
+                            } else {
+                                selectedApps - filteredList.map { it.packageId }.toSet()
+                            }
+                        }
+
+                        label.text = if (allFilteredSelected) "Deselect All" else "Select All"
+
+                        if (selectedApps.isNotEmpty()) {
+                            info.visibility = android.view.View.VISIBLE
+                            info.text = "${selectedApps.size} of ${appList.size} • ${bytesToMB(selectedSize)} MB"
+                        } else {
+                            info.visibility = android.view.View.GONE
+                        }
+                    }
+                )
             }
 
             // Action buttons when items selected
