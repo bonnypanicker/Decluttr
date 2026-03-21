@@ -8,4 +8,9 @@
     <item name="select_all_checkbox" type="id" />
     <item name="select_all_label" type="id" />
     <item name="selection_info" type="id" />
+    <item name="folder_root" type="id" />
+    <item name="folder_scrim" type="id" />
+    <item name="folder_card" type="id" />
+    <item name="folder_title_edit" type="id" />
+    <item name="drag_overlay_tag" type="id" />
 </resources>

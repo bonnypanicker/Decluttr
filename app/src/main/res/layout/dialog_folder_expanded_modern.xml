@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/folder_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- Blurred scrim backdrop — click to close -->
+    <View
+        android:id="@+id/folder_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000" />
+
+    <!-- Folder content card — positioned over the folder icon origin -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/folder_card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginHorizontal="32dp"
+        android:layout_marginVertical="80dp"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="8dp"
+        app:cardBackgroundColor="?attr/colorSurfaceContainerHigh">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <!-- Editable folder title -->
+            <EditText
+                android:id="@+id/folder_title_edit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurface"
+                android:background="@android:color/transparent"
+                android:inputType="text"
+                android:maxLines="1"
+                android:hint="Folder name"
+                android:textColorHint="?attr/colorOnSurfaceVariant"
+                android:imeOptions="actionDone"
+                android:importantForAutofill="no"
+                android:paddingVertical="8dp" />
+
+            <!-- App grid inside folder -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/folder_grid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:clipToPadding="false"
+                android:overScrollMode="never" />
+
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+</FrameLayout>

@@ -1,5 +1,7 @@
 package com.example.decluttr.presentation.screens.dashboard
 
+import android.content.ClipData
+import android.os.Build
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -17,7 +19,8 @@ import com.example.decluttr.presentation.util.AppIconModel
  */
 class FolderAppsAdapter(
     private val apps: List<ArchivedApp>,
-    private val onAppClick: (String) -> Unit
+    private val onAppClick: (String) -> Unit,
+    private val onDragStartFromFolder: (() -> Unit)? = null  // NEW: dismiss dialog on drag out
 ) : RecyclerView.Adapter<FolderAppsAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -39,6 +42,29 @@ class FolderAppsAdapter(
             crossfade(false)
         }
         holder.itemView.setOnClickListener { onAppClick(app.packageId) }
+        
+        // Add long-press drag support
+        holder.itemView.setOnLongClickListener { view ->
+            val clipData = ClipData.newPlainText("packageId", app.packageId)
+            val shadowBuilder = ScaledDragShadowBuilder(view, 1.1f)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                view.startDragAndDrop(clipData, shadowBuilder, app, 0)
+            } else {
+                @Suppress("DEPRECATION")
+                view.startDrag(clipData, shadowBuilder, app, 0)
+            }
+            view.visibility = View.INVISIBLE
+            
+            // Haptic feedback
+            view.performHapticFeedback(
+                android.view.HapticFeedbackConstants.LONG_PRESS,
+                android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+            )
+            
+            // Dismiss the folder dialog — the drag continues on the main grid
+            onDragStartFromFolder?.invoke()
+            true
+        }
     }
 
     override fun getItemCount() = apps.size

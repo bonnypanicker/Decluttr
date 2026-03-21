@@ -1,11 +1,15 @@
 package com.example.decluttr.presentation.screens.dashboard
 
+import android.animation.ObjectAnimator
 import android.content.ClipData
 import android.os.Build
 import android.view.DragEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
@@ -85,16 +89,33 @@ class ArchivedAppsAdapter(
             }
 
             itemView.setOnClickListener { onAppClick(app.packageId) }
-            itemView.setOnLongClickListener {
+            itemView.setOnLongClickListener { view ->
                 onAppStartDrag(app)
+
+                // 1. Create clip data for the drag
                 val clipData = ClipData.newPlainText("packageId", app.packageId)
-                val shadowBuilder = View.DragShadowBuilder(itemView)
+
+                // 2. Build a scaled-up shadow (Pixel Launcher uses ~1.1x scale)
+                val shadowBuilder = ScaledDragShadowBuilder(view, 1.1f)
+
+                // 3. Start drag
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    itemView.startDragAndDrop(clipData, shadowBuilder, app, 0)
+                    view.startDragAndDrop(clipData, shadowBuilder, app, 0)
                 } else {
                     @Suppress("DEPRECATION")
-                    itemView.startDrag(clipData, shadowBuilder, app, 0)
+                    view.startDrag(clipData, shadowBuilder, app, 0)
                 }
+
+                // 4. CRITICAL: Hide the source view so it doesn't duplicate
+                //    Pixel Launcher hides the icon from its cell during drag.
+                view.visibility = View.INVISIBLE
+
+                // Haptic feedback like Pixel Launcher
+                view.performHapticFeedback(
+                    android.view.HapticFeedbackConstants.LONG_PRESS,
+                    android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                )
+
                 true
             }
             itemView.setOnDragListener(DragListener())
@@ -134,36 +155,144 @@ class ArchivedAppsAdapter(
     }
 
     private inner class DragListener : View.OnDragListener {
+        private var originalBackground: android.graphics.drawable.Drawable? = null
+        private var pulseAnimator: ObjectAnimator? = null
+
         override fun onDrag(view: View, event: DragEvent): Boolean {
             val targetItem = view.tag as? ArchivedItem
+            val draggedApp = event.localState as? ArchivedApp
 
             when (event.action) {
                 DragEvent.ACTION_DRAG_STARTED -> {
-                    return event.clipDescription.hasMimeType(android.content.ClipDescription.MIMETYPE_TEXT_PLAIN)
+                    return event.clipDescription.hasMimeType(
+                        android.content.ClipDescription.MIMETYPE_TEXT_PLAIN
+                    )
                 }
+
                 DragEvent.ACTION_DRAG_ENTERED -> {
+                    // Visual feedback: scale up + highlight the drop target
+                    if (targetItem != null && draggedApp != null) {
+                        when (targetItem) {
+                            is ArchivedItem.App -> {
+                                if (draggedApp.packageId != targetItem.app.packageId) {
+                                    // Scale up + dashed border = "will create folder"
+                                    originalBackground = view.background
+                                    view.setBackgroundResource(R.drawable.bg_drag_target_highlight)
+                                    view.animate()
+                                        .scaleX(1.2f)
+                                        .scaleY(1.2f)
+                                        .setDuration(200)
+                                        .setInterpolator(OvershootInterpolator(3f))
+                                        .start()
+                                }
+                            }
+                            is ArchivedItem.Folder -> {
+                                // Folder "breathing" pulse animation
+                                originalBackground = view.background
+                                view.setBackgroundResource(R.drawable.bg_drag_target_highlight)
+
+                                pulseAnimator = ObjectAnimator.ofFloat(
+                                    view, "scaleX", 1.0f, 1.08f
+                                ).apply {
+                                    duration = 600
+                                    repeatMode = android.animation.ValueAnimator.REVERSE
+                                    repeatCount = android.animation.ValueAnimator.INFINITE
+                                    interpolator = AccelerateDecelerateInterpolator()
+                                    addUpdateListener { anim ->
+                                        view.scaleY = anim.animatedValue as Float
+                                    }
+                                    start()
+                                }
+                            }
+                        }
+                    }
                     return true
                 }
+
                 DragEvent.ACTION_DRAG_EXITED -> {
+                    // Reset visual feedback
+                    pulseAnimator?.cancel()
+                    pulseAnimator = null
+                    view.background = originalBackground
+                    view.animate()
+                        .scaleX(1.0f)
+                        .scaleY(1.0f)
+                        .setDuration(200)
+                        .setInterpolator(DecelerateInterpolator())
+                        .start()
                     return true
                 }
+
                 DragEvent.ACTION_DROP -> {
-                    val draggedApp = event.localState as? ArchivedApp
+                    // Reset target visuals
+                    pulseAnimator?.cancel()
+                    pulseAnimator = null
+                    view.background = originalBackground
+                    view.animate().scaleX(1f).scaleY(1f).setDuration(100).start()
+
                     if (draggedApp != null && targetItem != null) {
-                        if (targetItem is ArchivedItem.App && draggedApp.packageId != targetItem.app.packageId) {
-                            onAppDropOnApp(draggedApp, targetItem.app)
-                        } else if (targetItem is ArchivedItem.Folder) {
-                            onAppDropOnFolder(draggedApp, targetItem.name)
+                        // Haptic on successful drop
+                        view.performHapticFeedback(
+                            android.view.HapticFeedbackConstants.CONFIRM
+                        )
+
+                        when {
+                            targetItem is ArchivedItem.App &&
+                                draggedApp.packageId != targetItem.app.packageId -> {
+                                onAppDropOnApp(draggedApp, targetItem.app)
+                            }
+                            targetItem is ArchivedItem.Folder -> {
+                                onAppDropOnFolder(draggedApp, targetItem.name)
+                            }
                         }
                         return true
                     }
                     return false
                 }
+
                 DragEvent.ACTION_DRAG_ENDED -> {
+                    // CRITICAL: Restore visibility of the source view
+                    pulseAnimator?.cancel()
+                    pulseAnimator = null
+                    view.background = originalBackground
+                    view.scaleX = 1f
+                    view.scaleY = 1f
+
+                    // Find the source view in the RecyclerView and make it visible again
+                    val recyclerView = findParentRecyclerView(view)
+                    recyclerView?.let { rv ->
+                        for (i in 0 until rv.childCount) {
+                            val child = rv.getChildAt(i)
+                            if (child.visibility == View.INVISIBLE) {
+                                // Animate back in with a spring-like pop
+                                child.visibility = View.VISIBLE
+                                child.alpha = 0f
+                                child.scaleX = 0.5f
+                                child.scaleY = 0.5f
+                                child.animate()
+                                    .alpha(1f)
+                                    .scaleX(1f)
+                                    .scaleY(1f)
+                                    .setDuration(300)
+                                    .setInterpolator(OvershootInterpolator(1.5f))
+                                    .start()
+                            }
+                        }
+                    }
                     return true
                 }
+
                 else -> return false
             }
+        }
+
+        private fun findParentRecyclerView(view: View): RecyclerView? {
+            var parent = view.parent
+            while (parent != null) {
+                if (parent is RecyclerView) return parent
+                parent = parent.parent
+            }
+            return null
         }
     }
 }

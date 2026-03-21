@@ -260,36 +260,16 @@ fun ArchivedAppsList(
                 androidx.compose.runtime.LaunchedEffect(newFolderAppPair) {
                     val pair = newFolderAppPair ?: return@LaunchedEffect
 
-                    val editText = android.widget.EditText(context).apply {
-                        hint = "Folder name"
-                        inputType = android.text.InputType.TYPE_CLASS_TEXT
-                        val dp16 = (16 * resources.displayMetrics.density).toInt()
-                        setPadding(dp16, dp16, dp16, dp16)
-                    }
+                    // 1. Create the folder with a default name immediately
+                    val defaultName = "New Folder"
+                    onAppUpdate(pair.first.copy(folderName = defaultName))
+                    onAppUpdate(pair.second.copy(folderName = defaultName))
+                    newFolderAppPair = null
 
-                    val frameLayout = android.widget.FrameLayout(context).apply {
-                        val dp24 = (24 * resources.displayMetrics.density).toInt()
-                        setPadding(dp24, 0, dp24, 0)
-                        addView(editText)
-                    }
-
-                    android.app.AlertDialog.Builder(context)
-                        .setTitle("Name your new folder")
-                        .setView(frameLayout)
-                        .setPositiveButton("Create") { _, _ ->
-                            val folderName = editText.text.toString().trim().ifEmpty { "New Folder" }
-                            onAppUpdate(pair.first.copy(folderName = folderName))
-                            onAppUpdate(pair.second.copy(folderName = folderName))
-                            newFolderAppPair = null
-                        }
-                        .setNegativeButton("Cancel") { dialog, _ ->
-                            dialog.dismiss()
-                            newFolderAppPair = null
-                        }
-                        .setOnCancelListener {
-                            newFolderAppPair = null
-                        }
-                        .show()
+                    // 2. Open the folder overlay immediately for the user to rename
+                    //    (Small delay to let recomposition settle with the new folder)
+                    kotlinx.coroutines.delay(150)
+                    expandedFolder = defaultName
                 }
 
                 ArchivedAppsRecyclerView(
@@ -302,6 +282,9 @@ fun ArchivedAppsList(
                     },
                     onAppDropOnFolder = { draggedApp, folderName ->
                         onAppUpdate(draggedApp.copy(folderName = folderName))
+                    },
+                    onAppDropOnEmptySpace = { draggedApp ->
+                        onAppUpdate(draggedApp.copy(folderName = null))
                     },
                     onRemoveFolder = { folderApps ->
                         folderApps.forEach { app ->
@@ -317,8 +300,12 @@ fun ArchivedAppsList(
         }
     }
 
-    val dialogContext = LocalContext.current
+    val context = LocalContext.current
 
+    // Keep track of the folder overlay controller
+    val folderOverlay = remember { mutableStateOf<FolderExpandOverlay?>(null) }
+
+    // Modern folder expansion with dolly-zoom
     androidx.compose.runtime.LaunchedEffect(expandedFolder) {
         val folderName = expandedFolder ?: return@LaunchedEffect
         val folderApps = apps.filter { it.folderName == folderName }
@@ -328,34 +315,35 @@ fun ArchivedAppsList(
             return@LaunchedEffect
         }
 
-        val dialogView = android.view.LayoutInflater.from(dialogContext)
-            .inflate(com.example.decluttr.R.layout.dialog_expanded_folder, null)
+        // Get the activity's root decorView as parent for the overlay
+        val activity = context as? android.app.Activity ?: return@LaunchedEffect
+        val rootView = activity.findViewById<android.view.ViewGroup>(android.R.id.content)
 
-        val titleView = dialogView.findViewById<android.widget.TextView>(com.example.decluttr.R.id.folder_title)
-        val gridRv = dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(com.example.decluttr.R.id.folder_grid)
+        val overlay = FolderExpandOverlay(context, rootView)
+        folderOverlay.value = overlay
 
-        titleView.text = folderName
-        gridRv.layoutManager = androidx.recyclerview.widget.GridLayoutManager(dialogContext, 4)
-
-        val folderAdapter = FolderAppsAdapter(
-            apps = folderApps,
+        overlay.show(
+            folderName = folderName,
+            folderApps = folderApps,
+            anchorView = null, // TODO: pass the folder ViewHolder itemView for precise origin
             onAppClick = { packageId ->
                 expandedFolder = null
                 onAppClick(packageId)
+            },
+            onFolderRenamed = { newName ->
+                // Rename all apps in the folder
+                folderApps.forEach { app ->
+                    onAppUpdate(app.copy(folderName = newName))
+                }
+            },
+            onDragStartFromFolder = {
+                expandedFolder = null
+            },
+            onDismiss = {
+                expandedFolder = null
+                folderOverlay.value = null
             }
         )
-        gridRv.adapter = folderAdapter
-
-        android.app.AlertDialog.Builder(dialogContext)
-            .setView(dialogView)
-            .setNegativeButton("Close") { dialog, _ ->
-                dialog.dismiss()
-                expandedFolder = null
-            }
-            .setOnCancelListener {
-                expandedFolder = null
-            }
-            .show()
     }
 }
 
