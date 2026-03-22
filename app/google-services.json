@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "991083542214",
+    "project_id": "decluttr-3c299",
+    "storage_bucket": "decluttr-3c299.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:991083542214:android:84646f119d9dfa76f3c9c7",
+        "android_client_info": {
+          "package_name": "com.tool.decluttr"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAKkPeAX5wyCKlusR0W2AVvHnAv8xoRorI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

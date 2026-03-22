@@ -30,40 +30,6 @@ jobs:
         keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
         keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep SHA1
 
-    - name: Create mock google-services.json
-      run: |
-        cat <<EOF > app/google-services.json
-        {
-          "project_info": {
-            "project_number": "123456789012",
-            "project_id": "mock-project-id",
-            "storage_bucket": "mock-project-id.appspot.com"
-          },
-          "client": [
-            {
-              "client_info": {
-                "mobilesdk_app_id": "1:123456789012:android:1234567890abcdef123456",
-                "android_client_info": {
-                  "package_name": "com.tool.decluttr"
-                }
-              },
-              "oauth_client": [],
-              "api_key": [
-                {
-                  "current_key": "MOCK_API_KEY_FOR_CI_BUILD_ONLY_XYZ1234567"
-                }
-              ],
-              "services": {
-                "appinvite_service": {
-                  "other_platform_oauth_client": []
-                }
-              }
-            }
-          ],
-          "configuration_version": "1"
-        }
-        EOF
-
     - name: Build Debug APK
       run: |
         if [ ! -f gradlew ]; then
