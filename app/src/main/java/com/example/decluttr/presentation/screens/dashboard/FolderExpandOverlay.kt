@@ -109,7 +109,11 @@ class FolderExpandOverlay(
                 onAppClick(packageId)
             },
             onDragStartFromFolder = {
-                dismiss(onDismiss)
+                // Instantly remove the overlay without animation during drag
+                parentView.removeView(overlayView)
+                overlayView = null
+                isExpanded = false
+                onDismiss()
                 onDragStartFromFolder?.invoke()
             }
         )

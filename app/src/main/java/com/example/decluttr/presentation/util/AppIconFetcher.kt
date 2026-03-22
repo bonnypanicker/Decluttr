@@ -15,12 +15,15 @@ import coil.request.Options
 import com.example.decluttr.domain.usecase.IconCacheManager
 import java.io.ByteArrayOutputStream
 
+import com.example.decluttr.domain.repository.AppRepository
+
 data class AppIconModel(val packageName: String)
 
 class AppIconFetcher(
     private val context: Context,
     private val data: AppIconModel,
-    private val iconCacheManager: IconCacheManager? = null
+    private val iconCacheManager: IconCacheManager? = null,
+    private val appRepository: AppRepository? = null
 ) : Fetcher {
     private val cacheSizePx = 128
 
@@ -35,6 +38,23 @@ class AppIconFetcher(
                         drawable = BitmapDrawable(context.resources, bitmap),
                         isSampled = false,
                         dataSource = DataSource.MEMORY_CACHE
+                    )
+                }
+            }
+        }
+
+        // 1.5. Try Database Cache if it's an archived/uninstalled app
+        if (appRepository != null) {
+            val app = appRepository.getAppById(data.packageName)
+            if (app?.iconBytes != null) {
+                val bitmap = android.graphics.BitmapFactory.decodeByteArray(app.iconBytes, 0, app.iconBytes.size)
+                if (bitmap != null) {
+                    // Update memory cache too
+                    iconCacheManager?.put(data.packageName, app.iconBytes)
+                    return DrawableResult(
+                        drawable = BitmapDrawable(context.resources, bitmap),
+                        isSampled = false,
+                        dataSource = DataSource.DISK
                     )
                 }
             }
@@ -92,10 +112,11 @@ class AppIconFetcher(
 
     class Factory(
         private val context: Context,
-        private val iconCacheManager: IconCacheManager? = null
+        private val iconCacheManager: IconCacheManager? = null,
+        private val appRepository: AppRepository? = null
     ) : Fetcher.Factory<AppIconModel> {
         override fun create(data: AppIconModel, options: Options, imageLoader: ImageLoader): Fetcher {
-            return AppIconFetcher(context, data, iconCacheManager)
+            return AppIconFetcher(context, data, iconCacheManager, appRepository)
         }
     }
 }
