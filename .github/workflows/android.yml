@@ -24,6 +24,11 @@ jobs:
       with:
         gradle-version: '8.7'
 
+    - name: Generate and Print Debug Keystore SHA-1
+      run: |
+        keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+        keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep SHA1
+
     - name: Build Debug APK
       run: |
         if [ ! -f gradlew ]; then
