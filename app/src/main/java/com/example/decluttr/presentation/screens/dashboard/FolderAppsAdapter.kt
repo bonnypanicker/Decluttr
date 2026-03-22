@@ -18,10 +18,15 @@ import com.example.decluttr.presentation.util.AppIconModel
  * Reuses item_archived_app.xml layout.
  */
 class FolderAppsAdapter(
-    private val apps: List<ArchivedApp>,
+    private var apps: List<ArchivedApp>,
     private val onAppClick: (String) -> Unit,
     private val onDragStartFromFolder: (() -> Unit)? = null  // NEW: dismiss dialog on drag out
 ) : RecyclerView.Adapter<FolderAppsAdapter.ViewHolder>() {
+
+    fun updateData(newApps: List<ArchivedApp>) {
+        apps = newApps
+        notifyDataSetChanged()
+    }
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val icon: ImageView = view.findViewById(R.id.app_icon)

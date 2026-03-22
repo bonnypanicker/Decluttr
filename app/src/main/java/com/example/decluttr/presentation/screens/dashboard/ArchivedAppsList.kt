@@ -306,12 +306,20 @@ fun ArchivedAppsList(
     val folderOverlay = remember { mutableStateOf<FolderExpandOverlay?>(null) }
 
     // Modern folder expansion with dolly-zoom
-    androidx.compose.runtime.LaunchedEffect(expandedFolder) {
+    // We key on expandedFolder AND folderApps so the overlay updates if the list of apps changes
+    androidx.compose.runtime.LaunchedEffect(expandedFolder, apps) {
         val folderName = expandedFolder ?: return@LaunchedEffect
         val folderApps = apps.filter { it.folderName == folderName }
 
         if (folderApps.isEmpty()) {
             expandedFolder = null
+            folderOverlay.value?.dismiss {}
+            return@LaunchedEffect
+        }
+
+        // If overlay is already showing for this folder, just update the data
+        if (folderOverlay.value != null) {
+            folderOverlay.value?.updateApps(folderApps)
             return@LaunchedEffect
         }
 
@@ -340,7 +348,9 @@ fun ArchivedAppsList(
                 expandedFolder = null
             },
             onDismiss = {
-                expandedFolder = null
+                if (expandedFolder == folderName) {
+                    expandedFolder = null
+                }
                 folderOverlay.value = null
             }
         )

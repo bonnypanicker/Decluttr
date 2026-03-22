@@ -186,6 +186,15 @@ class FolderExpandOverlay(
     }
 
     /**
+     * Updates the apps in the grid without recreating the overlay.
+     */
+    fun updateApps(newApps: List<ArchivedApp>) {
+        val grid = overlayView?.findViewById<RecyclerView>(R.id.folder_grid)
+        val adapter = grid?.adapter as? FolderAppsAdapter
+        adapter?.updateData(newApps)
+    }
+
+    /**
      * Dismiss with bouncy spring-back animation (Pixel Launcher QPR3 style).
      */
     fun dismiss(onDismiss: () -> Unit) {

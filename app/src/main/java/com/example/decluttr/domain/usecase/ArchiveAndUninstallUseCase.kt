@@ -11,8 +11,8 @@ class ArchiveAndUninstallUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(packageIds: List<String>, appInfoMap: Map<String, Pair<Boolean, Long>> = emptyMap()) {
         for (packageId in packageIds) {
-            // Re-fetch details just to be safe
-            val details = getAppDetailsUseCase(packageId)
+            // Re-fetch details just to be safe, making sure to fetch the icon bytes!
+            val details = getAppDetailsUseCase(packageId, fetchIcon = true)
             
             val info = appInfoMap[packageId]
             val app = ArchivedApp(
