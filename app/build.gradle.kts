@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.decluttr"
+    namespace = "com.archive.decluttr"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.decluttr"
+        applicationId = "com.archive.decluttr"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
