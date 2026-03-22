@@ -13,4 +13,5 @@
     <item name="folder_card" type="id" />
     <item name="folder_title_edit" type="id" />
     <item name="drag_overlay_tag" type="id" />
+    <item name="auth_callback" type="id" />
 </resources>

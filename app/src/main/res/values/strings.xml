@@ -1,3 +1,16 @@
 <resources>
     <string name="app_name">Decluttr</string>
+    <string name="auth_app_tagline">Reclaim your phone</string>
+    <string name="auth_sign_in">Sign In</string>
+    <string name="auth_sign_up">Sign Up</string>
+    <string name="auth_create_account">Create Account</string>
+    <string name="auth_email_label">Email</string>
+    <string name="auth_password_label">Password</string>
+    <string name="auth_skip">Skip</string>
+    <string name="auth_or_divider">OR</string>
+    <string name="auth_google_signin">Continue with Google</string>
+    <string name="auth_toggle_to_signup">Don\'t have an account? Sign Up</string>
+    <string name="auth_toggle_to_signin">Already have an account? Sign In</string>
+    <string name="auth_empty_fields_error">Email and password cannot be empty</string>
+    <string name="auth_google_coming_soon">Google Sign-In coming soon</string>
 </resources>

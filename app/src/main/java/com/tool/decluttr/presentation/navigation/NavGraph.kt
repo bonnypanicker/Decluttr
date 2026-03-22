@@ -55,6 +55,10 @@ fun DecluttrNavGraph(
                     navController.navigate(NavRoutes.DASHBOARD) {
                         popUpTo(0) { inclusive = true }
                     }
+                },
+                onGoogleSignIn = {
+                    // TODO: Wire Google Sign-In via Credential Manager
+                    // For now, this is a no-op placeholder
                 }
             )
         }
