@@ -49,20 +49,19 @@ fun DecluttrNavGraph(
                 }
             }
 
-            AuthScreen(viewModel = viewModel)
+            AuthScreen(
+                viewModel = viewModel,
+                onSkip = {
+                    navController.navigate(NavRoutes.DASHBOARD) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
 
         composable(NavRoutes.DASHBOARD) {
             val settingsViewModel: com.tool.decluttr.presentation.screens.settings.SettingsViewModel = hiltViewModel()
-            val isLoggedIn by settingsViewModel.isLoggedIn.collectAsState(initial = true)
-            
-            LaunchedEffect(isLoggedIn) {
-                if (!isLoggedIn) {
-                    navController.navigate(NavRoutes.AUTH) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                }
-            }
+            val isLoggedIn by settingsViewModel.isLoggedIn.collectAsState(initial = false)
 
             DashboardScreen(
                 onNavigateToSettings = { 
@@ -73,15 +72,7 @@ fun DecluttrNavGraph(
         
         composable(NavRoutes.SETTINGS) {
             val settingsViewModel: com.tool.decluttr.presentation.screens.settings.SettingsViewModel = hiltViewModel()
-            val isLoggedIn by settingsViewModel.isLoggedIn.collectAsState(initial = true)
-            
-            LaunchedEffect(isLoggedIn) {
-                if (!isLoggedIn) {
-                    navController.navigate(NavRoutes.AUTH) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                }
-            }
+            val isLoggedIn by settingsViewModel.isLoggedIn.collectAsState(initial = false)
 
             com.tool.decluttr.presentation.screens.settings.SettingsScreen(
                 onNavigateBack = { navController.popBackStack() },
