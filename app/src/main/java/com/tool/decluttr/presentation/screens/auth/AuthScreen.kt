@@ -2,8 +2,10 @@ package com.tool.decluttr.presentation.screens.auth
 
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -47,20 +49,14 @@ fun AuthScreen(
             val rootView = LayoutInflater.from(context)
                 .inflate(R.layout.screen_auth, null, false)
 
-            val btnSkip = rootView.findViewById<TextView>(R.id.btn_skip)
-            val imgLogo = rootView.findViewById<ImageView>(R.id.img_logo)
-            val tvAppName = rootView.findViewById<TextView>(R.id.tv_app_name)
-            val tvTagline = rootView.findViewById<TextView>(R.id.tv_tagline)
-            val tvModeTitle = rootView.findViewById<TextView>(R.id.tv_mode_title)
-            val tilEmail = rootView.findViewById<TextInputLayout>(R.id.til_email)
-            val etEmail = rootView.findViewById<TextInputEditText>(R.id.et_email)
-            val tilPassword = rootView.findViewById<TextInputLayout>(R.id.til_password)
-            val etPassword = rootView.findViewById<TextInputEditText>(R.id.et_password)
+            val btnSkip = rootView.findViewById<ImageView>(R.id.btn_skip)
+            val etEmail = rootView.findViewById<EditText>(R.id.et_email)
+            val etPassword = rootView.findViewById<EditText>(R.id.et_password)
             val tvError = rootView.findViewById<TextView>(R.id.tv_error)
-            val btnPrimary = rootView.findViewById<MaterialButton>(R.id.btn_primary_action)
-            val progressLoading = rootView.findViewById<CircularProgressIndicator>(R.id.progress_loading)
+            val btnPrimary = rootView.findViewById<TextView>(R.id.btn_primary_action)
+            val progressLoading = rootView.findViewById<ProgressBar>(R.id.progress_loading)
             val dividerOr = rootView.findViewById<LinearLayout>(R.id.divider_or)
-            val btnGoogle = rootView.findViewById<MaterialButton>(R.id.btn_google_signin)
+            val btnGoogle = rootView.findViewById<LinearLayout>(R.id.btn_google_signin)
             val tvModeToggle = rootView.findViewById<TextView>(R.id.tv_mode_toggle)
 
             val callbacks = AuthCallbacks()
@@ -88,7 +84,7 @@ fun AuthScreen(
             })
 
             // Staggered entrance animation
-            val animatableViews = listOf(imgLogo, tvAppName, tvTagline, tvModeTitle, tilEmail, tilPassword, btnPrimary, dividerOr, btnGoogle, tvModeToggle)
+            val animatableViews = listOf(etEmail, etPassword, btnPrimary, dividerOr, btnGoogle, tvModeToggle)
             animatableViews.forEachIndexed { index, view ->
                 view.alpha = 0f
                 view.translationY = 40f * view.context.resources.displayMetrics.density
@@ -126,19 +122,15 @@ fun AuthScreen(
             callbacks.onSkipClick = onSkip
             callbacks.onGoogleClick = onGoogleSignIn ?: {}
 
-            val tvModeTitle = rootView.findViewById<TextView>(R.id.tv_mode_title)
-            val etEmail = rootView.findViewById<TextInputEditText>(R.id.et_email)
-            val etPassword = rootView.findViewById<TextInputEditText>(R.id.et_password)
+            val etEmail = rootView.findViewById<EditText>(R.id.et_email)
+            val etPassword = rootView.findViewById<EditText>(R.id.et_password)
             val tvError = rootView.findViewById<TextView>(R.id.tv_error)
-            val btnPrimary = rootView.findViewById<MaterialButton>(R.id.btn_primary_action)
-            val progressLoading = rootView.findViewById<CircularProgressIndicator>(R.id.progress_loading)
+            val btnPrimary = rootView.findViewById<TextView>(R.id.btn_primary_action)
+            val progressLoading = rootView.findViewById<ProgressBar>(R.id.progress_loading)
             val tvModeToggle = rootView.findViewById<TextView>(R.id.tv_mode_toggle)
 
             val signInText = rootView.context.getString(R.string.auth_sign_in)
             val signUpText = rootView.context.getString(R.string.auth_sign_up)
-            val createAccountText = rootView.context.getString(R.string.auth_create_account)
-
-            tvModeTitle.text = if (isLoginMode) signInText else createAccountText
 
             if (etEmail.text.toString() != email) {
                 etEmail.setText(email)
