@@ -240,6 +240,12 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
+    fun updateArchivedApp(app: ArchivedApp) {
+        viewModelScope.launch {
+            appRepository.updateApp(app)
+        }
+    }
+
     fun archiveAndUninstallSelected(packageIds: Set<String>) {
         if (packageIds.isEmpty()) return
         
