@@ -20,6 +20,15 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.tool.decluttr.R
 
+internal class AuthCallbacks {
+    var onEmailChange: ((String) -> Unit)? = null
+    var onPasswordChange: ((String) -> Unit)? = null
+    var onAuthenticate: (() -> Unit)? = null
+    var onToggleMode: (() -> Unit)? = null
+    var onSkipClick: (() -> Unit)? = null
+    var onGoogleClick: (() -> Unit)? = null
+}
+
 @Composable
 fun AuthScreen(
     viewModel: AuthViewModel = hiltViewModel(),
@@ -54,14 +63,6 @@ fun AuthScreen(
             val btnGoogle = rootView.findViewById<MaterialButton>(R.id.btn_google_signin)
             val tvModeToggle = rootView.findViewById<TextView>(R.id.tv_mode_toggle)
 
-            data class AuthCallbacks(
-                var onEmailChange: ((String) -> Unit)? = null,
-                var onPasswordChange: ((String) -> Unit)? = null,
-                var onAuthenticate: (() -> Unit)? = null,
-                var onToggleMode: (() -> Unit)? = null,
-                var onSkipClick: (() -> Unit)? = null,
-                var onGoogleClick: (() -> Unit)? = null
-            )
             val callbacks = AuthCallbacks()
             rootView.setTag(R.id.auth_callback, callbacks)
 
