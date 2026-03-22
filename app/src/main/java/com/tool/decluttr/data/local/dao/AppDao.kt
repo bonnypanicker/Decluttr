@@ -22,6 +22,9 @@ interface AppDao {
     @Delete
     suspend fun deleteApp(app: AppEntity)
     
+    @Query("DELETE FROM archived_apps")
+    suspend fun deleteAllApps()
+
     @Query("DELETE FROM archived_apps WHERE packageId = :packageId")
     suspend fun deleteAppById(packageId: String)
     

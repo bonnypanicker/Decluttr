@@ -43,6 +43,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.settingsState.collectAsState()
+    val email by viewModel.currentUserEmail.collectAsState()
     val context = LocalContext.current
 
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -139,17 +140,35 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(48.dp))
             
             Text(
-                text = "Decluttr Pro",
+                text = "Account",
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
             
-            Text(
-                text = "Cloud Sync via Firebase is coming soon in the Pro version. You will be able to automatically sync your library across all your Android devices.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            if (email != null) {
+                Text(
+                    text = "Logged in as: $email",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                Button(
+                    onClick = { viewModel.signOut() },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Sign Out")
+                }
+            } else {
+                Text(
+                    text = "Not logged in",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

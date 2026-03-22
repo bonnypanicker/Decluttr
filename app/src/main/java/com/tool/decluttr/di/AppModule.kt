@@ -12,9 +12,32 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.tool.decluttr.data.repository.AuthRepositoryImpl
+import com.tool.decluttr.domain.repository.AuthRepository
+
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
+
+    @Provides
+    @Singleton
+    fun provideFirebaseAuth(): FirebaseAuth {
+        return FirebaseAuth.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun provideFirebaseFirestore(): FirebaseFirestore {
+        return FirebaseFirestore.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun provideAuthRepository(auth: FirebaseAuth): AuthRepository {
+        return AuthRepositoryImpl(auth)
+    }
 
     @Provides
     @Singleton
@@ -36,7 +59,11 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAppRepository(dao: AppDao): AppRepository {
-        return AppRepositoryImpl(dao)
+    fun provideAppRepository(
+        dao: AppDao,
+        auth: FirebaseAuth,
+        firestore: FirebaseFirestore
+    ): AppRepository {
+        return AppRepositoryImpl(dao, auth, firestore)
     }
 }

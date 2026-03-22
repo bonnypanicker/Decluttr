@@ -7,14 +7,20 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.rememberNavController
+import com.google.firebase.auth.FirebaseAuth
 import com.tool.decluttr.presentation.screens.dashboard.DashboardViewModel
 import com.tool.decluttr.presentation.navigation.DecluttrNavGraph
+import com.tool.decluttr.presentation.navigation.NavRoutes
 import com.tool.decluttr.ui.theme.DecluttrTheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val dashboardViewModel: DashboardViewModel by viewModels()
+
+    @Inject
+    lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
@@ -26,7 +32,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             DecluttrTheme {
                 val navController = rememberNavController()
-                DecluttrNavGraph(navController = navController)
+                val startDestination = if (auth.currentUser != null) {
+                    NavRoutes.DASHBOARD
+                } else {
+                    NavRoutes.AUTH
+                }
+                DecluttrNavGraph(navController = navController, startDestination = startDestination)
             }
         }
     }
