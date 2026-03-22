@@ -306,20 +306,20 @@ fun ArchivedAppsList(
     val folderOverlay = remember { mutableStateOf<FolderExpandOverlay?>(null) }
 
     // Modern folder expansion with dolly-zoom
-    // We key on expandedFolder AND folderApps so the overlay updates if the list of apps changes
-    androidx.compose.runtime.LaunchedEffect(expandedFolder, apps) {
-        val folderName = expandedFolder ?: return@LaunchedEffect
-        val folderApps = apps.filter { it.folderName == folderName }
-
-        if (folderApps.isEmpty()) {
-            expandedFolder = null
+    // We only trigger when expandedFolder changes. If it's not null, we update apps inside if they change.
+    androidx.compose.runtime.LaunchedEffect(expandedFolder) {
+        val folderName = expandedFolder
+        if (folderName == null) {
             folderOverlay.value?.dismiss {}
+            folderOverlay.value = null
             return@LaunchedEffect
         }
 
-        // If overlay is already showing for this folder, just update the data
-        if (folderOverlay.value != null) {
-            folderOverlay.value?.updateApps(folderApps)
+        val folderApps = apps.filter { it.folderName == folderName }
+        if (folderApps.isEmpty()) {
+            expandedFolder = null
+            folderOverlay.value?.dismiss {}
+            folderOverlay.value = null
             return@LaunchedEffect
         }
 
@@ -333,7 +333,7 @@ fun ArchivedAppsList(
         overlay.show(
             folderName = folderName,
             folderApps = folderApps,
-            anchorView = null, // TODO: pass the folder ViewHolder itemView for precise origin
+            anchorView = null,
             onAppClick = { packageId ->
                 expandedFolder = null
                 onAppClick(packageId)
@@ -354,6 +354,19 @@ fun ArchivedAppsList(
                 folderOverlay.value = null
             }
         )
+    }
+
+    // Keep the overlay's apps in sync if the apps list changes while it's open
+    androidx.compose.runtime.LaunchedEffect(apps) {
+        val currentFolder = expandedFolder
+        if (currentFolder != null && folderOverlay.value != null) {
+            val updatedFolderApps = apps.filter { it.folderName == currentFolder }
+            if (updatedFolderApps.isEmpty()) {
+                expandedFolder = null
+            } else {
+                folderOverlay.value?.updateApps(updatedFolderApps)
+            }
+        }
     }
 }
 
