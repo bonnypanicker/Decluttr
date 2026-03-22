@@ -1,0 +1,146 @@
+package com.tool.decluttr.presentation.screens.dashboard
+
+import android.graphics.Color
+import android.text.format.DateUtils
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.CheckBox
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
+import androidx.recyclerview.widget.RecyclerView
+import coil.load
+import com.tool.decluttr.R
+import com.tool.decluttr.domain.usecase.GetInstalledAppsUseCase
+import com.tool.decluttr.presentation.util.AppIconModel
+import com.google.android.material.card.MaterialCardView
+import java.util.Locale
+
+data class AppListItem(
+    val info: GetInstalledAppsUseCase.InstalledAppInfo,
+    val isSelected: Boolean,
+    val contextLabel: String?
+)
+
+class DiscoveryAppDiffCallback : DiffUtil.ItemCallback<AppListItem>() {
+    override fun areItemsTheSame(oldItem: AppListItem, newItem: AppListItem): Boolean {
+        return oldItem.info.packageId == newItem.info.packageId
+    }
+
+    override fun areContentsTheSame(oldItem: AppListItem, newItem: AppListItem): Boolean {
+        return oldItem == newItem
+    }
+}
+
+/**
+ * Theme colors passed from Compose's MaterialTheme into native Views.
+ * This bridges the gap between Compose's Material3 theme and native Android Views.
+ */
+data class NativeThemeColors(
+    val textPrimary: Int,
+    val textSecondary: Int,
+    val textTertiary: Int,
+    val selectedBackground: Int,
+    val normalBackground: Int,
+    val checkboxTint: Int
+)
+
+class DiscoveryAppsAdapter(
+    private val onToggle: (String) -> Unit,
+    var themeColors: NativeThemeColors = NativeThemeColors(
+        textPrimary = Color.BLACK,
+        textSecondary = Color.DKGRAY,
+        textTertiary = Color.GRAY,
+        selectedBackground = 0x1A6750A4.toInt(),
+        normalBackground = Color.TRANSPARENT,
+        checkboxTint = Color.BLACK
+    )
+) : ListAdapter<AppListItem, DiscoveryAppsAdapter.AppViewHolder>(DiscoveryAppDiffCallback()) {
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppViewHolder {
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_discovery_app, parent, false)
+        return AppViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: AppViewHolder, position: Int) {
+        holder.bind(getItem(position))
+    }
+
+    inner class AppViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        private val cardView = view as MaterialCardView
+        private val checkBox: CheckBox = view.findViewById(R.id.app_checkbox)
+        private val icon: ImageView = view.findViewById(R.id.app_icon)
+        private val name: TextView = view.findViewById(R.id.app_name)
+        private val warningIcon: ImageView = view.findViewById(R.id.warning_icon)
+        private val details: TextView = view.findViewById(R.id.app_details)
+        private val contextLabel: TextView = view.findViewById(R.id.app_context_label)
+
+        init {
+            itemView.setOnClickListener {
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    onToggle(getItem(adapterPosition).info.packageId)
+                }
+            }
+        }
+
+        fun bind(item: AppListItem) {
+            val app = item.info
+
+            // Set text content
+            name.text = app.name
+            checkBox.isChecked = item.isSelected
+            warningIcon.visibility = if (app.isPlayStoreInstalled) View.GONE else View.VISIBLE
+
+            val sizeLabel = "${bytesToMB(app.apkSizeBytes)} MB"
+            val now = System.currentTimeMillis()
+            val timeString = if (app.lastTimeUsed > 0) {
+                val daysAgo = ((now - app.lastTimeUsed) / DateUtils.DAY_IN_MILLIS).toInt()
+                when {
+                    daysAgo <= 0 -> "Today"
+                    daysAgo == 1 -> "1 day ago"
+                    else -> "$daysAgo days ago"
+                }
+            } else {
+                "Never used"
+            }
+            details.text = "$sizeLabel • $timeString"
+
+            if (item.contextLabel != null) {
+                contextLabel.text = item.contextLabel
+                contextLabel.visibility = View.VISIBLE
+            } else {
+                contextLabel.visibility = View.GONE
+            }
+
+            // Apply theme colors from Compose's MaterialTheme
+            name.setTextColor(themeColors.textPrimary)
+            details.setTextColor(themeColors.textSecondary)
+            contextLabel.setTextColor(themeColors.textTertiary)
+
+            // Set card background color based on selection
+            if (item.isSelected) {
+                cardView.setCardBackgroundColor(themeColors.selectedBackground)
+            } else {
+                cardView.setCardBackgroundColor(themeColors.normalBackground)
+            }
+
+            // Load icon using Coil View extension
+            icon.load(AppIconModel(app.packageId)) {
+                memoryCacheKey(app.packageId)
+                crossfade(false)
+                size(96)
+            }
+        }
+    }
+
+    private fun bytesToMB(bytes: Long): String {
+        val mb = bytes / (1024.0 * 1024.0)
+        return if (mb < 1.0) {
+            String.format(Locale.US, "%.1f", mb)
+        } else {
+            String.format(Locale.US, "%.0f", mb)
+        }
+    }
+}
