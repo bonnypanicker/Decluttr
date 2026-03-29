@@ -405,24 +405,48 @@ fun DiscoveryDashboard(
                 }
 
                 // ──────────────────────────────────────────────
-                // 3. ROOT CONTAINER (LinearLayout, vertical)
+                // 3. ROOT CONTAINER (FrameLayout)
                 // ──────────────────────────────────────────────
-                android.widget.LinearLayout(context).apply {
-                    orientation = android.widget.LinearLayout.VERTICAL
+                android.widget.FrameLayout(context).apply {
                     layoutParams = android.view.ViewGroup.LayoutParams(
                         android.view.ViewGroup.LayoutParams.MATCH_PARENT,
                         android.view.ViewGroup.LayoutParams.MATCH_PARENT
                     )
-                    addView(searchBarView)
-                    addView(recyclerView)
+                    
+                    val listContainer = android.widget.LinearLayout(context).apply {
+                        orientation = android.widget.LinearLayout.VERTICAL
+                        layoutParams = android.widget.FrameLayout.LayoutParams(
+                            android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                            android.widget.FrameLayout.LayoutParams.MATCH_PARENT
+                        )
+                        addView(searchBarView)
+                        addView(recyclerView)
+                    }
+                    addView(listContainer)
+                    
+                    val selectionBarView = android.view.LayoutInflater.from(context)
+                        .inflate(com.tool.decluttr.R.layout.layout_selection_action_bar, this, false)
+                        
+                    selectionBarView.layoutParams = android.widget.FrameLayout.LayoutParams(
+                        android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                        android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        gravity = android.view.Gravity.BOTTOM
+                    }
+                    selectionBarView.visibility = android.view.View.GONE
+                    selectionBarView.translationY = 500f // Start off-screen
+                    addView(selectionBarView)
 
                     // Store references via tag for the update block
-                    tag = Triple(searchBarView, recyclerView, queryCallback)
+                    tag = arrayOf(searchBarView, recyclerView, queryCallback, selectionBarView)
                 }
             },
             update = { rootLayout ->
-                val (searchBarView, recyclerView, queryCallback) =
-                    rootLayout.tag as Triple<android.view.View, RecyclerView, SearchQueryCallback>
+                val views = rootLayout.tag as Array<*>
+                val searchBarView = views[0] as android.view.View
+                val recyclerView = views[1] as RecyclerView
+                val queryCallback = views[2] as SearchQueryCallback
+                val selectionBarView = views[3] as android.view.View
 
                 val searchEditText = searchBarView.findViewById<android.widget.EditText>(com.tool.decluttr.R.id.search_edit_text)
                 val clearButton = searchBarView.findViewById<android.widget.ImageView>(com.tool.decluttr.R.id.clear_button)
@@ -508,40 +532,49 @@ fun DiscoveryDashboard(
                     searchEditText.setText(searchQuery)
                     searchEditText.setSelection(searchQuery.length)
                 }
+
+                // ── Sync Selection Action Bar ──
+                val titleView = selectionBarView.findViewById<android.widget.TextView>(com.tool.decluttr.R.id.selection_info_title)
+                val btnUninstallOnly = selectionBarView.findViewById<android.widget.Button>(com.tool.decluttr.R.id.btn_uninstall_only)
+                val btnArchive = selectionBarView.findViewById<android.widget.Button>(com.tool.decluttr.R.id.btn_archive_uninstall)
+
+                if (selectedApps.isNotEmpty()) {
+                    val totalBytes = selectedApps.sumOf { pkg -> allApps.find { it.packageId == pkg }?.apkSizeBytes ?: 0L }
+                    titleView.text = "${selectedApps.size} selected • ${bytesToMB(totalBytes)} MB"
+                    
+                    btnUninstallOnly.setOnClickListener {
+                        val selected = selectedApps.toSet()
+                        selectedApps = emptySet() // Unselect all
+                        onBatchUninstallOnly(selected)
+                    }
+                    btnArchive.setOnClickListener {
+                        val selected = selectedApps.toSet()
+                        selectedApps = emptySet() // Unselect all
+                        onBatchUninstall(selected)
+                    }
+                    
+                    if (selectionBarView.visibility == android.view.View.GONE) {
+                        selectionBarView.visibility = android.view.View.VISIBLE
+                        selectionBarView.animate()
+                            .translationY(0f)
+                            .setDuration(300)
+                            .setInterpolator(android.view.animation.DecelerateInterpolator())
+                            .start()
+                    }
+                } else {
+                    if (selectionBarView.visibility == android.view.View.VISIBLE) {
+                        selectionBarView.animate()
+                            .translationY(selectionBarView.height.toFloat().takeIf { it > 0 } ?: 500f)
+                            .setDuration(250)
+                            .setInterpolator(android.view.animation.AccelerateInterpolator())
+                            .withEndAction {
+                                selectionBarView.visibility = android.view.View.GONE
+                            }
+                            .start()
+                    }
+                }
             }
         )
-
-        // ═══ FLOATING ACTION BUTTONS (unchanged) ═══
-        if (selectedApps.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                androidx.compose.material3.OutlinedButton(
-                    onClick = {
-                        val selected = selectedApps.toSet()
-                        selectedApps = emptySet()
-                        onBatchUninstallOnly(selected)
-                    },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Uninstall Only", textAlign = TextAlign.Center)
-                }
-                Button(
-                    onClick = {
-                        val selected = selectedApps.toSet()
-                        selectedApps = emptySet()
-                        onBatchUninstall(selected)
-                    },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Archive & Uninstall", textAlign = TextAlign.Center)
-                }
-            }
-        }
     }
 }
 

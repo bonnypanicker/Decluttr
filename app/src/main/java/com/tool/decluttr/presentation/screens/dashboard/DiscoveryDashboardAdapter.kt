@@ -147,13 +147,6 @@ class DiscoveryDashboardAdapter(
             storageValue.text = "${bytesToMB(item.wasteSize)} MB"
             wasteScore.text = "Waste Score: ${item.percentage}%"
             progressBar.progress = item.percentage
-
-            // Apply Compose theme colors for dynamic color support
-            storageValue.setTextColor(themeColors.checkboxTint)
-            wasteScore.setTextColor(
-                if (item.percentage > 15) Color.parseColor("#EF4444")
-                else themeColors.textSecondary
-            )
         }
     }
 
@@ -173,7 +166,7 @@ class DiscoveryDashboardAdapter(
         private val icon: TextView = view.findViewById(R.id.card_icon)
         private val title: TextView = view.findViewById(R.id.card_title)
         private val description: TextView = view.findViewById(R.id.card_description)
-        private val button: MaterialButton = view.findViewById(R.id.card_button)
+        private val cardButton: ImageView = view.findViewById(R.id.card_button)
 
         fun bind(item: DashboardItem.SmartCard) {
             icon.text = item.icon
@@ -181,11 +174,7 @@ class DiscoveryDashboardAdapter(
             description.text = item.description
 
             itemView.setOnClickListener { onNavigateToList(item.viewState) }
-            button.setOnClickListener { onNavigateToList(item.viewState) }
-
-            // Apply theme colors
-            title.setTextColor(themeColors.textPrimary)
-            description.setTextColor(themeColors.textSecondary)
+            cardButton.setOnClickListener { onNavigateToList(item.viewState) }
         }
     }
 
@@ -287,11 +276,7 @@ class DiscoveryDashboardAdapter(
             name.setTextColor(themeColors.textPrimary)
             details.setTextColor(themeColors.textSecondary)
 
-            if (item.isSelected) {
-                cardView.setCardBackgroundColor(themeColors.selectedBackground)
-            } else {
-                cardView.setCardBackgroundColor(themeColors.normalBackground)
-            }
+            cardView.isChecked = item.isSelected
 
             // Load icon
             icon.load(AppIconModel(app.packageId)) {
