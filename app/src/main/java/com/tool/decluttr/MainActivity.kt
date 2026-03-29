@@ -23,6 +23,11 @@ class MainActivity : ComponentActivity() {
     lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            android.util.Log.e("DECLUTTR_CRASH", "FATAL EXCEPTION in thread ${thread.name}", throwable)
+            // Let the default handler do its job (crash the app)
+            Thread.getDefaultUncaughtExceptionHandler()?.uncaughtException(thread, throwable)
+        }
         val splashScreen = installSplashScreen()
         splashScreen.setKeepOnScreenCondition {
             !dashboardViewModel.isStartupReady.value

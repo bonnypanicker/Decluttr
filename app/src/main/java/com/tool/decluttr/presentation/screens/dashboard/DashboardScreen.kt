@@ -83,24 +83,39 @@ fun DashboardScreen(
     val context = LocalContext.current
     val activityContext = context.findActivity()
     val currentReviewData = reviewData
+    
+    LaunchedEffect(currentReviewData, activityContext) {
+        if (currentReviewData != null) {
+            android.util.Log.d("DECLUTTR_DEBUG", "ReviewData received! Apps count: ${currentReviewData.archivedApps.size}")
+            android.util.Log.d("DECLUTTR_DEBUG", "ActivityContext valid? ${activityContext != null}")
+        }
+    }
+
     if (currentReviewData != null && activityContext != null && currentReviewData.archivedApps.isNotEmpty()) {
         DisposableEffect(currentReviewData) {
+            android.util.Log.d("DECLUTTR_DEBUG", "Attempting to show NativeBulkReviewDialog...")
             val dialog = try {
                 NativeBulkReviewDialog(
                     context = activityContext,
                     archivedApps = currentReviewData.archivedApps,
                     onComplete = { notesMap ->
+                        android.util.Log.d("DECLUTTR_DEBUG", "Dialog onComplete called with ${notesMap.size} notes")
                         viewModel.saveReviewNotes(notesMap, currentReviewData.celebration)
                         reviewData = null
                     },
                     onCancel = {
+                        android.util.Log.d("DECLUTTR_DEBUG", "Dialog onCancel called")
                         // Skip review, still show celebration
                         viewModel.saveReviewNotes(emptyMap(), currentReviewData.celebration)
                         reviewData = null
                     }
-                ).also { it.show() }
+                ).also { 
+                    it.show() 
+                    android.util.Log.d("DECLUTTR_DEBUG", "Dialog show() succeeded")
+                }
             } catch (e: Exception) {
-                android.util.Log.e("DashboardScreen", "Failed to show review dialog", e)
+                android.util.Log.e("DECLUTTR_DEBUG", "Failed to show review dialog", e)
+                android.util.Log.e("DECLUTTR_CRASH", "Dialog exception: ${e.message}", e)
                 reviewData = null
                 null
             }
