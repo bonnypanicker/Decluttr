@@ -29,4 +29,13 @@
     <string name="archive_popup_delete_message">Are you sure you want to delete %1$s from the archive?</string>
     <string name="archive_popup_delete_action">Delete</string>
     <string name="archive_popup_cancel_action">Cancel</string>
+    <string name="bulk_review_title">Review archived apps</string>
+    <string name="bulk_review_subtitle">Add context now, find it faster later</string>
+    <string name="bulk_review_subtitle_with_count">%1$d apps archived • ~%2$d MB recovered</string>
+    <string name="bulk_review_context">Quick notes improve future decisions when you revisit your archive.</string>
+    <string name="bulk_review_tip">Tip: add one short reason per app, like “Needed for travel” or “Work backup”.</string>
+    <string name="bulk_review_skip_all">Skip all</string>
+    <string name="bulk_review_next">Next</string>
+    <string name="bulk_review_done">Save</string>
+    <string name="bulk_review_notes_hint">Why I kept this app</string>
 </resources>

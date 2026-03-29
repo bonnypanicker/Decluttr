@@ -4,13 +4,23 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center_horizontal">
+    android:gravity="center_horizontal"
+    android:paddingTop="4dp">
 
-    <ImageView
-        android:id="@+id/app_icon"
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="64dp"
         android:layout_height="64dp"
-        android:scaleType="centerCrop" />
+        app:cardCornerRadius="18dp"
+        app:strokeColor="?attr/colorOutlineVariant"
+        app:strokeWidth="1dp">
+
+        <ImageView
+            android:id="@+id/app_icon"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/archive_popup_app_icon_cd"
+            android:scaleType="centerCrop" />
+    </com.google.android.material.card.MaterialCardView>
 
     <TextView
         android:id="@+id/app_name"
@@ -27,6 +37,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
+        android:background="@drawable/bg_archive_popup_category_chip"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="4dp"
         android:textAppearance="?attr/textAppearanceBodySmall"
         android:textColor="?attr/colorOnSurfaceVariant" />
 
@@ -44,17 +57,18 @@
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:hint="Why I kept this app">
+        android:layout_marginTop="16dp"
+        android:hint="@string/bulk_review_notes_hint">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/notes_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="top|start"
-            android:inputType="textMultiLine"
-            android:minLines="2"
-            android:maxLines="3" />
+            android:imeOptions="actionDone"
+            android:inputType="textMultiLine|textCapSentences"
+            android:minLines="3"
+            android:maxLines="4" />
     </com.google.android.material.textfield.TextInputLayout>
 
 </LinearLayout>
