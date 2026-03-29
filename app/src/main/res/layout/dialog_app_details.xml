@@ -5,6 +5,7 @@
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
     android:layout_marginVertical="12dp"
+    android:accessibilityPaneTitle="@string/archive_popup_notes_title"
     android:focusable="true"
     android:focusableInTouchMode="true"
     app:cardBackgroundColor="?attr/colorSurface"
@@ -96,50 +97,12 @@
             app:iconGravity="textStart"
             app:iconPadding="10dp" />
 
-        <LinearLayout
+        <include
+            android:id="@+id/archive_notes_card"
+            layout="@layout/molecule_archive_notes_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/archive_popup_notes_title"
-                android:textAppearance="?attr/textAppearanceTitleSmall"
-                android:textStyle="bold" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_edit_done"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="48dp"
-                android:contentDescription="@string/archive_popup_edit_toggle_cd"
-                android:text="@string/archive_popup_edit"
-                android:textAllCaps="false"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/notes_input_layout"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:hint="@string/archive_popup_notes_hint">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/notes_input"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="top|start"
-                android:imeOptions="actionDone"
-                android:inputType="textMultiLine|textCapSentences"
-                android:maxLines="6"
-                android:minLines="4" />
-        </com.google.android.material.textfield.TextInputLayout>
+            android:layout_marginTop="18dp" />
 
         <TextView
             android:id="@+id/archive_popup_helper_text"

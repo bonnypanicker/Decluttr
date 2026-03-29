@@ -18,14 +18,14 @@
         <item name="cornerSize">12dp</item>
     </style>
 
-    <style name="ThemeOverlay.Decluttr.AppDetailsDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+    <style name="ThemeOverlay.Decluttr.DashboardModal" parent="ThemeOverlay.Material3.MaterialAlertDialog">
         <item name="android:windowIsFloating">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:backgroundDimEnabled">true</item>
-        <item name="android:windowAnimationStyle">@style/Animation.Decluttr.AppDetailsDialog</item>
+        <item name="android:windowAnimationStyle">@style/Animation.Decluttr.DashboardModal</item>
     </style>
 
-    <style name="Animation.Decluttr.AppDetailsDialog" parent="@android:style/Animation.Dialog">
+    <style name="Animation.Decluttr.DashboardModal" parent="@android:style/Animation.Dialog">
         <item name="android:windowEnterAnimation">@anim/archive_popup_enter</item>
         <item name="android:windowExitAnimation">@anim/archive_popup_exit</item>
     </style>

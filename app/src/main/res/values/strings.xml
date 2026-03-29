@@ -19,6 +19,7 @@
     <string name="archive_popup_reinstall">Open in Play Store</string>
     <string name="archive_popup_notes_title">Why I kept this</string>
     <string name="archive_popup_notes_hint">Add a quick reminder for future you</string>
+    <string name="archive_popup_notes_empty">No note yet. Add one to remember why you kept this app.</string>
     <string name="archive_popup_helper">Notes are saved to your archive and synced when cloud sync is available.</string>
     <string name="archive_popup_edit_toggle_cd">Toggle notes edit mode</string>
     <string name="archive_popup_edit">Edit</string>

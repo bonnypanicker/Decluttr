@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+  <rect width="1080" height="1920" fill="#F4F6FB"/>
+  <rect x="140" y="360" width="800" height="980" rx="42" fill="#FFFFFF" stroke="#C7CCD7" stroke-width="2"/>
+  <rect x="190" y="430" width="700" height="56" rx="16" fill="#EEF1F7"/>
+  <rect x="190" y="520" width="700" height="72" rx="18" fill="#3558D8"/>
+  <rect x="190" y="640" width="700" height="280" rx="24" fill="#F7F9FC" stroke="#B7BECA" stroke-width="2"/>
+  <text x="220" y="700" fill="#1F2530" font-size="34" font-family="Arial">No note yet. Add one to remember why you kept this app.</text>
+  <rect x="730" y="860" width="130" height="44" rx="22" fill="#E6EAF3"/>
+  <text x="770" y="890" fill="#3B4D8A" font-size="26" font-family="Arial">Edit</text>
+  <text x="210" y="1020" fill="#697487" font-size="24" font-family="Arial">Light theme visual regression baseline</text>
+</svg>

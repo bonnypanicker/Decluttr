@@ -2,12 +2,9 @@ package com.tool.decluttr.presentation.screens.dashboard
 
 import android.app.Dialog
 import android.content.Context
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.Window
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Space
@@ -31,18 +28,15 @@ class NativeBulkReviewDialog(
     private val onComplete: (Map<String, String>) -> Unit,
     private val onCancel: () -> Unit
 ) {
-    private val dialog: Dialog = Dialog(context)
+    private val dialog: Dialog = DashboardModalDialogWrapper(
+        context = context,
+        contentLayoutRes = R.layout.dialog_bulk_review,
+        dismissOnOutside = false
+    ).build()
     private val notesMap = mutableMapOf<String, String>()
 
     init {
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-        dialog.setContentView(R.layout.dialog_bulk_review)
-        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        val width = (context.resources.displayMetrics.widthPixels * 0.9).toInt()
-        dialog.window?.setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT)
-
         dialog.setOnCancelListener { onCancel() }
-        dialog.setCanceledOnTouchOutside(false)
 
         val viewPager = dialog.findViewById<ViewPager2>(R.id.view_pager)
         val dotsContainer = dialog.findViewById<LinearLayout>(R.id.dots_container)
