@@ -239,10 +239,10 @@ class ArchivedAppsAdapter(
                         when {
                             targetItem is ArchivedItem.App &&
                                 draggedApp.packageId != targetItem.app.packageId -> {
-                                onAppDropOnApp(draggedApp, targetItem.app)
+                                view.post { onAppDropOnApp(draggedApp, targetItem.app) }
                             }
                             targetItem is ArchivedItem.Folder -> {
-                                onAppDropOnFolder(draggedApp, targetItem.name)
+                                view.post { onAppDropOnFolder(draggedApp, targetItem.name) }
                             }
                         }
                         return true

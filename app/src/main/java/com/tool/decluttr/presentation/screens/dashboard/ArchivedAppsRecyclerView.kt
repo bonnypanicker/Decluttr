@@ -93,7 +93,7 @@ fun ArchivedAppsRecyclerView(
                                 val childUnder = rv.findChildViewUnder(event.x, event.y)
                                 if (childUnder == null) {
                                     // Drop on empty space = "unfolder" this app
-                                    onAppDropOnEmptySpace(draggedApp)
+                                    recyclerView.post { onAppDropOnEmptySpace(draggedApp) }
                                     true
                                 } else {
                                     false // Let the child's DragListener handle it
