@@ -157,9 +157,22 @@ fun DashboardScreen(
         },
         bottomBar = {
             androidx.compose.ui.viewinterop.AndroidView(
+                modifier = Modifier.fillMaxWidth(),
                 factory = { ctx ->
                     com.google.android.material.bottomnavigation.BottomNavigationView(ctx).apply {
                         inflateMenu(com.tool.decluttr.R.menu.bottom_nav_menu)
+                        
+                        // Production-Ready Distinct Styling
+                        isItemActiveIndicatorEnabled = false
+                        labelVisibilityMode = com.google.android.material.navigation.NavigationBarView.LABEL_VISIBILITY_LABELED
+                        
+                        val colorStateList = androidx.core.content.ContextCompat.getColorStateList(ctx, com.tool.decluttr.R.color.bottom_nav_item_selector)
+                        itemIconTintList = colorStateList
+                        itemTextColor = colorStateList
+                        
+                        setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                        elevation = 8f
+
                         setOnItemSelectedListener { item ->
                             when (item.itemId) {
                                 com.tool.decluttr.R.id.nav_discover -> { selectedTabIndex = 0; true }
