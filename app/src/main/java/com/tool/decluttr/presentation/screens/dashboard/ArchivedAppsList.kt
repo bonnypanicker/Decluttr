@@ -96,6 +96,18 @@ fun ArchivedAppsList(
 
     var newFolderAppPair by remember { mutableStateOf<Pair<ArchivedApp, ArchivedApp>?>(null) }
     var expandedFolder by remember { mutableStateOf<String?>(null) }
+
+    fun nextDefaultFolderName(existingApps: List<ArchivedApp>): String {
+        val usedNames = existingApps.mapNotNull { it.folderName }.toSet()
+        val base = "New Folder"
+        if (base !in usedNames) return base
+        var index = 2
+        while (true) {
+            val candidate = "$base $index"
+            if (candidate !in usedNames) return candidate
+            index++
+        }
+    }
     
     // Group apps into folders or standalones
     val groupedItems = remember(filteredApps) {
@@ -259,12 +271,29 @@ fun ArchivedAppsList(
                 // Show native AlertDialog when drag-drop creates a new folder pair
                 androidx.compose.runtime.LaunchedEffect(newFolderAppPair) {
                     val pair = newFolderAppPair ?: return@LaunchedEffect
+                    newFolderAppPair = null
+
+                    if (pair.first.packageId == pair.second.packageId) {
+                        return@LaunchedEffect
+                    }
+
+                    val latestDragged = apps.firstOrNull { it.packageId == pair.first.packageId }
+                    val latestTarget = apps.firstOrNull { it.packageId == pair.second.packageId }
+                    if (latestDragged == null || latestTarget == null) {
+                        return@LaunchedEffect
+                    }
+
+                    if (
+                        latestDragged.folderName != null &&
+                        latestDragged.folderName == latestTarget.folderName
+                    ) {
+                        return@LaunchedEffect
+                    }
 
                     // 1. Create the folder with a default name immediately
-                    val defaultName = "New Folder"
-                    onAppUpdate(pair.first.copy(folderName = defaultName))
-                    onAppUpdate(pair.second.copy(folderName = defaultName))
-                    newFolderAppPair = null
+                    val defaultName = nextDefaultFolderName(apps)
+                    onAppUpdate(latestDragged.copy(folderName = defaultName))
+                    onAppUpdate(latestTarget.copy(folderName = defaultName))
 
                     // 2. Open the folder overlay immediately for the user to rename
                     //    (Small delay to let recomposition settle with the new folder)

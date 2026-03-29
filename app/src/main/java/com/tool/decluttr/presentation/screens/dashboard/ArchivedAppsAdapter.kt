@@ -239,10 +239,30 @@ class ArchivedAppsAdapter(
                         when {
                             targetItem is ArchivedItem.App &&
                                 draggedApp.packageId != targetItem.app.packageId -> {
-                                view.post { onAppDropOnApp(draggedApp, targetItem.app) }
+                                view.post {
+                                    runCatching {
+                                        onAppDropOnApp(draggedApp, targetItem.app)
+                                    }.onFailure {
+                                        android.util.Log.e(
+                                            "ArchivedAppsAdapter",
+                                            "Drop on app failed for ${draggedApp.packageId} -> ${targetItem.app.packageId}",
+                                            it
+                                        )
+                                    }
+                                }
                             }
                             targetItem is ArchivedItem.Folder -> {
-                                view.post { onAppDropOnFolder(draggedApp, targetItem.name) }
+                                view.post {
+                                    runCatching {
+                                        onAppDropOnFolder(draggedApp, targetItem.name)
+                                    }.onFailure {
+                                        android.util.Log.e(
+                                            "ArchivedAppsAdapter",
+                                            "Drop on folder failed for ${draggedApp.packageId} -> ${targetItem.name}",
+                                            it
+                                        )
+                                    }
+                                }
                             }
                         }
                         return true
