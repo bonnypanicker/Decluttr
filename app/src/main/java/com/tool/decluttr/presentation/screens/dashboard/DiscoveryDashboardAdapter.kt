@@ -78,8 +78,7 @@ class DiscoveryDashboardAdapter(
     private val onRequestPermission: () -> Unit,
     private val onToggleApp: (String) -> Unit,
     private val onSearchToggle: () -> Unit,
-    private val onSearchQueryChange: (String) -> Unit,
-    var themeColors: NativeThemeColors
+    private val onSearchQueryChange: (String) -> Unit
 ) : ListAdapter<DashboardItem, RecyclerView.ViewHolder>(DashboardItemDiffCallback()) {
 
     companion object {
@@ -271,11 +270,7 @@ class DiscoveryDashboardAdapter(
             } else "Never used"
 
             details.text = "$sizeLabel • $timeString"
-
-            // Apply theme colors
-            name.setTextColor(themeColors.textPrimary)
-            details.setTextColor(themeColors.textSecondary)
-
+            
             cardView.isChecked = item.isSelected
 
             // Load icon

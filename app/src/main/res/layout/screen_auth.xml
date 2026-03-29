@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0a0c10">
+    android:background="?attr/colorSurface">
 
     <!-- Ambient background gradients matching new design -->
     <!-- Top Left Primary Blur -->
@@ -11,7 +11,8 @@
         android:layout_width="250dp"
         android:layout_height="250dp"
         android:layout_gravity="top|start"
-        android:background="#331e2b58"
+        android:background="?attr/colorPrimaryContainer"
+        android:alpha="0.2"
         android:translationX="-50dp"
         android:translationY="-50dp" />
 
@@ -20,7 +21,8 @@
         android:layout_width="200dp"
         android:layout_height="200dp"
         android:layout_gravity="center_vertical|end"
-        android:background="#660f111a"
+        android:background="?attr/colorSecondaryContainer"
+        android:alpha="0.4"
         android:translationX="50dp" />
 
     <!-- Bottom Left Gold Blur -->
@@ -28,7 +30,8 @@
         android:layout_width="300dp"
         android:layout_height="300dp"
         android:layout_gravity="bottom|start"
-        android:background="#0Cd4af37"
+        android:background="?attr/colorTertiaryContainer"
+        android:alpha="0.05"
         android:translationX="-50dp"
         android:translationY="50dp" />
 
@@ -43,7 +46,7 @@
             android:layout_height="24dp"
             android:layout_gravity="end"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
-            app:tint="#94a3b8"
+            app:tint="?attr/colorOnSurfaceVariant"
             android:clickable="true"
             android:focusable="true"
             android:background="?attr/selectableItemBackgroundBorderless"
@@ -77,21 +80,20 @@
                     android:layout_height="64dp"
                     android:background="@drawable/bg_editorial_gradient"
                     android:layout_marginBottom="24dp">
-                    <!-- Layer icon using a vector drawable or placeholder -->
                     <ImageView
                         android:layout_width="32dp"
                         android:layout_height="32dp"
                         android:layout_gravity="center"
                         android:src="@android:drawable/ic_menu_gallery"
-                        app:tint="#d4af37" />
+                        app:tint="?attr/colorTertiary" />
                 </FrameLayout>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Decluttr"
-                    android:textColor="#e2e8f0"
-                    android:textSize="36sp"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textAppearance="?attr/textAppearanceDisplaySmall"
                     android:textStyle="bold"
                     android:letterSpacing="-0.02"
                     android:layout_marginBottom="8dp" />
@@ -100,8 +102,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/auth_app_tagline"
-                    android:textColor="#94a3b8"
-                    android:textSize="16sp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textAppearance="?attr/textAppearanceTitleMedium"
                     android:gravity="center"
                     android:maxWidth="280dp" />
             </LinearLayout>
@@ -119,8 +121,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="EMAIL ADDRESS"
-                    android:textColor="#94a3b8"
-                    android:textSize="11sp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textAppearance="?attr/textAppearanceLabelSmall"
                     android:textStyle="bold"
                     android:layout_marginStart="4dp"
                     android:layout_marginBottom="8dp" />
@@ -132,8 +134,9 @@
                     android:background="@drawable/bg_surface_container_low"
                     android:paddingHorizontal="20dp"
                     android:paddingVertical="16dp"
-                    android:textColor="#e2e8f0"
-                    android:textColorHint="#6694a3b8"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textColorHint="?attr/colorOnSurfaceVariant"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"
                     android:hint="name@example.com"
                     android:inputType="textEmailAddress"
                     android:maxLines="1" />
@@ -154,16 +157,16 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="PASSWORD"
-                        android:textColor="#94a3b8"
-                        android:textSize="11sp"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textAppearance="?attr/textAppearanceLabelSmall"
                         android:textStyle="bold" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="FORGOT PASSWORD?"
-                        android:textColor="#d4af37"
-                        android:textSize="11sp"
+                        android:textColor="?attr/colorTertiary"
+                        android:textAppearance="?attr/textAppearanceLabelSmall"
                         android:textStyle="bold" />
                 </LinearLayout>
 
@@ -174,8 +177,9 @@
                     android:background="@drawable/bg_surface_container_low"
                     android:paddingHorizontal="20dp"
                     android:paddingVertical="16dp"
-                    android:textColor="#e2e8f0"
-                    android:textColorHint="#6694a3b8"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textColorHint="?attr/colorOnSurfaceVariant"
+                    android:textAppearance="?attr/textAppearanceBodyLarge"
                     android:hint="••••••••"
                     android:inputType="textPassword"
                     android:maxLines="1" />
@@ -185,8 +189,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:textColor="#ff6e84"
-                    android:textSize="12sp"
+                    android:textColor="?attr/colorError"
+                    android:textAppearance="?attr/textAppearanceBodySmall"
                     android:visibility="gone" />
 
                 <Space
@@ -197,26 +201,18 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">
 
-                    <TextView
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_primary_action"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/bg_editorial_gradient"
                         android:paddingVertical="16dp"
-                        android:text="Sign In"
-                        android:textColor="#ffffff"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:gravity="center"
-                        android:clickable="true"
-                        android:focusable="true" />
+                        android:text="Sign In" />
 
                     <ProgressBar
                         android:id="@+id/progress_loading"
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:layout_gravity="center"
-                        android:indeterminateTint="#ffffff"
                         android:visibility="gone" />
                 </FrameLayout>
 
@@ -232,22 +228,22 @@
                         android:layout_width="0dp"
                         android:layout_height="1dp"
                         android:layout_weight="1"
-                        android:background="#1Affffff" />
+                        android:background="?attr/colorOutlineVariant" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:paddingHorizontal="16dp"
                         android:text="OR CONTINUE WITH"
-                        android:textColor="#9994a3b8"
-                        android:textSize="10sp"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:textAppearance="?attr/textAppearanceLabelSmall"
                         android:textStyle="bold" />
 
                     <View
                         android:layout_width="0dp"
                         android:layout_height="1dp"
                         android:layout_weight="1"
-                        android:background="#1Affffff" />
+                        android:background="?attr/colorOutlineVariant" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -271,8 +267,8 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="12dp"
                         android:text="Sign in with Google"
-                        android:textColor="#e2e8f0"
-                        android:textSize="14sp"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textAppearance="?attr/textAppearanceBodyMedium"
                         android:textStyle="bold" />
                 </LinearLayout>
             </LinearLayout>
@@ -289,8 +285,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Don't have an account?"
-                    android:textColor="#94a3b8"
-                    android:textSize="14sp" />
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textAppearance="?attr/textAppearanceBodyMedium" />
 
                 <TextView
                     android:id="@+id/tv_mode_toggle"
@@ -298,8 +294,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="4dp"
                     android:text="Create Account"
-                    android:textColor="#d4af37"
-                    android:textSize="14sp"
+                    android:textColor="?attr/colorTertiary"
+                    android:textAppearance="?attr/textAppearanceLabelLarge"
                     android:textStyle="bold"
                     android:clickable="true"
                     android:focusable="true" />

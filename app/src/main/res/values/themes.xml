@@ -7,10 +7,9 @@
     </style>
     
     <style name="Theme.Decluttr" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Material 3 base theme gives us all ?attr/colorSurface, 
-             ?attr/colorOnSurface, ?attr/colorSurfaceVariant etc.
-             Compose's DecluttrTheme overrides with dynamic colors at runtime,
-             but this gives native XML views proper fallback tokens. -->
+        <item name="colorPrimary">@color/Primary40</item>
+        <item name="colorSecondary">@color/Secondary40</item>
+        <item name="colorTertiary">@color/Tertiary40</item>
     </style>
     
     <style name="RoundedIconShape" parent="">

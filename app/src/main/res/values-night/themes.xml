@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Decluttr" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Dark color palette -->
+        <item name="colorPrimary">@color/Primary80</item>
+        <item name="colorSecondary">@color/Secondary80</item>
+        <item name="colorTertiary">@color/Tertiary80</item>
+        <item name="android:colorBackground">@color/DarkBackground</item>
+        <item name="colorSurface">@color/DarkSurface</item>
+        <item name="colorOnPrimary">@color/DarkPrimaryText</item>
+        <item name="colorOnSecondary">@color/DarkPrimaryText</item>
+        <item name="colorOnTertiary">@color/DarkPrimaryText</item>
+        <item name="colorOnBackground">@color/DarkPrimaryText</item>
+        <item name="colorOnSurface">@color/DarkPrimaryText</item>
+        <item name="colorOnSurfaceVariant">@color/DarkSecondaryText</item>
+        <item name="colorError">#ff6e84</item>
+    </style>
+</resources>

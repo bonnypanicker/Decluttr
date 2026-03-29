@@ -34,29 +34,10 @@ class DiscoveryAppDiffCallback : DiffUtil.ItemCallback<AppListItem>() {
     }
 }
 
-/**
- * Theme colors passed from Compose's MaterialTheme into native Views.
- * This bridges the gap between Compose's Material3 theme and native Android Views.
- */
-data class NativeThemeColors(
-    val textPrimary: Int,
-    val textSecondary: Int,
-    val textTertiary: Int,
-    val selectedBackground: Int,
-    val normalBackground: Int,
-    val checkboxTint: Int
-)
+
 
 class DiscoveryAppsAdapter(
-    private val onToggle: (String) -> Unit,
-    var themeColors: NativeThemeColors = NativeThemeColors(
-        textPrimary = Color.BLACK,
-        textSecondary = Color.DKGRAY,
-        textTertiary = Color.GRAY,
-        selectedBackground = 0x1A6750A4.toInt(),
-        normalBackground = Color.TRANSPARENT,
-        checkboxTint = Color.BLACK
-    )
+    private val onToggle: (String) -> Unit
 ) : ListAdapter<AppListItem, DiscoveryAppsAdapter.AppViewHolder>(DiscoveryAppDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppViewHolder {
@@ -114,17 +95,8 @@ class DiscoveryAppsAdapter(
                 contextLabel.visibility = View.GONE
             }
 
-            // Apply theme colors from Compose's MaterialTheme
-            name.setTextColor(themeColors.textPrimary)
-            details.setTextColor(themeColors.textSecondary)
-            contextLabel.setTextColor(themeColors.textTertiary)
-
-            // Set card background color based on selection
-            if (item.isSelected) {
-                cardView.setCardBackgroundColor(themeColors.selectedBackground)
-            } else {
-                cardView.setCardBackgroundColor(themeColors.normalBackground)
-            }
+            // Set card state
+            cardView.isChecked = item.isSelected
 
             // Load icon using Coil View extension
             icon.load(AppIconModel(app.packageId)) {
