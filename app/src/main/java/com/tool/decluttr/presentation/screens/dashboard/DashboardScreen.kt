@@ -1,5 +1,8 @@
 package com.tool.decluttr.presentation.screens.dashboard
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,6 +42,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,10 +65,57 @@ fun DashboardScreen(
 
     var celebrationData by remember { mutableStateOf<DashboardViewModel.CelebrationData?>(null) }
     var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var reviewData by remember { mutableStateOf<DashboardViewModel.ReviewData?>(null) }
 
     LaunchedEffect(Unit) {
         viewModel.celebrationEvent.collect { data ->
             celebrationData = data
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.reviewEvent.collect { data ->
+            reviewData = data
+        }
+    }
+
+    // Show Native Bulk Review Dialog after archive+uninstall
+    val context = LocalContext.current
+    val activityContext = context.findActivity()
+    val currentReviewData = reviewData
+    if (currentReviewData != null && activityContext != null) {
+        val archivedApps = archivedApps.filter { it.packageId in currentReviewData.archivedPackageIds }
+        if (archivedApps.isNotEmpty()) {
+            DisposableEffect(currentReviewData) {
+                val dialog = try {
+                    NativeBulkReviewDialog(
+                        context = activityContext,
+                        archivedApps = archivedApps,
+                        onComplete = { notesMap ->
+                            viewModel.saveReviewNotes(notesMap, currentReviewData.celebration)
+                            reviewData = null
+                        },
+                        onCancel = {
+                            // Skip review, still show celebration
+                            viewModel.saveReviewNotes(emptyMap(), currentReviewData.celebration)
+                            reviewData = null
+                        }
+                    ).also { it.show() }
+                } catch (e: Exception) {
+                    android.util.Log.e("DashboardScreen", "Failed to show review dialog", e)
+                    reviewData = null
+                    null
+                }
+                onDispose {
+                    try { dialog?.dismiss() } catch (_: Exception) {}
+                }
+            }
+        } else {
+            // Apps not yet in DB, show celebration directly
+            LaunchedEffect(currentReviewData) {
+                viewModel.saveReviewNotes(emptyMap(), currentReviewData.celebration)
+                reviewData = null
+            }
         }
     }
 
@@ -210,4 +262,13 @@ fun DashboardScreen(
             }
         }
     }
+}
+
+private fun Context.findActivity(): Activity? {
+    var ctx = this
+    while (ctx is ContextWrapper) {
+        if (ctx is Activity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
 }

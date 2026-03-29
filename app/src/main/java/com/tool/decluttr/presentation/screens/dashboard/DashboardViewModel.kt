@@ -82,8 +82,16 @@ class DashboardViewModel @Inject constructor(
         val savedBytes: Long
     )
 
+    data class ReviewData(
+        val archivedPackageIds: List<String>,
+        val celebration: CelebrationData
+    )
+
     private val _celebrationEvent = kotlinx.coroutines.flow.MutableSharedFlow<CelebrationData>()
     val celebrationEvent = _celebrationEvent.asSharedFlow()
+
+    private val _reviewEvent = kotlinx.coroutines.flow.MutableSharedFlow<ReviewData>()
+    val reviewEvent = _reviewEvent.asSharedFlow()
 
     private var discoveryJob: kotlinx.coroutines.Job? = null
     private var lazyWarmIconsJob: kotlinx.coroutines.Job? = null
@@ -270,8 +278,22 @@ class DashboardViewModel @Inject constructor(
             loadDiscoveryData()
             
             if (uninstalledCount > 0) {
-                _celebrationEvent.emit(CelebrationData(uninstalledCount, appsToUninstall.take(uninstalledCount).sumOf { it.apkSizeBytes }))
+                val celebration = CelebrationData(uninstalledCount, appsToUninstall.take(uninstalledCount).sumOf { it.apkSizeBytes })
+                val archivedIds = packageIds.toList()
+                _reviewEvent.emit(ReviewData(archivedIds, celebration))
             }
+        }
+    }
+
+    fun saveReviewNotes(notesMap: Map<String, String>, celebration: CelebrationData) {
+        viewModelScope.launch {
+            for ((packageId, note) in notesMap) {
+                val app = archivedApps.value.find { it.packageId == packageId }
+                if (app != null) {
+                    appRepository.updateApp(app.copy(notes = note))
+                }
+            }
+            _celebrationEvent.emit(celebration)
         }
     }
 
