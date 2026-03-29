@@ -15,8 +15,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -104,8 +102,7 @@ fun DashboardScreen(
         }
     }
 
-    val tabs = listOf("Discover", "My Archive")
-    val tabIcons = listOf(Icons.Default.Search, Icons.Default.List)
+    // Removed Compose tab lists in favor of Native BottomNavigationView
 
     var selectedAppId by remember { mutableStateOf<String?>(null) }
 
@@ -159,16 +156,26 @@ fun DashboardScreen(
             )
         },
         bottomBar = {
-            NavigationBar {
-                tabs.forEachIndexed { index, title ->
-                    NavigationBarItem(
-                        icon = { Icon(tabIcons[index], contentDescription = title) },
-                        label = { Text(title) },
-                        selected = selectedTabIndex == index,
-                        onClick = { selectedTabIndex = index }
-                    )
+            androidx.compose.ui.viewinterop.AndroidView(
+                factory = { ctx ->
+                    com.google.android.material.bottomnavigation.BottomNavigationView(ctx).apply {
+                        inflateMenu(com.tool.decluttr.R.menu.bottom_nav_menu)
+                        setOnItemSelectedListener { item ->
+                            when (item.itemId) {
+                                com.tool.decluttr.R.id.nav_discover -> { selectedTabIndex = 0; true }
+                                com.tool.decluttr.R.id.nav_archive -> { selectedTabIndex = 1; true }
+                                else -> false
+                            }
+                        }
+                    }
+                },
+                update = { view ->
+                    val expectedId = if (selectedTabIndex == 0) com.tool.decluttr.R.id.nav_discover else com.tool.decluttr.R.id.nav_archive
+                    if (view.selectedItemId != expectedId) {
+                        view.selectedItemId = expectedId
+                    }
                 }
-            }
+            )
         }
     ) { paddingValues ->
         Column(

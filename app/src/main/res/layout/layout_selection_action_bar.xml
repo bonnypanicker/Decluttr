@@ -43,7 +43,7 @@
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
                 android:text="Uninstall Only"
-                style="@style/Widget.Material3.Button.OutlinedButton" />
+                style="@style/Widget.Material3.Button.TonalButton" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_archive_uninstall"

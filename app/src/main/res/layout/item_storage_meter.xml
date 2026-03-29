@@ -28,7 +28,7 @@
                 android:layout_height="48dp"
                 android:background="@drawable/bg_smart_card_icon"
                 android:padding="12dp"
-                android:src="@android:drawable/ic_menu_delete"
+                android:src="@drawable/ic_cleaning_services"
                 app:tint="?attr/colorOnSecondaryContainer" />
 
             <LinearLayout
