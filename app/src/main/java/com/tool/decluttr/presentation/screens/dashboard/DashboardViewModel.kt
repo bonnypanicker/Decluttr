@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -83,7 +84,7 @@ class DashboardViewModel @Inject constructor(
     )
 
     data class ReviewData(
-        val archivedPackageIds: List<String>,
+        val archivedApps: List<ArchivedApp>,
         val celebration: CelebrationData
     )
 
@@ -279,8 +280,12 @@ class DashboardViewModel @Inject constructor(
             
             if (uninstalledCount > 0) {
                 val celebration = CelebrationData(uninstalledCount, appsToUninstall.take(uninstalledCount).sumOf { it.apkSizeBytes })
-                val archivedIds = packageIds.toList()
-                _reviewEvent.emit(ReviewData(archivedIds, celebration))
+                // Wait for Room to have all newly archived apps before showing review
+                val archivedIds = packageIds.toSet()
+                val reviewApps = archivedApps.first { apps ->
+                    archivedIds.all { id -> apps.any { it.packageId == id } }
+                }.filter { it.packageId in archivedIds }
+                _reviewEvent.emit(ReviewData(reviewApps, celebration))
             }
         }
     }

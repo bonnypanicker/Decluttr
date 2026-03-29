@@ -83,38 +83,29 @@ fun DashboardScreen(
     val context = LocalContext.current
     val activityContext = context.findActivity()
     val currentReviewData = reviewData
-    if (currentReviewData != null && activityContext != null) {
-        val archivedApps = archivedApps.filter { it.packageId in currentReviewData.archivedPackageIds }
-        if (archivedApps.isNotEmpty()) {
-            DisposableEffect(currentReviewData) {
-                val dialog = try {
-                    NativeBulkReviewDialog(
-                        context = activityContext,
-                        archivedApps = archivedApps,
-                        onComplete = { notesMap ->
-                            viewModel.saveReviewNotes(notesMap, currentReviewData.celebration)
-                            reviewData = null
-                        },
-                        onCancel = {
-                            // Skip review, still show celebration
-                            viewModel.saveReviewNotes(emptyMap(), currentReviewData.celebration)
-                            reviewData = null
-                        }
-                    ).also { it.show() }
-                } catch (e: Exception) {
-                    android.util.Log.e("DashboardScreen", "Failed to show review dialog", e)
-                    reviewData = null
-                    null
-                }
-                onDispose {
-                    try { dialog?.dismiss() } catch (_: Exception) {}
-                }
-            }
-        } else {
-            // Apps not yet in DB, show celebration directly
-            LaunchedEffect(currentReviewData) {
-                viewModel.saveReviewNotes(emptyMap(), currentReviewData.celebration)
+    if (currentReviewData != null && activityContext != null && currentReviewData.archivedApps.isNotEmpty()) {
+        DisposableEffect(currentReviewData) {
+            val dialog = try {
+                NativeBulkReviewDialog(
+                    context = activityContext,
+                    archivedApps = currentReviewData.archivedApps,
+                    onComplete = { notesMap ->
+                        viewModel.saveReviewNotes(notesMap, currentReviewData.celebration)
+                        reviewData = null
+                    },
+                    onCancel = {
+                        // Skip review, still show celebration
+                        viewModel.saveReviewNotes(emptyMap(), currentReviewData.celebration)
+                        reviewData = null
+                    }
+                ).also { it.show() }
+            } catch (e: Exception) {
+                android.util.Log.e("DashboardScreen", "Failed to show review dialog", e)
                 reviewData = null
+                null
+            }
+            onDispose {
+                try { dialog?.dismiss() } catch (_: Exception) {}
             }
         }
     }
