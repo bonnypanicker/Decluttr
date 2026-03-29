@@ -17,7 +17,6 @@ import com.google.android.material.textfield.TextInputEditText
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.ArchivedApp
 import com.tool.decluttr.presentation.util.AppIconModel
-import kotlin.math.roundToInt
 
 /**
  * Native bulk review dialog shown AFTER apps have been archived & uninstalled.
@@ -46,12 +45,9 @@ class NativeBulkReviewDialog(
         val btnDone = dialog.findViewById<MaterialButton>(R.id.btn_done)
         val subtitle = dialog.findViewById<TextView>(R.id.tv_bulk_review_subtitle)
 
-        val totalMb = archivedApps.sumOf { it.apkSizeBytes }.toDouble() / (1024.0 * 1024.0)
-        val roundedMb = totalMb.roundToInt()
         subtitle.text = context.getString(
             R.string.bulk_review_subtitle_with_count,
-            archivedApps.size,
-            roundedMb
+            archivedApps.size
         )
 
         val adapter = PagerAdapter()
