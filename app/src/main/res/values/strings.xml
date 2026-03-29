@@ -13,4 +13,19 @@
     <string name="auth_toggle_to_signin">Already have an account? Sign In</string>
     <string name="auth_empty_fields_error">Email and password cannot be empty</string>
     <string name="auth_google_coming_soon">Google Sign-In coming soon</string>
+    <string name="archive_popup_app_icon_cd">Archived app icon</string>
+    <string name="archive_popup_delete_cd">Remove app from archive</string>
+    <string name="archive_popup_reinstall_cd">Open in Google Play Store</string>
+    <string name="archive_popup_reinstall">Open in Play Store</string>
+    <string name="archive_popup_notes_title">Why I kept this</string>
+    <string name="archive_popup_notes_hint">Add a quick reminder for future you</string>
+    <string name="archive_popup_helper">Notes are saved to your archive and synced when cloud sync is available.</string>
+    <string name="archive_popup_edit_toggle_cd">Toggle notes edit mode</string>
+    <string name="archive_popup_edit">Edit</string>
+    <string name="archive_popup_done">Done</string>
+    <string name="archive_popup_uncategorized">Uncategorized</string>
+    <string name="archive_popup_delete_title">Delete App</string>
+    <string name="archive_popup_delete_message">Are you sure you want to delete %1$s from the archive?</string>
+    <string name="archive_popup_delete_action">Delete</string>
+    <string name="archive_popup_cancel_action">Cancel</string>
 </resources>
