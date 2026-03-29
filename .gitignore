@@ -18,6 +18,10 @@ local.properties
 gradle-8.10.2/
 gradle-8.10.2-bin.zip
 
+# Env files
+.env
+.env.*
+
 # App logs and traces if they are temporary (but user might want them? Analysiscomp.md etc)
 # I will keep the .md files for now unless they are clearly log dumps.
 # Analysiscomp.md
