@@ -43,7 +43,7 @@ internal class DashboardModalDialogWrapper(
             }
             if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_TAB) {
                 val root = dialog.window?.decorView ?: return@setOnKeyListener false
-                val focusables = root.focusables(View.FOCUS_FORWARD).filter { it.isShown && it.isFocusable }
+                val focusables = root.getFocusables(View.FOCUS_FORWARD).filter { it.isShown && it.isFocusable }
                 if (focusables.isEmpty()) return@setOnKeyListener false
                 val current = root.findFocus()
                 val currentIndex = focusables.indexOf(current)

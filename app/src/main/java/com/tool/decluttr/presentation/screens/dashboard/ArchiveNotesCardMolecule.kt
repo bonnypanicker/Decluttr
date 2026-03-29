@@ -39,8 +39,15 @@ internal class ArchiveNotesCardMolecule(
                 notesViewCard.strokeColor = defaultStrokeColor
             }
         }
-        notesViewCard.setOnHoverListener { _, hovered ->
-            notesViewCard.alpha = if (hovered) 0.96f else 1f
+        notesViewCard.setOnHoverListener { _, event ->
+            notesViewCard.alpha = if (
+                event.actionMasked == android.view.MotionEvent.ACTION_HOVER_ENTER ||
+                event.actionMasked == android.view.MotionEvent.ACTION_HOVER_MOVE
+            ) {
+                0.96f
+            } else {
+                1f
+            }
             false
         }
 
