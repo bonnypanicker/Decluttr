@@ -331,39 +331,44 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    private suspend fun awaitUninstall(packageId: String, triggerUninstall: () -> Unit): Boolean = kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
-        val receiver = object : android.content.BroadcastReceiver() {
-            override fun onReceive(context: Context, intent: Intent) {
-                val removedPkg = intent.data?.schemeSpecificPart
-                if (removedPkg == packageId) {
-                    val isReplacing = intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)
-                    if (!isReplacing) {
-                        try {
-                            context.unregisterReceiver(this)
-                        } catch (e: Exception) {}
-                        if (continuation.isActive) {
-                            continuation.resume(true, null)
+    private suspend fun awaitUninstall(packageId: String, triggerUninstall: () -> Unit): Boolean {
+        return kotlinx.coroutines.withTimeoutOrNull(60_000L) {
+            kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
+                val receiver = object : android.content.BroadcastReceiver() {
+                    override fun onReceive(ctx: Context, intent: Intent) {
+                        val removedPkg = intent.data?.schemeSpecificPart
+                        if (removedPkg == packageId) {
+                            val isReplacing = intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)
+                            if (!isReplacing) {
+                                try {
+                                    ctx.unregisterReceiver(this)
+                                } catch (_: Exception) {}
+                                if (continuation.isActive) {
+                                    continuation.resume(true)
+                                }
+                            }
                         }
                     }
                 }
+                val filter = android.content.IntentFilter(Intent.ACTION_PACKAGE_REMOVED).apply {
+                    addDataScheme("package")
+                }
+                
+                // MUST use RECEIVER_EXPORTED to receive system broadcasts like ACTION_PACKAGE_REMOVED
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
+                } else {
+                    context.registerReceiver(receiver, filter)
+                }
+
+                continuation.invokeOnCancellation {
+                    try {
+                        context.unregisterReceiver(receiver)
+                    } catch (_: Exception) {}
+                }
+
+                triggerUninstall()
             }
-        }
-        val filter = android.content.IntentFilter(Intent.ACTION_PACKAGE_REMOVED).apply {
-            addDataScheme("package")
-        }
-        
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            context.registerReceiver(receiver, filter)
-        }
-
-        continuation.invokeOnCancellation {
-            try {
-                context.unregisterReceiver(receiver)
-            } catch (e: Exception) {}
-        }
-
-        triggerUninstall()
+        } ?: false // Timeout = user cancelled or took too long
     }
 }
