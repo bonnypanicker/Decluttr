@@ -48,7 +48,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.tool.decluttr.presentation.screens.appdetails.AppDetailsDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -181,16 +180,33 @@ fun DashboardScreen(
 
     var selectedAppId by remember { mutableStateOf<String?>(null) }
 
-    if (selectedAppId != null) {
-        val appToDelete = archivedApps.find { it.packageId == selectedAppId }
-        AppDetailsDialog(
-            packageId = selectedAppId!!,
-            onDismissRequest = { selectedAppId = null },
-            onDeleteClick = {
-                appToDelete?.let { viewModel.deleteArchivedApp(it) }
-                selectedAppId = null
+    if (selectedAppId != null && activityContext != null) {
+        val appToShow = archivedApps.find { it.packageId == selectedAppId }
+        if (appToShow != null) {
+            DisposableEffect(appToShow, activityContext) {
+                val dialog = NativeAppDetailsDialog(
+                    context = activityContext,
+                    app = appToShow,
+                    onNotesUpdated = { newNotes ->
+                        viewModel.updateArchivedApp(appToShow.copy(notes = newNotes))
+                    },
+                    onDelete = {
+                        viewModel.deleteArchivedApp(appToShow)
+                        selectedAppId = null
+                    },
+                    onDismissRequest = {
+                        selectedAppId = null
+                    }
+                ).apply {
+                    show()
+                }
+                onDispose {
+                    try { dialog.dismiss() } catch (e: Exception) {}
+                }
             }
-        )
+        } else {
+            selectedAppId = null
+        }
     }
 
     Scaffold(
