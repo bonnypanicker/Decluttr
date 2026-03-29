@@ -38,6 +38,9 @@ class NativeAppDetailsDialog(
             setCanceledOnTouchOutside(true)
             setOnDismissListener { onDismissRequest() }
             
+            val width = (context.resources.displayMetrics.widthPixels * 0.9).toInt()
+            window?.setLayout(width, android.view.ViewGroup.LayoutParams.WRAP_CONTENT)
+            
             val appIcon = findViewById<ImageView>(R.id.app_icon)
             val appName = findViewById<TextView>(R.id.app_name)
             val appCategory = findViewById<TextView>(R.id.app_category)
