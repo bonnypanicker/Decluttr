@@ -11,6 +11,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import javax.inject.Provider
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -35,8 +36,11 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAuthRepository(auth: FirebaseAuth): AuthRepository {
-        return AuthRepositoryImpl(auth)
+    fun provideAuthRepository(
+        app: Application,
+        authProvider: Provider<FirebaseAuth>
+    ): AuthRepository {
+        return AuthRepositoryImpl(app, authProvider)
     }
 
     @Provides
@@ -62,10 +66,11 @@ object AppModule {
     @Provides
     @Singleton
     fun provideAppRepository(
+        app: Application,
         dao: AppDao,
-        auth: FirebaseAuth,
-        firestore: FirebaseFirestore
+        authProvider: Provider<FirebaseAuth>,
+        firestoreProvider: Provider<FirebaseFirestore>
     ): AppRepository {
-        return AppRepositoryImpl(dao, auth, firestore)
+        return AppRepositoryImpl(app, dao, authProvider, firestoreProvider)
     }
 }

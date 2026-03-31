@@ -6,18 +6,15 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.fragment.NavHostFragment
+import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.tool.decluttr.presentation.screens.dashboard.DashboardViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     private val dashboardViewModel: DashboardViewModel by viewModels()
-
-    @Inject
-    lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
         DecluttrApp.appendStartupLog(this, "MainActivity onCreate start")
@@ -37,7 +34,12 @@ class MainActivity : AppCompatActivity() {
                 .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
             val navController = navHostFragment.navController
             val graph = navController.navInflater.inflate(R.navigation.nav_graph)
-            val startDestination = if (auth.currentUser != null) {
+            val currentUser = if (FirebaseApp.getApps(this).isNotEmpty()) {
+                runCatching { FirebaseAuth.getInstance().currentUser }.getOrNull()
+            } else {
+                null
+            }
+            val startDestination = if (currentUser != null) {
                 R.id.dashboardFragment
             } else {
                 R.id.authFragment

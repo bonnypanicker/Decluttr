@@ -1,6 +1,8 @@
 package com.tool.decluttr.data.repository
 
+import android.content.Context
 import android.util.Base64
+import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.DocumentSnapshot
@@ -11,6 +13,7 @@ import com.tool.decluttr.data.mapper.toAppEntity
 import com.tool.decluttr.data.mapper.toArchivedApp
 import com.tool.decluttr.domain.model.ArchivedApp
 import com.tool.decluttr.domain.repository.AppRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -18,26 +21,24 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import javax.inject.Provider
 
 class AppRepositoryImpl(
+    @ApplicationContext private val context: Context,
     private val dao: AppDao,
-    private val auth: FirebaseAuth,
-    private val firestore: FirebaseFirestore
+    private val authProvider: Provider<FirebaseAuth>,
+    private val firestoreProvider: Provider<FirebaseFirestore>
 ) : AppRepository {
     
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val crashlytics = FirebaseCrashlytics.getInstance()
 
     init {
-        // Sync from Firestore whenever the user logs in
-        auth.addAuthStateListener { firebaseAuth ->
-            if (firebaseAuth.currentUser != null) {
-                scope.launch {
+        firebaseAuthOrNull()?.addAuthStateListener { firebaseAuth ->
+            scope.launch {
+                if (firebaseAuth.currentUser != null) {
                     syncFromFirestore()
-                }
-            } else {
-                // Clear local database when signed out
-                scope.launch {
+                } else {
                     dao.deleteAllApps()
                 }
             }
@@ -45,6 +46,8 @@ class AppRepositoryImpl(
     }
 
     private suspend fun syncFromFirestore() {
+        val auth = firebaseAuthOrNull() ?: return
+        val firestore = firestoreOrNull() ?: return
         val user = auth.currentUser ?: return
         try {
             val snapshot = firestore.collection("users").document(user.uid).collection("apps").get().await()
@@ -100,6 +103,8 @@ class AppRepositoryImpl(
     }
 
     private fun syncToFirestore(app: ArchivedApp) {
+        val auth = firebaseAuthOrNull() ?: return
+        val firestore = firestoreOrNull() ?: return
         val user = auth.currentUser ?: return
         scope.launch {
             try {
@@ -131,7 +136,23 @@ class AppRepositoryImpl(
         return app.copy(lastModified = System.currentTimeMillis())
     }
 
+    private fun firebaseAuthOrNull(): FirebaseAuth? {
+        if (FirebaseApp.getApps(context).isEmpty()) {
+            return null
+        }
+        return runCatching { authProvider.get() }.getOrNull()
+    }
+
+    private fun firestoreOrNull(): FirebaseFirestore? {
+        if (FirebaseApp.getApps(context).isEmpty()) {
+            return null
+        }
+        return runCatching { firestoreProvider.get() }.getOrNull()
+    }
+
     private fun deleteFromFirestore(packageId: String) {
+        val auth = firebaseAuthOrNull() ?: return
+        val firestore = firestoreOrNull() ?: return
         val user = auth.currentUser ?: return
         scope.launch {
             try {
