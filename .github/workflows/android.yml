@@ -31,37 +31,8 @@ jobs:
         if [ -n "$GOOGLE_SERVICES_JSON" ]; then
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
         else
-          printf '%s\n' \
-            '{' \
-            '  "project_info": {' \
-            '    "project_number": "000000000000",' \
-            '    "project_id": "decluttr-ci-placeholder",' \
-            '    "storage_bucket": "decluttr-ci-placeholder.appspot.com"' \
-            '  },' \
-            '  "client": [' \
-            '    {' \
-            '      "client_info": {' \
-            '        "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",' \
-            '        "android_client_info": {' \
-            '          "package_name": "com.tool.decluttr"' \
-            '        }' \
-            '      },' \
-            '      "oauth_client": [],' \
-            '      "api_key": [' \
-            '        {' \
-            '          "current_key": "placeholder"' \
-            '        }' \
-            '      ],' \
-            '      "services": {' \
-            '        "appinvite_service": {' \
-            '          "other_platform_oauth_client": []' \
-            '        }' \
-            '      }' \
-            '    }' \
-            '  ],' \
-            '  "configuration_version": "1"' \
-            '}' > app/google-services.json
-          echo "GOOGLE_SERVICES_JSON secret not set; using placeholder config for CI build"
+          echo "::error::Missing GOOGLE_SERVICES_JSON secret. CI build is blocked to avoid invalid Firebase API key artifacts."
+          exit 1
         fi
 
     - name: Restore stable debug keystore and print SHA-1
@@ -78,6 +49,12 @@ jobs:
           ALIAS="${DEBUG_KEY_ALIAS:-androiddebugkey}"
           KEYPASS="${DEBUG_KEY_PASSWORD:-android}"
           echo "Using persistent debug keystore from GitHub Secrets"
+        elif [ -f ".keystore/debug.keystore" ]; then
+          cp .keystore/debug.keystore ~/.android/debug.keystore
+          STOREPASS="android"
+          ALIAS="androiddebugkey"
+          KEYPASS="android"
+          echo "Using repository .keystore/debug.keystore"
         elif [ -f "app/debug.keystore" ]; then
           cp app/debug.keystore ~/.android/debug.keystore
           STOREPASS="android"
