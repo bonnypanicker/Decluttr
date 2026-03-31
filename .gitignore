@@ -21,7 +21,6 @@ gradle-8.10.2-bin.zip
 # Env files
 .env
 .env.*
-app/google-services.json
 app/debug.keystore
 app/release.keystore
 *.jks
