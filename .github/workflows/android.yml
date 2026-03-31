@@ -31,7 +31,38 @@ jobs:
         if [ -n "$GOOGLE_SERVICES_JSON" ]; then
           printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
         else
-          echo "GOOGLE_SERVICES_JSON secret not set; continuing without google-services.json"
+          cat <<'EOF' > app/google-services.json
+          {
+            "project_info": {
+              "project_number": "000000000000",
+              "project_id": "decluttr-ci-placeholder",
+              "storage_bucket": "decluttr-ci-placeholder.appspot.com"
+            },
+            "client": [
+              {
+                "client_info": {
+                  "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+                  "android_client_info": {
+                    "package_name": "com.tool.decluttr"
+                  }
+                },
+                "oauth_client": [],
+                "api_key": [
+                  {
+                    "current_key": "placeholder"
+                  }
+                ],
+                "services": {
+                  "appinvite_service": {
+                    "other_platform_oauth_client": []
+                  }
+                }
+              }
+            ],
+            "configuration_version": "1"
+          }
+          EOF
+          echo "GOOGLE_SERVICES_JSON secret not set; using placeholder config for CI build"
         fi
 
     - name: Generate and Print Debug Keystore SHA-1
