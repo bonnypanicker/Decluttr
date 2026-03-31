@@ -42,6 +42,10 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
         val btnGoogle = view.findViewById<LinearLayout>(R.id.btn_google_signin)
         val tvModeToggle = view.findViewById<TextView>(R.id.tv_mode_toggle)
         val tvForgotPassword = view.findViewById<TextView>(R.id.tv_forgot_password)
+        btnSkip.post {
+            btnSkip.bringToFront()
+            btnSkip.translationZ = 24f * resources.displayMetrics.density
+        }
 
         // Edge-to-edge insets
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
