@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.fragment.NavHostFragment
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.tool.decluttr.presentation.screens.dashboard.DashboardViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -19,22 +20,35 @@ class MainActivity : AppCompatActivity() {
     lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val splashScreen = installSplashScreen()
-        splashScreen.setKeepOnScreenCondition {
-            !dashboardViewModel.isStartupReady.value
-        }
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContentView(R.layout.activity_main)
+        DecluttrApp.appendStartupLog(this, "MainActivity onCreate start")
+        try {
+            val splashScreen = installSplashScreen()
+            DecluttrApp.appendStartupLog(this, "Splash screen installed")
+            splashScreen.setKeepOnScreenCondition {
+                !dashboardViewModel.isStartupReady.value
+            }
+            super.onCreate(savedInstanceState)
+            DecluttrApp.appendStartupLog(this, "super.onCreate complete")
+            enableEdgeToEdge()
+            setContentView(R.layout.activity_main)
+            DecluttrApp.appendStartupLog(this, "Content view set")
 
-        // Set start destination based on auth state
-        val navHostFragment = supportFragmentManager
-            .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-        val navController = navHostFragment.navController
-        val graph = navController.navInflater.inflate(R.navigation.nav_graph)
-        graph.setStartDestination(
-            if (auth.currentUser != null) R.id.dashboardFragment else R.id.authFragment
-        )
-        navController.graph = graph
+            val navHostFragment = supportFragmentManager
+                .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+            val navController = navHostFragment.navController
+            val graph = navController.navInflater.inflate(R.navigation.nav_graph)
+            val startDestination = if (auth.currentUser != null) {
+                R.id.dashboardFragment
+            } else {
+                R.id.authFragment
+            }
+            graph.setStartDestination(startDestination)
+            navController.graph = graph
+            DecluttrApp.appendStartupLog(this, "Navigation graph ready with startDestination=$startDestination")
+        } catch (throwable: Throwable) {
+            DecluttrApp.appendStartupLog(this, "MainActivity onCreate failed", throwable)
+            FirebaseCrashlytics.getInstance().recordException(throwable)
+            throw throwable
+        }
     }
 }
