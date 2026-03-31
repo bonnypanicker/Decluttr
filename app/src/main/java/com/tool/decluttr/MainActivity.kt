@@ -8,7 +8,6 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.fragment.NavHostFragment
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.tool.decluttr.presentation.screens.dashboard.DashboardViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -49,7 +48,7 @@ class MainActivity : AppCompatActivity() {
             DecluttrApp.appendStartupLog(this, "Navigation graph ready with startDestination=$startDestination")
         } catch (throwable: Throwable) {
             DecluttrApp.appendStartupLog(this, "MainActivity onCreate failed", throwable)
-            FirebaseCrashlytics.getInstance().recordException(throwable)
+            DecluttrApp.recordExceptionIfAvailable(this, throwable)
             throw throwable
         }
     }

@@ -31,7 +31,6 @@ class AppRepositoryImpl(
 ) : AppRepository {
     
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val crashlytics = FirebaseCrashlytics.getInstance()
 
     init {
         firebaseAuthOrNull()?.addAuthStateListener { firebaseAuth ->
@@ -72,7 +71,7 @@ class AppRepositoryImpl(
                     syncToFirestore(localOnlyApp)
                 }
         } catch (e: Exception) {
-            crashlytics.recordException(e)
+            recordException(e)
         }
     }
 
@@ -127,7 +126,7 @@ class AppRepositoryImpl(
                     .set(data, SetOptions.merge())
                     .await()
             } catch (e: Exception) {
-                crashlytics.recordException(e)
+                recordException(e)
             }
         }
     }
@@ -150,6 +149,12 @@ class AppRepositoryImpl(
         return runCatching { firestoreProvider.get() }.getOrNull()
     }
 
+    private fun recordException(throwable: Throwable) {
+        if (FirebaseApp.getApps(context).isNotEmpty()) {
+            runCatching { FirebaseCrashlytics.getInstance().recordException(throwable) }
+        }
+    }
+
     private fun deleteFromFirestore(packageId: String) {
         val auth = firebaseAuthOrNull() ?: return
         val firestore = firestoreOrNull() ?: return
@@ -161,7 +166,7 @@ class AppRepositoryImpl(
                     .delete()
                     .await()
             } catch (e: Exception) {
-                crashlytics.recordException(e)
+                recordException(e)
             }
         }
     }

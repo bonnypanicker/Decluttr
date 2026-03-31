@@ -5,6 +5,7 @@ import android.content.Context
 import android.util.Log
 import coil.ImageLoader
 import coil.ImageLoaderFactory
+import com.google.firebase.FirebaseApp
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.tool.decluttr.domain.usecase.IconCacheManager
 import com.tool.decluttr.presentation.util.AppIconFetcher
@@ -30,7 +31,7 @@ class DecluttrApp : Application(), ImageLoaderFactory {
         val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             appendStartupLog(this, "Uncaught exception on ${thread.name}", throwable)
-            FirebaseCrashlytics.getInstance().recordException(throwable)
+            recordExceptionIfAvailable(this, throwable)
             previousHandler?.uncaughtException(thread, throwable)
         }
         super.onCreate()
@@ -74,6 +75,12 @@ class DecluttrApp : Application(), ImageLoaderFactory {
                 Log.d(STARTUP_LOG_TAG, message)
             } else {
                 Log.e(STARTUP_LOG_TAG, message, throwable)
+            }
+        }
+
+        fun recordExceptionIfAvailable(context: Context, throwable: Throwable) {
+            if (FirebaseApp.getApps(context).isNotEmpty()) {
+                runCatching { FirebaseCrashlytics.getInstance().recordException(throwable) }
             }
         }
 
