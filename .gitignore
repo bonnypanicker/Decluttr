@@ -21,6 +21,10 @@ gradle-8.10.2-bin.zip
 # Env files
 .env
 .env.*
+app/google-services.json
+app/debug.keystore
+app/release.keystore
+*.jks
 
 # App logs and traces if they are temporary (but user might want them? Analysiscomp.md etc)
 # I will keep the .md files for now unless they are clearly log dumps.

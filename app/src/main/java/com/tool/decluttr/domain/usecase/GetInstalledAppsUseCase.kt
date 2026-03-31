@@ -14,7 +14,6 @@ import javax.inject.Inject
 class GetInstalledAppsUseCase @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    @androidx.compose.runtime.Immutable
     data class InstalledAppInfo(
         val packageId: String,
         val name: String,

@@ -2,7 +2,9 @@ package com.tool.decluttr.data.repository
 
 import android.util.Base64
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.QueryDocumentSnapshot
 import com.google.firebase.firestore.SetOptions
 import com.tool.decluttr.data.local.dao.AppDao
 import com.tool.decluttr.data.mapper.toAppEntity
@@ -11,6 +13,7 @@ import com.tool.decluttr.domain.model.ArchivedApp
 import com.tool.decluttr.domain.repository.AppRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -22,7 +25,8 @@ class AppRepositoryImpl(
     private val firestore: FirebaseFirestore
 ) : AppRepository {
     
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val crashlytics = FirebaseCrashlytics.getInstance()
 
     init {
         // Sync from Firestore whenever the user logs in
@@ -44,33 +48,54 @@ class AppRepositoryImpl(
         val user = auth.currentUser ?: return
         try {
             val snapshot = firestore.collection("users").document(user.uid).collection("apps").get().await()
-            val apps = snapshot.documents.mapNotNull { doc ->
-                val id = doc.getString("packageId") ?: return@mapNotNull null
-                val name = doc.getString("name") ?: id
-                val iconBase64 = doc.getString("iconBase64")
-                val iconBytes = iconBase64?.let { Base64.decode(it, Base64.DEFAULT) }
-                val category = doc.getString("category")
-                val isPlayStoreInstalled = doc.getBoolean("isPlayStoreInstalled") ?: true
-                val lastTimeUsed = doc.getLong("lastTimeUsed") ?: 0L
-                val folderName = doc.getString("folderName")
+            val localApps = dao.getArchivedAppsSnapshot().associateBy { it.packageId }
+            val remoteApps = snapshot.documents.mapNotNull { doc ->
+                doc.toArchivedAppOrNull()
+            }
 
-                ArchivedApp(
-                    packageId = id,
-                    name = name,
-                    iconBytes = iconBytes,
-                    category = category,
-                    isPlayStoreInstalled = isPlayStoreInstalled,
-                    lastTimeUsed = lastTimeUsed,
-                    folderName = folderName
-                )
+            remoteApps.forEach { remoteApp ->
+                val localApp = localApps[remoteApp.packageId]?.toArchivedApp()
+                when {
+                    localApp == null -> dao.insertApp(remoteApp.toAppEntity())
+                    remoteApp.lastModified >= localApp.lastModified -> dao.insertApp(remoteApp.toAppEntity())
+                    else -> syncToFirestore(localApp)
+                }
             }
-            
-            // Overwrite local db with firestore state
-            apps.forEach { app ->
-                dao.insertApp(app.toAppEntity())
-            }
+
+            localApps.values
+                .map { it.toArchivedApp() }
+                .filter { localApp -> remoteApps.none { it.packageId == localApp.packageId } }
+                .forEach { localOnlyApp ->
+                    syncToFirestore(localOnlyApp)
+                }
         } catch (e: Exception) {
-            e.printStackTrace()
+            crashlytics.recordException(e)
+        }
+    }
+
+    private fun QueryDocumentSnapshot.toArchivedAppOrNull(): ArchivedApp? {
+        val id = getString("packageId") ?: return null
+        val archivedAt = getLong("archivedAt") ?: System.currentTimeMillis()
+        return ArchivedApp(
+            packageId = id,
+            name = getString("name") ?: id,
+            isPlayStoreInstalled = getBoolean("isPlayStoreInstalled") ?: true,
+            category = getString("category"),
+            tags = parseTags(get("tags")),
+            notes = getString("notes"),
+            iconBytes = getString("iconBase64")?.let { Base64.decode(it, Base64.DEFAULT) },
+            archivedAt = archivedAt,
+            lastTimeUsed = getLong("lastTimeUsed") ?: 0L,
+            folderName = getString("folderName"),
+            lastModified = getLong("lastModified") ?: archivedAt
+        )
+    }
+
+    private fun parseTags(value: Any?): List<String> {
+        return when (value) {
+            is List<*> -> value.mapNotNull { it?.toString()?.trim() }.filter { it.isNotEmpty() }
+            is String -> value.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+            else -> emptyList()
         }
     }
 
@@ -84,17 +109,26 @@ class AppRepositoryImpl(
                     "name" to app.name,
                     "iconBase64" to iconBase64,
                     "category" to app.category,
+                    "tags" to app.tags,
+                    "notes" to app.notes,
+                    "archivedAt" to app.archivedAt,
                     "isPlayStoreInstalled" to app.isPlayStoreInstalled,
                     "lastTimeUsed" to app.lastTimeUsed,
-                    "folderName" to app.folderName
+                    "folderName" to app.folderName,
+                    "lastModified" to app.lastModified
                 )
                 firestore.collection("users").document(user.uid).collection("apps")
                     .document(app.packageId)
                     .set(data, SetOptions.merge())
+                    .await()
             } catch (e: Exception) {
-                e.printStackTrace()
+                crashlytics.recordException(e)
             }
         }
+    }
+
+    private fun normalizeForWrite(app: ArchivedApp): ArchivedApp {
+        return app.copy(lastModified = System.currentTimeMillis())
     }
 
     private fun deleteFromFirestore(packageId: String) {
@@ -104,8 +138,9 @@ class AppRepositoryImpl(
                 firestore.collection("users").document(user.uid).collection("apps")
                     .document(packageId)
                     .delete()
+                    .await()
             } catch (e: Exception) {
-                e.printStackTrace()
+                crashlytics.recordException(e)
             }
         }
     }
@@ -121,8 +156,9 @@ class AppRepositoryImpl(
     }
 
     override suspend fun insertApp(app: ArchivedApp) {
-        dao.insertApp(app.toAppEntity())
-        syncToFirestore(app)
+        val updatedApp = normalizeForWrite(app)
+        dao.insertApp(updatedApp.toAppEntity())
+        syncToFirestore(updatedApp)
     }
 
     override suspend fun deleteApp(app: ArchivedApp) {
@@ -136,7 +172,8 @@ class AppRepositoryImpl(
     }
 
     override suspend fun updateApp(app: ArchivedApp) {
-        dao.updateApp(app.toAppEntity())
-        syncToFirestore(app)
+        val updatedApp = normalizeForWrite(app)
+        dao.updateApp(updatedApp.toAppEntity())
+        syncToFirestore(updatedApp)
     }
 }

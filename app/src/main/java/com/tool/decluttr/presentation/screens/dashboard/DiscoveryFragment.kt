@@ -22,6 +22,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.android.material.chip.ChipGroup
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.usecase.GetInstalledAppsUseCase
@@ -129,7 +130,11 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
             onRequestPermission = {
                 val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                try { startActivity(intent) } catch (e: Exception) {}
+                try {
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    FirebaseCrashlytics.getInstance().recordException(e)
+                }
             },
             onToggleApp = { toggleAppSelection(it) },
             onSearchToggle = { 
@@ -292,8 +297,8 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
                 items.add(DashboardItem.StorageMeter(wasteSize, totalSize, percentage))
             }
             if (!hasUsagePerm) items.add(DashboardItem.PermissionWarning())
-            else items.add(DashboardItem.SmartCard(R.drawable.ic_search, "Rarely Used Apps", "${unusedApps.size} apps • ${bytesToMB(unusedApps.sumOf { it.apkSizeBytes })} MB", DiscoveryViewState.RARELY_USED)) // NOTE: Replace with archive_outlined once created
-            items.add(DashboardItem.SmartCard(R.drawable.ic_list, "Large Apps", "${largeApps.size} apps • ${bytesToMB(largeApps.sumOf { it.apkSizeBytes })} MB", DiscoveryViewState.LARGE_APPS)) // NOTE: Replace with storage once created
+            else items.add(DashboardItem.SmartCard(R.drawable.ic_archive_outlined, "Rarely Used Apps", "${unusedApps.size} apps • ${bytesToMB(unusedApps.sumOf { it.apkSizeBytes })} MB", DiscoveryViewState.RARELY_USED))
+            items.add(DashboardItem.SmartCard(R.drawable.ic_storage_outlined, "Large Apps", "${largeApps.size} apps • ${bytesToMB(largeApps.sumOf { it.apkSizeBytes })} MB", DiscoveryViewState.LARGE_APPS))
         }
 
         items.add(DashboardItem.AllAppsHeader(isSearchActive))

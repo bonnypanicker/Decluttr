@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil.imageLoader
 import coil.request.ImageRequest
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.tool.decluttr.domain.model.ArchivedApp
 import com.tool.decluttr.domain.repository.AppRepository
 import com.tool.decluttr.domain.usecase.GetInstalledAppsUseCase
@@ -93,6 +94,9 @@ class DashboardViewModel @Inject constructor(
 
     private val _reviewEvent = kotlinx.coroutines.flow.MutableSharedFlow<ReviewData>()
     val reviewEvent = _reviewEvent.asSharedFlow()
+
+    private val _undoDeleteEvent = kotlinx.coroutines.flow.MutableSharedFlow<ArchivedApp>()
+    val undoDeleteEvent = _undoDeleteEvent.asSharedFlow()
 
     private var discoveryJob: kotlinx.coroutines.Job? = null
     private var lazyWarmIconsJob: kotlinx.coroutines.Job? = null
@@ -240,6 +244,13 @@ class DashboardViewModel @Inject constructor(
     fun deleteArchivedApp(app: ArchivedApp) {
         viewModelScope.launch {
             appRepository.deleteApp(app)
+            _undoDeleteEvent.emit(app)
+        }
+    }
+
+    fun restoreArchivedApp(app: ArchivedApp) {
+        viewModelScope.launch {
+            appRepository.insertApp(app)
         }
     }
 
@@ -342,7 +353,9 @@ class DashboardViewModel @Inject constructor(
                             if (!isReplacing) {
                                 try {
                                     ctx.unregisterReceiver(this)
-                                } catch (_: Exception) {}
+                                } catch (e: Exception) {
+                                    FirebaseCrashlytics.getInstance().recordException(e)
+                                }
                                 if (continuation.isActive) {
                                     continuation.resume(true)
                                 }
@@ -364,7 +377,9 @@ class DashboardViewModel @Inject constructor(
                 continuation.invokeOnCancellation {
                     try {
                         context.unregisterReceiver(receiver)
-                    } catch (_: Exception) {}
+                    } catch (e: Exception) {
+                        FirebaseCrashlytics.getInstance().recordException(e)
+                    }
                 }
 
                 triggerUninstall()

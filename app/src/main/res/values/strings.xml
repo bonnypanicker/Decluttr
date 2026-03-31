@@ -13,6 +13,9 @@
     <string name="auth_toggle_to_signin">Already have an account? Sign In</string>
     <string name="auth_empty_fields_error">Email and password cannot be empty</string>
     <string name="auth_google_coming_soon">Google Sign-In coming soon</string>
+    <string name="auth_enter_email_first">Enter your email first</string>
+    <string name="auth_reset_sent">Reset email sent to %1$s</string>
+    <string name="auth_reset_failed">Failed to send reset email</string>
     <string name="archive_popup_app_icon_cd">Archived app icon</string>
     <string name="archive_popup_delete_cd">Remove app from archive</string>
     <string name="archive_popup_reinstall_cd">Open in Google Play Store</string>
@@ -38,4 +41,6 @@
     <string name="bulk_review_next">Next</string>
     <string name="bulk_review_done">Save</string>
     <string name="bulk_review_notes_hint">Why I kept this app</string>
+    <string name="archive_undo_message">%1$s removed</string>
+    <string name="archive_undo_action">Undo</string>
 </resources>

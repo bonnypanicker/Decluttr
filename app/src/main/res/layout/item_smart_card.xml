@@ -30,13 +30,12 @@
             android:layout_height="56dp"
             android:background="@drawable/bg_smart_card_icon">
 
-            <TextView
+            <ImageView
                 android:id="@+id/card_icon"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:text=""
-                android:textSize="28sp" />
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_gravity="center"
+                app:tint="?attr/colorOnSurface" />
         </FrameLayout>
 
         <LinearLayout

@@ -20,6 +20,15 @@ import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.ArchivedApp
 import com.tool.decluttr.presentation.util.AppIconModel
 
+sealed class ArchivedItem {
+    data class App(val app: ArchivedApp) : ArchivedItem()
+
+    data class Folder(
+        val name: String,
+        val apps: List<ArchivedApp>
+    ) : ArchivedItem()
+}
+
 class ArchiveDiffCallback : DiffUtil.ItemCallback<ArchivedItem>() {
     override fun areItemsTheSame(oldItem: ArchivedItem, newItem: ArchivedItem): Boolean {
         return when {

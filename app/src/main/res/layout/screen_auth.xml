@@ -162,12 +162,15 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/tv_forgot_password"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="FORGOT PASSWORD?"
                         android:textColor="?attr/colorTertiary"
                         android:textAppearance="?attr/textAppearanceLabelSmall"
-                        android:textStyle="bold" />
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true" />
                 </LinearLayout>
 
                 <EditText

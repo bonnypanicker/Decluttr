@@ -1,19 +1,14 @@
 package com.tool.decluttr.presentation.screens.dashboard
 
-import android.graphics.Color
-import android.graphics.PorterDuff
 import android.text.Editable
 import android.text.TextWatcher
 import android.text.format.DateUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -27,6 +22,19 @@ import com.google.android.material.card.MaterialCardView
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import java.util.Locale
 
+enum class DiscoveryViewState {
+    DASHBOARD,
+    RARELY_USED,
+    LARGE_APPS,
+    ALL_APPS
+}
+
+enum class SortOption {
+    NAME,
+    SIZE,
+    LAST_USED
+}
+
 sealed class DashboardItem {
     data class StorageMeter(
         val wasteSize: Long,
@@ -37,7 +45,7 @@ sealed class DashboardItem {
     data class PermissionWarning(val dummy: Boolean = true) : DashboardItem()
 
     data class SmartCard(
-        val icon: String,
+        val iconRes: Int,
         val title: String,
         val description: String,
         val viewState: DiscoveryViewState
@@ -162,13 +170,13 @@ class DiscoveryDashboardAdapter(
     }
 
     inner class SmartCardViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val icon: TextView = view.findViewById(R.id.card_icon)
+        private val icon: ImageView = view.findViewById(R.id.card_icon)
         private val title: TextView = view.findViewById(R.id.card_title)
         private val description: TextView = view.findViewById(R.id.card_description)
         private val cardButton: ImageView = view.findViewById(R.id.card_button)
 
         fun bind(item: DashboardItem.SmartCard) {
-            icon.text = item.icon
+            icon.setImageResource(item.iconRes)
             title.text = item.title
             description.text = item.description
 

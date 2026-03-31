@@ -46,9 +46,11 @@ object AppModule {
             app,
             DecluttrDatabase::class.java,
             DecluttrDatabase.DATABASE_NAME
-        ).addMigrations(DecluttrDatabase.MIGRATION_2_3)
-         .fallbackToDestructiveMigration()
-         .build()
+        ).addMigrations(
+            DecluttrDatabase.MIGRATION_2_3,
+            DecluttrDatabase.MIGRATION_3_4
+        )
+            .build()
     }
 
     @Provides

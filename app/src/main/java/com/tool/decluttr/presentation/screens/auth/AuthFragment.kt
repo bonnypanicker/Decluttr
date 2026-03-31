@@ -8,6 +8,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
@@ -40,6 +41,7 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
         val dividerOr = view.findViewById<LinearLayout>(R.id.divider_or)
         val btnGoogle = view.findViewById<LinearLayout>(R.id.btn_google_signin)
         val tvModeToggle = view.findViewById<TextView>(R.id.tv_mode_toggle)
+        val tvForgotPassword = view.findViewById<TextView>(R.id.tv_forgot_password)
 
         // Edge-to-edge insets
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
@@ -55,6 +57,7 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
         btnPrimary.setOnClickListener { viewModel.authenticate() }
         btnGoogle.setOnClickListener { /* TODO: Google Sign-In */ }
         tvModeToggle.setOnClickListener { viewModel.toggleMode() }
+        tvForgotPassword.setOnClickListener { viewModel.sendPasswordReset() }
 
         // Text watchers
         etEmail.addTextChangedListener(SimpleTextWatcher { viewModel.onEmailChange(it) })
@@ -114,6 +117,11 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
                     viewModel.errorMessage.collect { error ->
                         tvError.visibility = if (error != null) View.VISIBLE else View.GONE
                         tvError.text = error
+                    }
+                }
+                launch {
+                    viewModel.infoMessage.collect { message ->
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
                     }
                 }
                 launch {

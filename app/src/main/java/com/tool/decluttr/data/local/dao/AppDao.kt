@@ -16,6 +16,9 @@ interface AppDao {
     @Query("SELECT * FROM archived_apps WHERE packageId = :packageId")
     suspend fun getAppById(packageId: String): AppEntity?
 
+    @Query("SELECT * FROM archived_apps")
+    suspend fun getArchivedAppsSnapshot(): List<AppEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertApp(app: AppEntity)
 

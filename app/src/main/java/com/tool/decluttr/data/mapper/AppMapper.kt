@@ -14,7 +14,8 @@ fun AppEntity.toArchivedApp(): ArchivedApp {
         iconBytes = iconBytes,
         archivedAt = archivedAt,
         lastTimeUsed = lastTimeUsed,
-        folderName = folderName
+        folderName = folderName,
+        lastModified = lastModified
     )
 }
 
@@ -29,6 +30,7 @@ fun ArchivedApp.toAppEntity(): AppEntity {
         isPlayStoreInstalled = isPlayStoreInstalled,
         archivedAt = archivedAt,
         lastTimeUsed = lastTimeUsed,
-        folderName = folderName
+        folderName = folderName,
+        lastModified = lastModified
     )
 }

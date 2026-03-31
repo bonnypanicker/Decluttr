@@ -15,7 +15,8 @@ data class AppEntity(
     val isPlayStoreInstalled: Boolean = true,
     val archivedAt: Long = System.currentTimeMillis(),
     val lastTimeUsed: Long = 0L,
-    val folderName: String? = null
+    val folderName: String? = null,
+    val lastModified: Long = System.currentTimeMillis()
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -36,6 +37,7 @@ data class AppEntity(
         if (isPlayStoreInstalled != other.isPlayStoreInstalled) return false
         if (lastTimeUsed != other.lastTimeUsed) return false
         if (folderName != other.folderName) return false
+        if (lastModified != other.lastModified) return false
 
         return true
     }
@@ -51,6 +53,7 @@ data class AppEntity(
         result = 31 * result + isPlayStoreInstalled.hashCode()
         result = 31 * result + lastTimeUsed.hashCode()
         result = 31 * result + (folderName?.hashCode() ?: 0)
+        result = 31 * result + lastModified.hashCode()
         return result
     }
 }

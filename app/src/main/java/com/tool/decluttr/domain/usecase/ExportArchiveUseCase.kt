@@ -21,9 +21,10 @@ class ExportArchiveUseCase @Inject constructor(
                 put("tags", app.tags.joinToString(","))
                 put("notes", app.notes ?: "")
                 put("archivedAt", app.archivedAt)
-                // We typically skip exporting iconBytes in JSON due to size,
-                // but we could Base64 encode it if necessary.
-                // For a lightweight JSON export, we skip the icon.
+                put("isPlayStoreInstalled", app.isPlayStoreInstalled)
+                put("lastTimeUsed", app.lastTimeUsed)
+                put("folderName", app.folderName ?: "")
+                put("lastModified", app.lastModified)
             }
             jsonArray.put(jsonObject)
         }

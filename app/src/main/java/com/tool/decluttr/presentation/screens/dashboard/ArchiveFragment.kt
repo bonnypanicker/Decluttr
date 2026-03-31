@@ -27,6 +27,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.chip.Chip
+import com.google.android.material.snackbar.Snackbar
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.ArchivedApp
 import dagger.hilt.android.AndroidEntryPoint
@@ -165,18 +166,29 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private fun observeViewModel() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.archivedApps.collect { apps ->
-                    updateUI(apps)
-                    
-                    if (expandedFolder != null && folderOverlay != null) {
-                        val folderApps = apps.filter { it.folderName == expandedFolder }
-                        if (folderApps.isEmpty()) {
-                            expandedFolder = null
-                            folderOverlay?.dismiss {}
-                            folderOverlay = null
-                        } else {
-                            folderOverlay?.updateApps(folderApps)
+                launch {
+                    viewModel.archivedApps.collect { apps ->
+                        updateUI(apps)
+
+                        if (expandedFolder != null && folderOverlay != null) {
+                            val folderApps = apps.filter { it.folderName == expandedFolder }
+                            if (folderApps.isEmpty()) {
+                                expandedFolder = null
+                                folderOverlay?.dismiss {}
+                                folderOverlay = null
+                            } else {
+                                folderOverlay?.updateApps(folderApps)
+                            }
                         }
+                    }
+                }
+                launch {
+                    viewModel.undoDeleteEvent.collect { deletedApp ->
+                        Snackbar.make(requireView(), getString(R.string.archive_undo_message, deletedApp.name), Snackbar.LENGTH_LONG)
+                            .setAction(R.string.archive_undo_action) {
+                                viewModel.restoreArchivedApp(deletedApp)
+                            }
+                            .show()
                     }
                 }
             }
@@ -316,8 +328,13 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         NativeAppDetailsDialog(
             context = requireContext(),
             app = app,
-            onClose = {},
-            onUpdate = { updatedApp -> viewModel.updateArchivedApp(updatedApp) }
+            onNotesUpdated = { notes ->
+                viewModel.updateArchivedApp(app.copy(notes = notes))
+            },
+            onDelete = {
+                viewModel.deleteArchivedApp(app)
+            },
+            onDismissRequest = {}
         ).show()
     }
 }
