@@ -3,8 +3,8 @@ package com.tool.decluttr.data.repository
 import android.util.Base64
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.QueryDocumentSnapshot
 import com.google.firebase.firestore.SetOptions
 import com.tool.decluttr.data.local.dao.AppDao
 import com.tool.decluttr.data.mapper.toAppEntity
@@ -73,7 +73,7 @@ class AppRepositoryImpl(
         }
     }
 
-    private fun QueryDocumentSnapshot.toArchivedAppOrNull(): ArchivedApp? {
+    private fun DocumentSnapshot.toArchivedAppOrNull(): ArchivedApp? {
         val id = getString("packageId") ?: return null
         val archivedAt = getLong("archivedAt") ?: System.currentTimeMillis()
         return ArchivedApp(
