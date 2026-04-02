@@ -4,14 +4,15 @@ import android.os.Bundle
 import android.view.View
 import android.widget.FrameLayout
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.appbar.MaterialToolbar
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.color.MaterialColors
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.tool.decluttr.R
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -19,7 +20,7 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
 
-    private val viewModel: DashboardViewModel by viewModels()
+    private val viewModel: DashboardViewModel by activityViewModels()
     private var selectedTabIndex = 0
     private val onboardingPrefs by lazy {
         requireContext().getSharedPreferences("decluttr_prefs", android.content.Context.MODE_PRIVATE)
@@ -49,8 +50,16 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         val colorStateList = androidx.core.content.ContextCompat.getColorStateList(requireContext(), R.color.bottom_nav_item_selector)
         bottomNav.itemIconTintList = colorStateList
         bottomNav.itemTextColor = colorStateList
-        bottomNav.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        bottomNav.setBackgroundColor(MaterialColors.getColor(bottomNav, com.google.android.material.R.attr.colorSurface))
         bottomNav.elevation = 8f
+        bottomNav.post {
+            contentContainer.setPadding(
+                contentContainer.paddingLeft,
+                contentContainer.paddingTop,
+                contentContainer.paddingRight,
+                bottomNav.height
+            )
+        }
 
         // Bottom navigation
         bottomNav.setOnItemSelectedListener { item ->
