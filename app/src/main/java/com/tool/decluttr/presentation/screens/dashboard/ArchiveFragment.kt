@@ -114,7 +114,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
 
         recyclerView.setOnDragListener { rv, event ->
             when (event.action) {
-                DragEvent.ACTION_DRAG_STARTED -> event.clipDescription.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN)
+                DragEvent.ACTION_DRAG_STARTED -> event.clipDescription?.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) == true
                 DragEvent.ACTION_DROP -> {
                     val draggedApp = event.localState as? ArchivedApp
                     if (draggedApp != null && draggedApp.folderName != null) {
