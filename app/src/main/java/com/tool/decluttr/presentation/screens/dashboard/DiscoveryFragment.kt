@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
-import android.text.format.DateUtils
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
@@ -121,7 +120,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         specSortChips = viewSpecificList.findViewById(R.id.sort_chip_group)
         specSelectAllCheckbox = viewSpecificList.findViewById(R.id.select_all_checkbox)
         specSelectAllLabel = viewSpecificList.findViewById(R.id.select_all_label)
-        specSelectionInfo = viewSpecificList.findViewById(R.id.selection_info)
+        specSelectionInfo = viewSpecificList.findViewById(R.id.selection_info_title)
         specActionContainer = viewSpecificList.findViewById(R.id.action_buttons_container)
         specBtnUninstallOnly = viewSpecificList.findViewById(R.id.btn_uninstall_only)
         specBtnArchive = viewSpecificList.findViewById(R.id.btn_archive_uninstall)
@@ -410,17 +409,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
             specSelectAllCheckbox.isEnabled = true
             
             val mappedItems = sortedList.map { app ->
-                val ctxLabel = when (viewState) {
-                    DiscoveryViewState.RARELY_USED -> {
-                        if (app.lastTimeUsed > 0) {
-                            val daysAgo = ((System.currentTimeMillis() - app.lastTimeUsed) / DateUtils.DAY_IN_MILLIS).toInt()
-                            "Not used in $daysAgo days"
-                        } else "Never opened"
-                    }
-                    DiscoveryViewState.LARGE_APPS -> "Takes ${bytesToMB(app.apkSizeBytes)} MB"
-                    else -> null
-                }
-                AppListItem(app, app.packageId in selectedApps, ctxLabel)
+                AppListItem(app, app.packageId in selectedApps, null)
             }
             specificAdapter.submitList(mappedItems)
         }

@@ -79,7 +79,7 @@
                 android:background="@drawable/bg_archive_popup_icon_button"
                 android:contentDescription="@string/archive_popup_delete_cd"
                 android:padding="12dp"
-                android:src="@android:drawable/ic_menu_delete"
+                android:src="@drawable/ic_delete_outlined"
                 app:tint="?attr/colorError" />
         </LinearLayout>
 
