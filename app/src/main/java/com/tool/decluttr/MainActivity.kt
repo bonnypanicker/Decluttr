@@ -9,6 +9,7 @@ import androidx.navigation.fragment.NavHostFragment
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.tool.decluttr.presentation.screens.dashboard.DashboardViewModel
+import com.tool.decluttr.presentation.util.ThemePreferences
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -18,6 +19,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         DecluttrApp.appendStartupLog(this, "MainActivity onCreate start")
         try {
+            ThemePreferences.applyTheme(this)
             val splashScreen = installSplashScreen()
             DecluttrApp.appendStartupLog(this, "Splash screen installed")
             splashScreen.setKeepOnScreenCondition {

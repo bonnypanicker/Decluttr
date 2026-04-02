@@ -43,4 +43,22 @@
     <string name="bulk_review_notes_hint">Why I kept this app</string>
     <string name="archive_undo_message">%1$s removed</string>
     <string name="archive_undo_action">Undo</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="usage_disclosure_title">Usage Access Permission</string>
+    <string name="usage_disclosure_message">Decluttr uses app usage access to identify rarely used apps and show cleanup recommendations. This data is processed on your device and is not required for basic archive features.</string>
+    <string name="usage_disclosure_continue">Continue</string>
+    <string name="usage_disclosure_cancel">Not now</string>
+    <string name="onboarding_title">Welcome to Decluttr</string>
+    <string name="onboarding_message">Use Discover to find rarely used and large apps, then archive before uninstalling so you can restore context later. Open Settings anytime for export, import, and appearance options.</string>
+    <string name="onboarding_cta">Got it</string>
+    <string name="archive_empty_title">Your archive is empty</string>
+    <string name="archive_empty_message">Archive apps before uninstalling to keep your context and notes.</string>
+    <string name="archive_empty_action">Find apps to declutter</string>
+    <string name="archive_empty_filtered">No archived apps match your current search.</string>
+    <string name="discovery_empty_title">Nothing to show here</string>
+    <string name="discovery_empty_message">Try changing search or sort to discover more apps.</string>
+    <string name="discovery_loading">Analyzing installed apps…</string>
 </resources>

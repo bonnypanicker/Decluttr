@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.android.material.chip.ChipGroup
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.usecase.GetInstalledAppsUseCase
 import dagger.hilt.android.AndroidEntryPoint
@@ -34,6 +35,9 @@ import kotlin.math.roundToInt
 class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
 
     private val viewModel: DashboardViewModel by activityViewModels()
+    private val disclosurePrefs by lazy {
+        requireContext().getSharedPreferences("decluttr_prefs", android.content.Context.MODE_PRIVATE)
+    }
 
     private var viewState = DiscoveryViewState.DASHBOARD
     private var isSearchActive = false
@@ -75,6 +79,9 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
     private lateinit var dashboardAdapter: DiscoveryDashboardAdapter
     private lateinit var specificAdapter: DiscoveryAppsAdapter
 
+    companion object {
+        private const val KEY_USAGE_DISCLOSURE_ACCEPTED = "usage_disclosure_accepted"
+    }
 
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -128,13 +135,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         dashboardAdapter = DiscoveryDashboardAdapter(
             onNavigateToList = { setViewState(it) },
             onRequestPermission = {
-                val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                try {
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    FirebaseCrashlytics.getInstance().recordException(e)
-                }
+                showUsageDisclosureIfNeeded()
             },
             onToggleApp = { toggleAppSelection(it) },
             onSearchToggle = { 
@@ -147,12 +148,40 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         dashRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         dashRecyclerView.adapter = dashboardAdapter
         dashRecyclerView.itemAnimator = androidx.recyclerview.widget.DefaultItemAnimator()
+        dashRecyclerView.setHasFixedSize(true)
 
         specificAdapter = DiscoveryAppsAdapter(
             onToggle = { toggleAppSelection(it) }
         )
         specRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         specRecyclerView.adapter = specificAdapter
+        specRecyclerView.setHasFixedSize(true)
+    }
+
+    private fun showUsageDisclosureIfNeeded() {
+        if (disclosurePrefs.getBoolean(KEY_USAGE_DISCLOSURE_ACCEPTED, false)) {
+            openUsageAccessSettings()
+            return
+        }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.usage_disclosure_title)
+            .setMessage(R.string.usage_disclosure_message)
+            .setNegativeButton(R.string.usage_disclosure_cancel, null)
+            .setPositiveButton(R.string.usage_disclosure_continue) { _, _ ->
+                disclosurePrefs.edit().putBoolean(KEY_USAGE_DISCLOSURE_ACCEPTED, true).apply()
+                openUsageAccessSettings()
+            }
+            .show()
+    }
+
+    private fun openUsageAccessSettings() {
+        val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            FirebaseCrashlytics.getInstance().recordException(e)
+        }
     }
 
     private fun setupListeners() {

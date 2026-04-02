@@ -147,16 +147,17 @@
         android:gravity="center"
         android:visibility="gone">
         <ImageView
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@android:drawable/ic_dialog_alert"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:src="@drawable/ic_storage_outlined"
+            android:alpha="0.3"
             app:tint="?attr/colorOnSurfaceVariant"/>
         <TextView
             android:id="@+id/empty_state_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="No apps match."
+            android:text="@string/discovery_empty_message"
             android:textAppearance="?attr/textAppearanceBodyMedium"
             android:textColor="?attr/colorOnSurfaceVariant"/>
     </LinearLayout>

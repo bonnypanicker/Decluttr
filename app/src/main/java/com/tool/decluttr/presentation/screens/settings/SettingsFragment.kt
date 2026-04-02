@@ -7,6 +7,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -15,7 +16,9 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
 import com.tool.decluttr.R
+import com.tool.decluttr.presentation.util.ThemePreferences
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.io.InputStreamReader
@@ -50,6 +53,10 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         val progress = view.findViewById<ProgressBar>(R.id.progress)
         val tvEmail = view.findViewById<TextView>(R.id.tv_email)
         val btnSignout = view.findViewById<MaterialButton>(R.id.btn_signout)
+        val themeToggleGroup = view.findViewById<MaterialButtonToggleGroup>(R.id.theme_toggle_group)
+        val btnThemeSystem = view.findViewById<MaterialButton>(R.id.btn_theme_system)
+        val btnThemeLight = view.findViewById<MaterialButton>(R.id.btn_theme_light)
+        val btnThemeDark = view.findViewById<MaterialButton>(R.id.btn_theme_dark)
 
         toolbar.setNavigationOnClickListener {
             findNavController().navigateUp()
@@ -65,6 +72,24 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
 
         btnSignout.setOnClickListener {
             viewModel.signOut()
+        }
+
+        val initialThemeButton = when (ThemePreferences.getThemeMode(requireContext())) {
+            AppCompatDelegate.MODE_NIGHT_YES -> btnThemeDark.id
+            AppCompatDelegate.MODE_NIGHT_NO -> btnThemeLight.id
+            else -> btnThemeSystem.id
+        }
+        themeToggleGroup.check(initialThemeButton)
+        themeToggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (!isChecked) return@addOnButtonCheckedListener
+            val selectedMode = when (checkedId) {
+                btnThemeDark.id -> AppCompatDelegate.MODE_NIGHT_YES
+                btnThemeLight.id -> AppCompatDelegate.MODE_NIGHT_NO
+                else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            }
+            if (selectedMode != ThemePreferences.getThemeMode(requireContext())) {
+                ThemePreferences.setThemeMode(requireContext(), selectedMode)
+            }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {

@@ -98,6 +98,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
 
         recyclerView.layoutManager = GridLayoutManager(requireContext(), 4)
         recyclerView.adapter = adapter
+        recyclerView.setHasFixedSize(true)
 
         val enterAnim = AnimationUtils.loadAnimation(requireContext(), android.R.anim.fade_in).apply { duration = 200 }
         val controller = LayoutAnimationController(enterAnim, 0.05f)
@@ -248,10 +249,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             recyclerView.visibility = View.GONE
             emptyStateContainer.visibility = View.VISIBLE
             if (apps.isEmpty()) {
-                tvEmptyMessage.text = "Your archive is currently empty."
+                tvEmptyMessage.text = getString(R.string.archive_empty_message)
                 btnFindApps.visibility = View.VISIBLE
             } else {
-                tvEmptyMessage.text = "No apps match your search."
+                tvEmptyMessage.text = getString(R.string.archive_empty_filtered)
                 btnFindApps.visibility = View.GONE
             }
         } else {

@@ -10,6 +10,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.tool.decluttr.R
 import dagger.hilt.android.AndroidEntryPoint
@@ -20,6 +21,13 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
 
     private val viewModel: DashboardViewModel by viewModels()
     private var selectedTabIndex = 0
+    private val onboardingPrefs by lazy {
+        requireContext().getSharedPreferences("decluttr_prefs", android.content.Context.MODE_PRIVATE)
+    }
+
+    companion object {
+        private const val KEY_ONBOARDING_SHOWN = "onboarding_dashboard_shown"
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -56,6 +64,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         // Initial tab
         if (savedInstanceState == null) {
             switchTab(0)
+            showOnboardingIfNeeded()
         }
 
         // Observe review events for bulk review dialog
@@ -97,5 +106,15 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
                 view?.findViewById<BottomNavigationView>(R.id.bottom_nav)?.selectedItemId = R.id.nav_archive
             }
         ).show()
+    }
+
+    private fun showOnboardingIfNeeded() {
+        if (onboardingPrefs.getBoolean(KEY_ONBOARDING_SHOWN, false)) return
+        onboardingPrefs.edit().putBoolean(KEY_ONBOARDING_SHOWN, true).apply()
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.onboarding_title)
+            .setMessage(R.string.onboarding_message)
+            .setPositiveButton(R.string.onboarding_cta, null)
+            .show()
     }
 }

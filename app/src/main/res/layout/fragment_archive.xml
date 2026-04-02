@@ -51,11 +51,19 @@
             android:gravity="center"
             android:visibility="gone">
 
+            <ImageView
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:src="@drawable/ic_archive_outlined"
+                android:alpha="0.3"
+                app:tint="?attr/colorOnSurfaceVariant" />
+
             <TextView
                 android:id="@+id/tv_empty_message"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Your archive is currently empty."
+                android:layout_marginTop="16dp"
+                android:text="@string/archive_empty_message"
                 android:textAppearance="?attr/textAppearanceBodyMedium"
                 android:textColor="?attr/colorOnSurfaceVariant" />
 
@@ -64,7 +72,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="Find rarely used apps to Decluttr" />
+                android:text="@string/archive_empty_action" />
         </LinearLayout>
     </FrameLayout>
 </LinearLayout>
