@@ -10,8 +10,8 @@
     <com.google.android.material.card.MaterialCardView
         android:layout_width="64dp"
         android:layout_height="64dp"
-        app:cardCornerRadius="18dp"
-        app:strokeColor="?attr/colorOutlineVariant"
+        app:cardCornerRadius="32dp"
+        app:strokeColor="?attr/colorOutline"
         app:strokeWidth="1dp">
 
         <ImageView
@@ -29,7 +29,7 @@
         android:layout_marginTop="12dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:textAppearance="?attr/textAppearanceHeadlineSmall"
         android:textStyle="bold" />
 
     <TextView

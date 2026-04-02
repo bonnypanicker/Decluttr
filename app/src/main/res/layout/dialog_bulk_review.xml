@@ -5,7 +5,7 @@
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
     android:layout_marginVertical="12dp"
-    app:cardBackgroundColor="?attr/colorSurface"
+    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
     app:cardCornerRadius="28dp"
     app:cardElevation="16dp"
     app:strokeColor="?attr/colorOutlineVariant"
@@ -28,9 +28,9 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                app:cardBackgroundColor="?attr/colorSurfaceContainerHighest"
-                app:cardCornerRadius="12dp"
-                app:strokeColor="?attr/colorOutlineVariant"
+                app:cardBackgroundColor="?attr/colorPrimaryContainer"
+                app:cardCornerRadius="20dp"
+                app:strokeColor="?attr/colorOutline"
                 app:strokeWidth="1dp">
 
                 <ImageView
@@ -39,7 +39,7 @@
                     android:layout_gravity="center"
                     android:contentDescription="@string/bulk_review_title"
                     android:src="@android:drawable/ic_menu_edit"
-                    app:tint="?attr/colorPrimary" />
+                    app:tint="?attr/colorOnPrimaryContainer" />
             </com.google.android.material.card.MaterialCardView>
 
             <LinearLayout
@@ -54,7 +54,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/bulk_review_title"
-                    android:textAppearance="?attr/textAppearanceTitleMedium"
+                    android:textAppearance="?attr/textAppearanceTitleLarge"
                     android:textStyle="bold" />
 
                 <TextView
@@ -137,7 +137,9 @@
                 style="@style/Widget.Material3.Button"
                 android:layout_width="wrap_content"
                 android:layout_height="48dp"
+                app:backgroundTint="?attr/colorPrimaryContainer"
                 android:text="@string/bulk_review_done"
+                android:textColor="?attr/colorOnPrimaryContainer"
                 android:textAllCaps="false" />
         </LinearLayout>
 
