@@ -1,106 +1,150 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="?attr/colorSurface">
 
-    <!-- Header: Back button + Title -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:padding="16dp">
-        <ImageView
-            android:id="@+id/btn_back"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:padding="12dp"
-            android:src="?attr/homeAsUpIndicator"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:clickable="true"
-            android:focusable="true"/>
-        <TextView
-            android:id="@+id/tv_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:textAppearance="?attr/textAppearanceTitleLarge"
-            android:textStyle="bold"/>
-    </LinearLayout>
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-    <!-- Search Bar -->
-    <include
-        layout="@layout/item_search_bar"
-        android:id="@+id/specific_search_bar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"/>
-
-    <!-- Sort Chips -->
-    <HorizontalScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="8dp"
-        android:scrollbars="none">
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/sort_chip_group"
-            android:layout_width="wrap_content"
+        <!-- Header: Back button + Title -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:singleSelection="true"
-            app:selectionRequired="true">
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_sort_name"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="16dp">
+            <ImageView
+                android:id="@+id/btn_back"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:padding="12dp"
+                android:src="?attr/homeAsUpIndicator"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"/>
+            <TextView
+                android:id="@+id/tv_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Name"
-                style="@style/Widget.Material3.Chip.Filter"
-                android:checked="true"/>
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_sort_size"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Size"
-                style="@style/Widget.Material3.Chip.Filter"/>
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_sort_last_used"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Last Used"
-                style="@style/Widget.Material3.Chip.Filter"/>
-        </com.google.android.material.chip.ChipGroup>
-    </HorizontalScrollView>
+                android:layout_marginStart="8dp"
+                android:textAppearance="?attr/textAppearanceTitleLarge"
+                android:textStyle="bold"/>
+        </LinearLayout>
 
-    <!-- Select All Row -->
-    <LinearLayout
-        android:id="@+id/select_all_container"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="8dp">
-
-        <CheckBox
-            android:id="@+id/select_all_checkbox"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
-
-        <TextView
-            android:id="@+id/select_all_label"
-            android:layout_width="wrap_content"
+        <!-- Search Bar -->
+        <include
+            layout="@layout/item_search_bar"
+            android:id="@+id/specific_search_bar"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:text="Select All"
-            android:textAppearance="?attr/textAppearanceBodyMedium"/>
+            android:layout_marginHorizontal="16dp"/>
 
-        <View
-            android:layout_width="0dp"
+        <!-- Sort Chips + Select All -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <HorizontalScrollView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:scrollbars="none">
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/sort_chip_group"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:singleSelection="true"
+                    app:selectionRequired="true">
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_sort_name"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Name"
+                        style="@style/Widget.Material3.Chip.Filter"
+                        android:checked="true"/>
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_sort_size"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Size"
+                        style="@style/Widget.Material3.Chip.Filter"/>
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_sort_last_used"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Last Used"
+                        style="@style/Widget.Material3.Chip.Filter"/>
+                </com.google.android.material.chip.ChipGroup>
+            </HorizontalScrollView>
+
+            <LinearLayout
+                android:id="@+id/select_all_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <CheckBox
+                    android:id="@+id/select_all_checkbox"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+
+                <TextView
+                    android:id="@+id/select_all_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="Select All"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"/>
+            android:layout_weight="1">
+
+            <!-- Empty State -->
+            <LinearLayout
+                android:id="@+id/empty_state_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:visibility="gone">
+                <ImageView
+                    android:layout_width="120dp"
+                    android:layout_height="120dp"
+                    android:src="@drawable/ic_storage_outlined"
+                    android:alpha="0.3"
+                    app:tint="?attr/colorOnSurfaceVariant"/>
+                <TextView
+                    android:id="@+id/empty_state_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/discovery_empty_message"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant"/>
+            </LinearLayout>
+
+            <!-- List -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/specific_recycler_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:padding="12dp"/>
+        </FrameLayout>
     </LinearLayout>
 
     <include
@@ -108,38 +152,7 @@
         android:id="@+id/action_buttons_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
         android:visibility="gone" />
 
-    <!-- Empty State -->
-    <LinearLayout
-        android:id="@+id/empty_state_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:visibility="gone">
-        <ImageView
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:src="@drawable/ic_storage_outlined"
-            android:alpha="0.3"
-            app:tint="?attr/colorOnSurfaceVariant"/>
-        <TextView
-            android:id="@+id/empty_state_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/discovery_empty_message"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="?attr/colorOnSurfaceVariant"/>
-    </LinearLayout>
-
-    <!-- List -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/specific_recycler_view"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:clipToPadding="false"
-        android:padding="12dp"/>
-</LinearLayout>
+</FrameLayout>
