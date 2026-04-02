@@ -168,7 +168,9 @@ class ArchivedAppsAdapter(
         private var pulseAnimator: ObjectAnimator? = null
 
         override fun onDrag(view: View, event: DragEvent): Boolean {
-            android.util.Log.d("ArchivedAppsAdapter", "onDrag action=${event.action} viewPos=${adapterPosition}")
+            val rv = findParentRecyclerView(view)
+            val pos = rv?.getChildAdapterPosition(view) ?: -1
+            android.util.Log.d("ArchivedAppsAdapter", "onDrag action=${event.action} adapterPos=$pos")
             val targetItem = view.tag as? ArchivedItem
             val draggedApp = event.localState as? ArchivedApp
 
