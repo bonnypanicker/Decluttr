@@ -56,6 +56,7 @@ class ArchivedAppsAdapter(
     private val onRemoveFolder: (List<ArchivedApp>) -> Unit,
     private val onFolderClick: (String) -> Unit
 ) : ListAdapter<ArchivedItem, RecyclerView.ViewHolder>(ArchiveDiffCallback()) {
+    private var pendingDropAction: (() -> Unit)? = null
 
     override fun getItemViewType(position: Int): Int {
         return when(getItem(position)) {
@@ -176,6 +177,7 @@ class ArchivedAppsAdapter(
 
             when (event.action) {
                 DragEvent.ACTION_DRAG_STARTED -> {
+                    pendingDropAction = null
                     val ok = event.clipDescription?.hasMimeType(
                         android.content.ClipDescription.MIMETYPE_TEXT_PLAIN
                     ) == true
@@ -252,18 +254,19 @@ class ArchivedAppsAdapter(
                         )
 
                         try {
-                            when {
-                            targetItem is ArchivedItem.App &&
-                                draggedApp.packageId != targetItem.app.packageId -> {
-                                view.post {
+                            pendingDropAction = when {
+                                targetItem is ArchivedItem.App &&
+                                    draggedApp.packageId != targetItem.app.packageId -> {
+                                    {
                                         onAppDropOnApp(draggedApp, targetItem.app)
+                                    }
                                 }
-                            }
-                            targetItem is ArchivedItem.Folder -> {
-                                view.post {
+                                targetItem is ArchivedItem.Folder -> {
+                                    {
                                         onAppDropOnFolder(draggedApp, targetItem.name)
+                                    }
                                 }
-                            }
+                                else -> null
                             }
                         } catch (t: Throwable) {
                             android.util.Log.e("ArchivedAppsAdapter", "DROP failed", t)
@@ -300,6 +303,16 @@ class ArchivedAppsAdapter(
                                     .setDuration(300)
                                     .setInterpolator(OvershootInterpolator(1.5f))
                                     .start()
+                            }
+                        }
+                        val dropAction = pendingDropAction
+                        pendingDropAction = null
+                        if (dropAction != null) {
+                            rv.post {
+                                runCatching { dropAction.invoke() }
+                                    .onFailure {
+                                        android.util.Log.e("ArchivedAppsAdapter", "Executing pending drop action failed", it)
+                                    }
                             }
                         }
                     }

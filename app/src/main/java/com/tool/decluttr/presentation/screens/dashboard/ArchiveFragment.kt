@@ -123,29 +123,35 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                     val draggedApp = event.localState as? ArchivedApp
                     android.util.Log.d("ArchiveFragment", "DROP rv hit test. dragged=${draggedApp?.packageId}")
                     if (draggedApp != null && draggedApp.folderName != null) {
-                        val childUnder = (rv as RecyclerView).findChildViewUnder(event.x, event.y)
-                        if (childUnder == null) {
-                            rv.post {
+                        (rv as RecyclerView).post {
+                            val childUnder = rv.findChildViewUnder(event.x, event.y)
+                            if (childUnder == null) {
                                 try {
                                     viewModel.updateArchivedApp(draggedApp.copy(folderName = null))
                                 } catch (t: Throwable) {
                                     android.util.Log.e("ArchiveFragment", "Failed to remove from folder on DROP", t)
                                 }
+                            } else {
+                                android.util.Log.d("ArchiveFragment", "DROP landed on a child view; ignoring RV handler")
                             }
-                            true
-                        } else false
-                    } else false
+                        }
+                        true
+                    } else {
+                        false
+                    }
                 }
                 DragEvent.ACTION_DRAG_ENDED -> {
-                    for (i in 0 until (rv as RecyclerView).childCount) {
-                        val child = rv.getChildAt(i)
-                        if (child.visibility == View.INVISIBLE) {
-                            child.visibility = View.VISIBLE
-                            child.alpha = 0f
-                            child.scaleX = 0.5f
-                            child.scaleY = 0.5f
-                            child.animate().alpha(1f).scaleX(1f).scaleY(1f)
-                                .setDuration(250).setInterpolator(OvershootInterpolator(1.5f)).start()
+                    (rv as RecyclerView).post {
+                        for (i in 0 until rv.childCount) {
+                            val child = rv.getChildAt(i)
+                            if (child.visibility == View.INVISIBLE) {
+                                child.visibility = View.VISIBLE
+                                child.alpha = 0f
+                                child.scaleX = 0.5f
+                                child.scaleY = 0.5f
+                                child.animate().alpha(1f).scaleX(1f).scaleY(1f)
+                                    .setDuration(250).setInterpolator(OvershootInterpolator(1.5f)).start()
+                            }
                         }
                     }
                     true
