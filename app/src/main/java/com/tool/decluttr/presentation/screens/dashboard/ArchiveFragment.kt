@@ -114,13 +114,24 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
 
         recyclerView.setOnDragListener { rv, event ->
             when (event.action) {
-                DragEvent.ACTION_DRAG_STARTED -> event.clipDescription?.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) == true
+                DragEvent.ACTION_DRAG_STARTED -> {
+                    val ok = event.clipDescription?.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) == true
+                    android.util.Log.d("ArchiveFragment", "DRAG_STARTED ok=$ok")
+                    ok
+                }
                 DragEvent.ACTION_DROP -> {
                     val draggedApp = event.localState as? ArchivedApp
+                    android.util.Log.d("ArchiveFragment", "DROP rv hit test. dragged=${draggedApp?.packageId}")
                     if (draggedApp != null && draggedApp.folderName != null) {
                         val childUnder = (rv as RecyclerView).findChildViewUnder(event.x, event.y)
                         if (childUnder == null) {
-                            rv.post { viewModel.updateArchivedApp(draggedApp.copy(folderName = null)) }
+                            rv.post {
+                                try {
+                                    viewModel.updateArchivedApp(draggedApp.copy(folderName = null))
+                                } catch (t: Throwable) {
+                                    android.util.Log.e("ArchiveFragment", "Failed to remove from folder on DROP", t)
+                                }
+                            }
                             true
                         } else false
                     } else false
@@ -263,6 +274,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     }
 
     private fun handleAppDropOnApp(draggedApp: ArchivedApp, targetApp: ArchivedApp) {
+        android.util.Log.d("ArchiveFragment", "handleAppDropOnApp dragged=${draggedApp.packageId} -> target=${targetApp.packageId}")
         if (draggedApp.packageId == targetApp.packageId) return
         val apps = viewModel.archivedApps.value
         val latestDragged = apps.firstOrNull { it.packageId == draggedApp.packageId } ?: return
@@ -271,13 +283,19 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         if (latestDragged.folderName != null && latestDragged.folderName == latestTarget.folderName) return
 
         val defaultName = nextDefaultFolderName(apps)
-        viewModel.updateArchivedApp(latestDragged.copy(folderName = defaultName))
-        viewModel.updateArchivedApp(latestTarget.copy(folderName = defaultName))
+        try {
+            viewModel.updateArchivedApp(latestDragged.copy(folderName = defaultName))
+            viewModel.updateArchivedApp(latestTarget.copy(folderName = defaultName))
+        } catch (t: Throwable) {
+            android.util.Log.e("ArchiveFragment", "Failed to assign folder $defaultName", t)
+            return
+        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             delay(150)
             expandedFolder = defaultName
-            showFolderOverlay(defaultName)
+            runCatching { showFolderOverlay(defaultName) }
+                .onFailure { android.util.Log.e("ArchiveFragment", "showFolderOverlay failed", it) }
         }
     }
 

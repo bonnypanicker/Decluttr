@@ -168,14 +168,17 @@ class ArchivedAppsAdapter(
         private var pulseAnimator: ObjectAnimator? = null
 
         override fun onDrag(view: View, event: DragEvent): Boolean {
+            android.util.Log.d("ArchivedAppsAdapter", "onDrag action=${event.action} viewPos=${adapterPosition}")
             val targetItem = view.tag as? ArchivedItem
             val draggedApp = event.localState as? ArchivedApp
 
             when (event.action) {
                 DragEvent.ACTION_DRAG_STARTED -> {
-                    return event.clipDescription?.hasMimeType(
+                    val ok = event.clipDescription?.hasMimeType(
                         android.content.ClipDescription.MIMETYPE_TEXT_PLAIN
                     ) == true
+                    android.util.Log.d("ArchivedAppsAdapter", "DRAG_STARTED ok=$ok hasLocal=${draggedApp!=null}")
+                    return ok
                 }
 
                 DragEvent.ACTION_DRAG_ENTERED -> {
@@ -233,6 +236,7 @@ class ArchivedAppsAdapter(
                 }
 
                 DragEvent.ACTION_DROP -> {
+                    android.util.Log.d("ArchivedAppsAdapter", "DROP target=$targetItem dragged=${draggedApp?.packageId}")
                     // Reset target visuals
                     pulseAnimator?.cancel()
                     pulseAnimator = null
@@ -245,18 +249,23 @@ class ArchivedAppsAdapter(
                             android.view.HapticFeedbackConstants.CONFIRM
                         )
 
-                        when {
+                        try {
+                            when {
                             targetItem is ArchivedItem.App &&
                                 draggedApp.packageId != targetItem.app.packageId -> {
                                 view.post {
-                                    runCatching { onAppDropOnApp(draggedApp, targetItem.app) }
+                                        onAppDropOnApp(draggedApp, targetItem.app)
                                 }
                             }
                             targetItem is ArchivedItem.Folder -> {
                                 view.post {
-                                    runCatching { onAppDropOnFolder(draggedApp, targetItem.name) }
+                                        onAppDropOnFolder(draggedApp, targetItem.name)
                                 }
                             }
+                            }
+                        } catch (t: Throwable) {
+                            android.util.Log.e("ArchivedAppsAdapter", "DROP failed", t)
+                            return false
                         }
                         return true
                     }
