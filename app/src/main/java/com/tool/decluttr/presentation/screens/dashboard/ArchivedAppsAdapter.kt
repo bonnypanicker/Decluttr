@@ -57,6 +57,8 @@ class ArchivedAppsAdapter(
     private val onFolderClick: (String) -> Unit
 ) : ListAdapter<ArchivedItem, RecyclerView.ViewHolder>(ArchiveDiffCallback()) {
     private var pendingDropAction: (() -> Unit)? = null
+    private var draggingPackageId: String? = null
+    private val pulseAnimators = mutableMapOf<View, ObjectAnimator>()
 
     override fun getItemViewType(position: Int): Int {
         return when(getItem(position)) {
@@ -92,6 +94,12 @@ class ArchivedAppsAdapter(
         fun bind(appItem: ArchivedItem.App) {
             val app = appItem.app
             itemView.tag = appItem
+            itemView.animate().cancel()
+            pulseAnimators.remove(itemView)?.cancel()
+            itemView.visibility = View.VISIBLE
+            itemView.alpha = 1f
+            itemView.scaleX = 1f
+            itemView.scaleY = 1f
             name.text = app.name
             icon.load(AppIconModel(app.packageId)) {
                 memoryCacheKey(app.packageId)
@@ -109,24 +117,27 @@ class ArchivedAppsAdapter(
                 val shadowBuilder = ScaledDragShadowBuilder(view, 1.1f)
 
                 // 3. Start drag
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                val started = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     view.startDragAndDrop(clipData, shadowBuilder, app, 0)
                 } else {
                     @Suppress("DEPRECATION")
                     view.startDrag(clipData, shadowBuilder, app, 0)
                 }
 
-                // 4. CRITICAL: Hide the source view so it doesn't duplicate
-                //    Pixel Launcher hides the icon from its cell during drag.
-                view.visibility = View.INVISIBLE
+                if (started) {
+                    draggingPackageId = app.packageId
+                    // 4. CRITICAL: Hide the source view so it doesn't duplicate
+                    //    Pixel Launcher hides the icon from its cell during drag.
+                    view.visibility = View.INVISIBLE
 
-                // Haptic feedback like Pixel Launcher
-                view.performHapticFeedback(
-                    android.view.HapticFeedbackConstants.LONG_PRESS,
-                    android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
-                )
+                    // Haptic feedback like Pixel Launcher
+                    view.performHapticFeedback(
+                        android.view.HapticFeedbackConstants.LONG_PRESS,
+                        android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                    )
+                }
 
-                true
+                started
             }
             itemView.setOnDragListener(DragListener())
         }
@@ -141,6 +152,12 @@ class ArchivedAppsAdapter(
 
         fun bind(folderItem: ArchivedItem.Folder) {
             itemView.tag = folderItem
+            itemView.animate().cancel()
+            pulseAnimators.remove(itemView)?.cancel()
+            itemView.visibility = View.VISIBLE
+            itemView.alpha = 1f
+            itemView.scaleX = 1f
+            itemView.scaleY = 1f
             folderName.text = folderItem.name
             
             val apps = folderItem.apps.take(4)
@@ -219,6 +236,7 @@ class ArchivedAppsAdapter(
                                     }
                                     start()
                                 }
+                                pulseAnimators[view] = pulseAnimator!!
                             }
                         }
                     }
@@ -229,6 +247,7 @@ class ArchivedAppsAdapter(
                     // Reset visual feedback
                     pulseAnimator?.cancel()
                     pulseAnimator = null
+                    pulseAnimators.remove(view)
                     view.background = originalBackground
                     view.animate()
                         .scaleX(1.0f)
@@ -244,6 +263,7 @@ class ArchivedAppsAdapter(
                     // Reset target visuals
                     pulseAnimator?.cancel()
                     pulseAnimator = null
+                    pulseAnimators.remove(view)
                     view.background = originalBackground
                     view.animate().scaleX(1f).scaleY(1f).setDuration(100).start()
 
@@ -281,6 +301,7 @@ class ArchivedAppsAdapter(
                     // CRITICAL: Restore visibility of the source view
                     pulseAnimator?.cancel()
                     pulseAnimator = null
+                    pulseAnimators.remove(view)
                     view.background = originalBackground
                     view.scaleX = 1f
                     view.scaleY = 1f
@@ -292,6 +313,7 @@ class ArchivedAppsAdapter(
                             val child = rv.getChildAt(i)
                             if (child.visibility == View.INVISIBLE) {
                                 // Animate back in with a spring-like pop
+                                child.animate().cancel()
                                 child.visibility = View.VISIBLE
                                 child.alpha = 0f
                                 child.scaleX = 0.5f
@@ -308,14 +330,15 @@ class ArchivedAppsAdapter(
                         val dropAction = pendingDropAction
                         pendingDropAction = null
                         if (dropAction != null) {
-                            rv.post {
+                            rv.postDelayed({
                                 runCatching { dropAction.invoke() }
                                     .onFailure {
                                         android.util.Log.e("ArchivedAppsAdapter", "Executing pending drop action failed", it)
                                     }
-                            }
+                            }, 260L)
                         }
                     }
+                    draggingPackageId = null
                     return true
                 }
 
@@ -331,5 +354,15 @@ class ArchivedAppsAdapter(
             }
             return null
         }
+    }
+
+    override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
+        super.onViewRecycled(holder)
+        holder.itemView.animate().cancel()
+        pulseAnimators.remove(holder.itemView)?.cancel()
+        holder.itemView.visibility = View.VISIBLE
+        holder.itemView.alpha = 1f
+        holder.itemView.scaleX = 1f
+        holder.itemView.scaleY = 1f
     }
 }

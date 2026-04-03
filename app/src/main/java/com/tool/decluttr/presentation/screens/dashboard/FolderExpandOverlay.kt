@@ -109,6 +109,16 @@ class FolderExpandOverlay(
                 onAppClick(packageId)
             },
             onDragStartFromFolder = {
+                // Restore any hidden source view before tearing down overlay.
+                for (i in 0 until grid.childCount) {
+                    val child = grid.getChildAt(i)
+                    if (child.visibility == View.INVISIBLE) {
+                        child.visibility = View.VISIBLE
+                        child.alpha = 1f
+                        child.scaleX = 1f
+                        child.scaleY = 1f
+                    }
+                }
                 // Instantly remove the overlay without animation during drag
                 parentView.removeView(overlayView)
                 overlayView = null

@@ -52,23 +52,25 @@ class FolderAppsAdapter(
         holder.itemView.setOnLongClickListener { view ->
             val clipData = ClipData.newPlainText("packageId", app.packageId)
             val shadowBuilder = ScaledDragShadowBuilder(view, 1.1f)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val started = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 view.startDragAndDrop(clipData, shadowBuilder, app, 0)
             } else {
                 @Suppress("DEPRECATION")
                 view.startDrag(clipData, shadowBuilder, app, 0)
             }
-            view.visibility = View.INVISIBLE
+            if (started) {
+                view.visibility = View.INVISIBLE
             
-            // Haptic feedback
-            view.performHapticFeedback(
-                android.view.HapticFeedbackConstants.LONG_PRESS,
-                android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
-            )
+                // Haptic feedback
+                view.performHapticFeedback(
+                    android.view.HapticFeedbackConstants.LONG_PRESS,
+                    android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                )
             
-            // Dismiss the folder dialog — the drag continues on the main grid
-            onDragStartFromFolder?.invoke()
-            true
+                // Dismiss the folder dialog — the drag continues on the main grid
+                onDragStartFromFolder?.invoke()
+            }
+            started
         }
     }
 

@@ -141,19 +141,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                     }
                 }
                 DragEvent.ACTION_DRAG_ENDED -> {
-                    (rv as RecyclerView).post {
-                        for (i in 0 until rv.childCount) {
-                            val child = rv.getChildAt(i)
-                            if (child.visibility == View.INVISIBLE) {
-                                child.visibility = View.VISIBLE
-                                child.alpha = 0f
-                                child.scaleX = 0.5f
-                                child.scaleY = 0.5f
-                                child.animate().alpha(1f).scaleX(1f).scaleY(1f)
-                                    .setDuration(250).setInterpolator(OvershootInterpolator(1.5f)).start()
-                            }
-                        }
-                    }
+                    // Restoration is handled in adapter drag listeners.
                     true
                 }
                 else -> true
