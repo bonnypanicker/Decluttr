@@ -202,7 +202,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="start|center_vertical"
-                        android:text="Terms & Conditions" />
+                        android:text="Terms &amp; Conditions" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_licenses"
