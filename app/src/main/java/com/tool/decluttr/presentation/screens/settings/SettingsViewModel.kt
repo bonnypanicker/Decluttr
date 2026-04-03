@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,8 +22,9 @@ class SettingsViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    val isLoggedIn: StateFlow<Boolean> = authRepository.isUserLoggedIn
-        .stateIn(viewModelScope, SharingStarted.Lazily, false)
+    val isLoggedIn: StateFlow<Boolean?> = authRepository.isUserLoggedIn
+        .map { it as Boolean? }
+        .stateIn(viewModelScope, SharingStarted.Lazily, null)
 
     val currentUserEmail: StateFlow<String?> = authRepository.currentUserEmail
         .stateIn(viewModelScope, SharingStarted.Lazily, null)
