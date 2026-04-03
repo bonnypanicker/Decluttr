@@ -56,7 +56,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private lateinit var chipContainer: LinearLayout
     private lateinit var btnSort: ImageView
     private lateinit var btnViewSwitch: ImageView
-    private lateinit var tvSortIndicator: TextView
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyStateContainer: View
     private lateinit var tvEmptyMessage: TextView
@@ -90,7 +89,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         chipContainer = v.findViewById(R.id.chip_container)
         btnSort = v.findViewById(R.id.btn_sort)
         btnViewSwitch = v.findViewById(R.id.btn_view_switch)
-        tvSortIndicator = v.findViewById(R.id.tv_sort_indicator)
         recyclerView = v.findViewById(R.id.archive_recycler_view)
         emptyStateContainer = v.findViewById(R.id.empty_state_container)
         tvEmptyMessage = v.findViewById(R.id.tv_empty_message)
@@ -194,18 +192,20 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         btnViewSwitch.setOnClickListener {
             isListMode = !isListMode
             adapter.setListMode(isListMode)
+            btnSort.visibility = if (isListMode) View.VISIBLE else View.GONE
             recyclerView.layoutManager = if (isListMode) {
                 LinearLayoutManager(requireContext())
             } else {
                 GridLayoutManager(requireContext(), 4)
             }
             btnViewSwitch.setImageResource(
-                if (isListMode) android.R.drawable.ic_dialog_dialer else android.R.drawable.ic_menu_agenda
+                if (isListMode) R.drawable.ic_grid_view else R.drawable.ic_list
             )
             updateUI(viewModel.archivedApps.value)
         }
 
         btnSort.setOnClickListener { showSortMenu() }
+        btnSort.visibility = if (isListMode) View.VISIBLE else View.GONE
 
         btnFindApps.setOnClickListener {
             requireActivity().findViewById<BottomNavigationView>(R.id.bottom_nav)?.selectedItemId = R.id.nav_discover
@@ -245,8 +245,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     }
 
     private fun updateUI(apps: List<ArchivedApp>) {
-        tvSortIndicator.text = "Sorted by: ${sortOption.label}"
-
         val categories = listOf("All") + apps.mapNotNull { it.category }.filter { it.isNotBlank() }.distinct().sorted()
 
         if (categories.size > 1) {
@@ -338,6 +336,13 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private fun showSortMenu() {
         val popup = PopupMenu(requireContext(), btnSort)
         MenuInflater(requireContext()).inflate(R.menu.archive_sort_menu, popup.menu)
+        val selectedItemId = when (sortOption) {
+            ArchiveSortOption.UNINSTALLED_DATE -> R.id.sort_uninstalled_date
+            ArchiveSortOption.SIZE -> R.id.sort_size
+            ArchiveSortOption.CATEGORY -> R.id.sort_category
+            ArchiveSortOption.ALPHABETICAL -> R.id.sort_alphabetic
+        }
+        popup.menu.findItem(selectedItemId)?.isChecked = true
         popup.setOnMenuItemClickListener { item ->
             sortOption = when (item.itemId) {
                 R.id.sort_size -> ArchiveSortOption.SIZE

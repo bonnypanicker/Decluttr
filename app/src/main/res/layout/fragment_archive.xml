@@ -30,7 +30,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Sort archived apps"
             android:padding="8dp"
-            android:src="@android:drawable/ic_menu_sort_by_size"
+            android:src="@drawable/ic_sort"
             android:tint="?attr/colorOnSurfaceVariant" />
 
         <ImageButton
@@ -41,19 +41,9 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Switch archive view"
             android:padding="8dp"
-            android:src="@android:drawable/ic_menu_agenda"
+            android:src="@drawable/ic_list"
             android:tint="?attr/colorOnSurfaceVariant" />
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/tv_sort_indicator"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="20dp"
-        android:layout_marginBottom="4dp"
-        android:text="Sorted by: Uninstalled Date"
-        android:textAppearance="?attr/textAppearanceBodySmall"
-        android:textColor="?attr/colorOnSurfaceVariant" />
 
     <HorizontalScrollView
         android:id="@+id/category_scroll_view"
