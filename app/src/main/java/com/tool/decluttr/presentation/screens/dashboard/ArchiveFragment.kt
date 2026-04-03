@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.DragEvent
+import android.view.MenuInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
@@ -24,7 +25,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.appcompat.widget.PopupMenu
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.chip.Chip
 import com.google.android.material.snackbar.Snackbar
@@ -33,6 +36,8 @@ import com.tool.decluttr.domain.model.ArchivedApp
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.DateFormat
+import java.text.DecimalFormat
 
 @AndroidEntryPoint
 class ArchiveFragment : Fragment(R.layout.fragment_archive) {
@@ -49,12 +54,25 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private lateinit var searchClear: ImageView
     private lateinit var chipContainerScrollView: View
     private lateinit var chipContainer: LinearLayout
+    private lateinit var btnSort: ImageView
+    private lateinit var btnViewSwitch: ImageView
+    private lateinit var tvSortIndicator: TextView
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyStateContainer: View
     private lateinit var tvEmptyMessage: TextView
     private lateinit var btnFindApps: Button
 
     private lateinit var adapter: ArchivedAppsAdapter
+    private var isListMode = false
+    private var sortOption: ArchiveSortOption = ArchiveSortOption.UNINSTALLED_DATE
+    private var sizeMap: Map<String, Long?> = emptyMap()
+
+    private enum class ArchiveSortOption(val label: String) {
+        UNINSTALLED_DATE("Uninstalled Date"),
+        SIZE("Size"),
+        CATEGORY("Category"),
+        ALPHABETICAL("Alphabetical")
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -70,6 +88,9 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         searchClear = searchBar.findViewById(R.id.clear_button)
         chipContainerScrollView = v.findViewById(R.id.category_scroll_view)
         chipContainer = v.findViewById(R.id.chip_container)
+        btnSort = v.findViewById(R.id.btn_sort)
+        btnViewSwitch = v.findViewById(R.id.btn_view_switch)
+        tvSortIndicator = v.findViewById(R.id.tv_sort_indicator)
         recyclerView = v.findViewById(R.id.archive_recycler_view)
         emptyStateContainer = v.findViewById(R.id.empty_state_container)
         tvEmptyMessage = v.findViewById(R.id.tv_empty_message)
@@ -93,6 +114,12 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             onFolderClick = { folderName ->
                 expandedFolder = folderName
                 showFolderOverlay(folderName)
+            },
+            appMetaProvider = { app ->
+                AppListMeta(
+                    sizeLabel = formatSize(sizeMap[app.packageId]),
+                    uninstallDateLabel = formatDate(app.archivedAt)
+                )
             }
         )
 
@@ -164,6 +191,22 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         })
         searchClear.setOnClickListener { searchInput.setText("") }
 
+        btnViewSwitch.setOnClickListener {
+            isListMode = !isListMode
+            adapter.setListMode(isListMode)
+            recyclerView.layoutManager = if (isListMode) {
+                LinearLayoutManager(requireContext())
+            } else {
+                GridLayoutManager(requireContext(), 4)
+            }
+            btnViewSwitch.setImageResource(
+                if (isListMode) android.R.drawable.ic_dialog_dialer else android.R.drawable.ic_menu_agenda
+            )
+            updateUI(viewModel.archivedApps.value)
+        }
+
+        btnSort.setOnClickListener { showSortMenu() }
+
         btnFindApps.setOnClickListener {
             requireActivity().findViewById<BottomNavigationView>(R.id.bottom_nav)?.selectedItemId = R.id.nav_discover
         }
@@ -202,6 +245,8 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     }
 
     private fun updateUI(apps: List<ArchivedApp>) {
+        tvSortIndicator.text = "Sorted by: ${sortOption.label}"
+
         val categories = listOf("All") + apps.mapNotNull { it.category }.filter { it.isNotBlank() }.distinct().sorted()
 
         if (categories.size > 1) {
@@ -239,8 +284,31 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             matchesCategory && matchesQuery
         }
 
-        val standalones = filteredApps.filter { it.folderName == null }.map { ArchivedItem.App(it) }
-        val folders = filteredApps.filter { it.folderName != null }
+        sizeMap = filteredApps.associate { it.packageId to getInstalledApkSize(it.packageId) }
+        val sortedApps = sortApps(filteredApps)
+
+        if (isListMode) {
+            val listItems = sortedApps.map { ArchivedItem.App(it) }
+            if (listItems.isEmpty()) {
+                recyclerView.visibility = View.GONE
+                emptyStateContainer.visibility = View.VISIBLE
+                if (apps.isEmpty()) {
+                    tvEmptyMessage.text = getString(R.string.archive_empty_message)
+                    btnFindApps.visibility = View.VISIBLE
+                } else {
+                    tvEmptyMessage.text = getString(R.string.archive_empty_filtered)
+                    btnFindApps.visibility = View.GONE
+                }
+            } else {
+                recyclerView.visibility = View.VISIBLE
+                emptyStateContainer.visibility = View.GONE
+                adapter.submitList(listItems)
+            }
+            return
+        }
+
+        val standalones = sortedApps.filter { it.folderName == null }.map { ArchivedItem.App(it) }
+        val folders = sortedApps.filter { it.folderName != null }
             .groupBy { it.folderName!! }
             .map { (name, fapps) -> ArchivedItem.Folder(name, fapps) }
         val groupedItems = (standalones + folders).sortedBy {
@@ -265,6 +333,56 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             emptyStateContainer.visibility = View.GONE
             adapter.submitList(groupedItems)
         }
+    }
+
+    private fun showSortMenu() {
+        val popup = PopupMenu(requireContext(), btnSort)
+        MenuInflater(requireContext()).inflate(R.menu.archive_sort_menu, popup.menu)
+        popup.setOnMenuItemClickListener { item ->
+            sortOption = when (item.itemId) {
+                R.id.sort_size -> ArchiveSortOption.SIZE
+                R.id.sort_category -> ArchiveSortOption.CATEGORY
+                R.id.sort_alphabetic -> ArchiveSortOption.ALPHABETICAL
+                else -> ArchiveSortOption.UNINSTALLED_DATE
+            }
+            updateUI(viewModel.archivedApps.value)
+            true
+        }
+        popup.show()
+    }
+
+    private fun sortApps(apps: List<ArchivedApp>): List<ArchivedApp> {
+        return when (sortOption) {
+            ArchiveSortOption.UNINSTALLED_DATE -> apps.sortedByDescending { it.archivedAt }
+            ArchiveSortOption.SIZE -> apps.sortedWith(
+                compareByDescending<ArchivedApp> { sizeMap[it.packageId] ?: -1L }
+                    .thenBy { it.name.lowercase() }
+            )
+            ArchiveSortOption.CATEGORY -> apps.sortedWith(
+                compareBy<ArchivedApp> { (it.category ?: "zzz").lowercase() }
+                    .thenBy { it.name.lowercase() }
+            )
+            ArchiveSortOption.ALPHABETICAL -> apps.sortedBy { it.name.lowercase() }
+        }
+    }
+
+    private fun getInstalledApkSize(packageId: String): Long? {
+        return try {
+            val appInfo = requireContext().packageManager.getApplicationInfo(packageId, 0)
+            java.io.File(appInfo.sourceDir).length()
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun formatSize(sizeBytes: Long?): String {
+        if (sizeBytes == null || sizeBytes <= 0L) return "Size: N/A"
+        val mb = sizeBytes / (1024.0 * 1024.0)
+        return "Size: ${DecimalFormat("#,##0.#").format(mb)} MB"
+    }
+
+    private fun formatDate(timestamp: Long): String {
+        return "Uninstalled: ${DateFormat.getDateInstance(DateFormat.MEDIUM).format(java.util.Date(timestamp))}"
     }
 
     private fun handleAppDropOnApp(draggedApp: ArchivedApp, targetApp: ArchivedApp) {

@@ -29,6 +29,11 @@ sealed class ArchivedItem {
     ) : ArchivedItem()
 }
 
+data class AppListMeta(
+    val sizeLabel: String,
+    val uninstallDateLabel: String
+)
+
 class ArchiveDiffCallback : DiffUtil.ItemCallback<ArchivedItem>() {
     override fun areItemsTheSame(oldItem: ArchivedItem, newItem: ArchivedItem): Boolean {
         return when {
@@ -54,27 +59,47 @@ class ArchivedAppsAdapter(
     private val onAppDropOnApp: (ArchivedApp, ArchivedApp) -> Unit,
     private val onAppDropOnFolder: (ArchivedApp, String) -> Unit,
     private val onRemoveFolder: (List<ArchivedApp>) -> Unit,
-    private val onFolderClick: (String) -> Unit
+    private val onFolderClick: (String) -> Unit,
+    private val appMetaProvider: (ArchivedApp) -> AppListMeta
 ) : ListAdapter<ArchivedItem, RecyclerView.ViewHolder>(ArchiveDiffCallback()) {
     private var pendingDropAction: (() -> Unit)? = null
     private var draggingPackageId: String? = null
     private val pulseAnimators = mutableMapOf<View, ObjectAnimator>()
+    private var isListMode: Boolean = false
+
+    fun setListMode(enabled: Boolean) {
+        if (isListMode != enabled) {
+            isListMode = enabled
+            notifyDataSetChanged()
+        }
+    }
 
     override fun getItemViewType(position: Int): Int {
         return when(getItem(position)) {
-            is ArchivedItem.App -> 0
-            is ArchivedItem.Folder -> 1
+            is ArchivedItem.App -> if (isListMode) 2 else 0
+            is ArchivedItem.Folder -> if (isListMode) 3 else 1
         }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
-        return if (viewType == 0) {
-            val view = inflater.inflate(R.layout.item_archived_app, parent, false)
-            AppViewHolder(view)
-        } else {
-            val view = inflater.inflate(R.layout.item_archived_folder, parent, false)
-            FolderViewHolder(view)
+        return when (viewType) {
+            0 -> {
+                val view = inflater.inflate(R.layout.item_archived_app, parent, false)
+                AppViewHolder(view)
+            }
+            1 -> {
+                val view = inflater.inflate(R.layout.item_archived_folder, parent, false)
+                FolderViewHolder(view)
+            }
+            2 -> {
+                val view = inflater.inflate(R.layout.item_archived_app_list, parent, false)
+                AppListViewHolder(view)
+            }
+            else -> {
+                val view = inflater.inflate(R.layout.item_archived_folder_list, parent, false)
+                FolderListViewHolder(view)
+            }
         }
     }
 
@@ -83,6 +108,10 @@ class ArchivedAppsAdapter(
         if (holder is AppViewHolder && item is ArchivedItem.App) {
             holder.bind(item)
         } else if (holder is FolderViewHolder && item is ArchivedItem.Folder) {
+            holder.bind(item)
+        } else if (holder is AppListViewHolder && item is ArchivedItem.App) {
+            holder.bind(item)
+        } else if (holder is FolderListViewHolder && item is ArchivedItem.Folder) {
             holder.bind(item)
         }
     }
@@ -178,6 +207,38 @@ class ArchivedAppsAdapter(
                 true
             }
             itemView.setOnDragListener(DragListener())
+        }
+    }
+
+    inner class AppListViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        private val icon = view.findViewById<ImageView>(R.id.app_icon)
+        private val name = view.findViewById<TextView>(R.id.app_name)
+        private val meta = view.findViewById<TextView>(R.id.app_meta)
+
+        fun bind(appItem: ArchivedItem.App) {
+            val app = appItem.app
+            itemView.tag = appItem
+            name.text = app.name
+            val m = appMetaProvider(app)
+            val category = app.category ?: "Uncategorized"
+            meta.text = "${m.sizeLabel} • ${m.uninstallDateLabel} • $category"
+            icon.load(AppIconModel(app.packageId)) {
+                memoryCacheKey(app.packageId)
+                crossfade(false)
+            }
+            itemView.setOnClickListener { onAppClick(app.packageId) }
+        }
+    }
+
+    inner class FolderListViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        private val folderName = view.findViewById<TextView>(R.id.folder_name)
+        private val folderMeta = view.findViewById<TextView>(R.id.folder_meta)
+
+        fun bind(folderItem: ArchivedItem.Folder) {
+            itemView.tag = folderItem
+            folderName.text = folderItem.name
+            folderMeta.text = "${folderItem.apps.size} apps"
+            itemView.setOnClickListener { onFolderClick(folderItem.name) }
         }
     }
 

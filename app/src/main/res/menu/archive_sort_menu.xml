@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/sort_uninstalled_date"
+        android:title="Uninstalled Date" />
+    <item
+        android:id="@+id/sort_size"
+        android:title="Size" />
+    <item
+        android:id="@+id/sort_category"
+        android:title="Category" />
+    <item
+        android:id="@+id/sort_alphabetic"
+        android:title="Alphabetical" />
+</menu>

@@ -13,6 +13,8 @@ import com.google.android.material.button.MaterialButton
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.ArchivedApp
 import com.tool.decluttr.presentation.util.AppIconModel
+import java.text.DateFormat
+import java.util.Date
 
 class NativeAppDetailsDialog(
     private val context: Context,
@@ -34,11 +36,15 @@ class NativeAppDetailsDialog(
             val appIcon = findViewById<ImageView>(R.id.app_icon)
             val appName = findViewById<TextView>(R.id.app_name)
             val appCategory = findViewById<TextView>(R.id.app_category)
+            val appUninstalledDate = findViewById<TextView>(R.id.app_uninstalled_date)
             val btnDelete = findViewById<ImageButton>(R.id.btn_delete)
             val btnReinstall = findViewById<MaterialButton>(R.id.btn_reinstall)
             
             appName.text = app.name
             appCategory.text = app.category ?: context.getString(R.string.archive_popup_uncategorized)
+            appUninstalledDate.text = "Uninstalled on: ${
+                DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(app.archivedAt))
+            }"
             appIcon.load(AppIconModel(app.packageId)) {
                 memoryCacheKey(app.packageId)
                 crossfade(false)
