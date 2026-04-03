@@ -100,10 +100,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
     }
 
     private fun openSettings() {
-        val navHost = requireActivity()
-            .supportFragmentManager
-            .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
-        val navController = navHost?.navController ?: findNavController()
+        val navController = findNavController()
         val currentId = navController.currentDestination?.id
         if (currentId == R.id.settingsFragment) return
         try {
