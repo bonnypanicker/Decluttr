@@ -9,9 +9,13 @@ class ArchiveAndUninstallUseCase @Inject constructor(
     private val uninstallAppUseCase: UninstallAppUseCase,
     private val repository: AppRepository
 ) {
-    suspend operator fun invoke(packageIds: List<String>, appInfoMap: Map<String, Pair<Boolean, Long>> = emptyMap()) {
+    suspend operator fun invoke(
+        packageIds: List<String>,
+        appInfoMap: Map<String, Pair<Boolean, Long>> = emptyMap(),
+        performUninstall: Boolean = true
+    ) {
         for (packageId in packageIds) {
-            // Re-fetch details just to be safe, making sure to fetch the icon bytes!
+            // Capture metadata only when we know we want to archive this package.
             val details = getAppDetailsUseCase(packageId, fetchIcon = true)
             
             val info = appInfoMap[packageId]
@@ -24,11 +28,11 @@ class ArchiveAndUninstallUseCase @Inject constructor(
                 lastTimeUsed = info?.second ?: 0L
             )
             
-            // Save to DB
             repository.insertApp(app)
             
-            // Trigger OS Uninstall (async, requires user confirm for each)
-            uninstallAppUseCase(packageId)
+            if (performUninstall) {
+                uninstallAppUseCase(packageId)
+            }
         }
     }
 }

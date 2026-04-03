@@ -1,6 +1,8 @@
 package com.tool.decluttr.presentation.screens.dashboard
 
 import android.content.ClipDescription
+import android.content.Intent
+import android.net.Uri
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.text.Editable
@@ -52,8 +54,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private lateinit var searchBar: View
     private lateinit var searchInput: EditText
     private lateinit var searchClear: ImageView
+    private lateinit var categoryBar: View
     private lateinit var chipContainerScrollView: View
     private lateinit var chipContainer: LinearLayout
+    private lateinit var btnReinstalledApps: ImageView
     private lateinit var btnSort: ImageView
     private lateinit var btnViewSwitch: ImageView
     private lateinit var recyclerView: RecyclerView
@@ -65,6 +69,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private var isListMode = false
     private var sortOption: ArchiveSortOption = ArchiveSortOption.UNINSTALLED_DATE
     private var sizeMap: Map<String, Long?> = emptyMap()
+    private var reinstatedApps: List<ArchivedApp> = emptyList()
+    private var installedPackagesCache: Set<String> = emptySet()
+    private var installedPackagesCacheAt: Long = 0L
+    private val installedPackagesCacheTtlMs: Long = 8_000L
 
     private enum class ArchiveSortOption(val label: String) {
         UNINSTALLED_DATE("Uninstalled Date"),
@@ -85,8 +93,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         searchBar = v.findViewById(R.id.archive_search_bar)
         searchInput = searchBar.findViewById(R.id.search_edit_text)
         searchClear = searchBar.findViewById(R.id.clear_button)
+        categoryBar = v.findViewById(R.id.category_bar)
         chipContainerScrollView = v.findViewById(R.id.category_scroll_view)
         chipContainer = v.findViewById(R.id.chip_container)
+        btnReinstalledApps = v.findViewById(R.id.btn_reinstalled_apps)
         btnSort = v.findViewById(R.id.btn_sort)
         btnViewSwitch = v.findViewById(R.id.btn_view_switch)
         recyclerView = v.findViewById(R.id.archive_recycler_view)
@@ -207,6 +217,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         btnSort.setOnClickListener { showSortMenu() }
         btnSort.visibility = if (isListMode) View.VISIBLE else View.GONE
 
+        btnReinstalledApps.setOnClickListener {
+            showReinstalledAppsMenu()
+        }
+
         btnFindApps.setOnClickListener {
             requireActivity().findViewById<BottomNavigationView>(R.id.bottom_nav)?.selectedItemId = R.id.nav_discover
         }
@@ -245,7 +259,24 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     }
 
     private fun updateUI(apps: List<ArchivedApp>) {
-        val categories = listOf("All") + apps.mapNotNull { it.category }.filter { it.isNotBlank() }.distinct().sorted()
+        val installedPackages = getInstalledPackageIds()
+        reinstatedApps = apps
+            .filter { it.packageId in installedPackages }
+            .sortedBy { it.name.lowercase() }
+        val visibleArchiveApps = apps.filterNot { it.packageId in installedPackages }
+
+        val categories = listOf("All") + visibleArchiveApps
+            .mapNotNull { it.category }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .sorted()
+
+        if (selectedCategory !in categories) {
+            selectedCategory = "All"
+        }
+
+        categoryBar.visibility = if (categories.size > 1 || reinstatedApps.isNotEmpty()) View.VISIBLE else View.GONE
+        btnReinstalledApps.visibility = if (reinstatedApps.isNotEmpty()) View.VISIBLE else View.GONE
 
         if (categories.size > 1) {
             chipContainerScrollView.visibility = View.VISIBLE
@@ -270,7 +301,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             chipContainerScrollView.visibility = View.GONE
         }
 
-        val filteredApps = apps.filter { app ->
+        val filteredApps = visibleArchiveApps.filter { app ->
             val matchesCategory = selectedCategory == "All" || app.category == selectedCategory
             val query = searchQuery.lowercase().trim()
             val matchesQuery = query.isEmpty() ||
@@ -290,7 +321,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             if (listItems.isEmpty()) {
                 recyclerView.visibility = View.GONE
                 emptyStateContainer.visibility = View.VISIBLE
-                if (apps.isEmpty()) {
+                if (visibleArchiveApps.isEmpty()) {
                     tvEmptyMessage.text = getString(R.string.archive_empty_message)
                     btnFindApps.visibility = View.VISIBLE
                 } else {
@@ -319,7 +350,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         if (groupedItems.isEmpty()) {
             recyclerView.visibility = View.GONE
             emptyStateContainer.visibility = View.VISIBLE
-            if (apps.isEmpty()) {
+            if (visibleArchiveApps.isEmpty()) {
                 tvEmptyMessage.text = getString(R.string.archive_empty_message)
                 btnFindApps.visibility = View.VISIBLE
             } else {
@@ -331,6 +362,54 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             emptyStateContainer.visibility = View.GONE
             adapter.submitList(groupedItems)
         }
+    }
+
+    private fun showReinstalledAppsMenu() {
+        if (reinstatedApps.isEmpty()) return
+        val popup = PopupMenu(requireContext(), btnReinstalledApps)
+        reinstatedApps.forEachIndexed { index, app ->
+            popup.menu.add(0, index, index, app.name)
+        }
+        popup.setOnMenuItemClickListener { item ->
+            val app = reinstatedApps.getOrNull(item.itemId) ?: return@setOnMenuItemClickListener false
+            openPlayStore(app.packageId)
+            true
+        }
+        popup.show()
+    }
+
+    private fun openPlayStore(packageId: String) {
+        val marketIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageId")).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val webIntent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("https://play.google.com/store/apps/details?id=$packageId")
+        ).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        try {
+            startActivity(marketIntent)
+        } catch (_: Exception) {
+            startActivity(webIntent)
+        }
+    }
+
+    private fun getInstalledPackageIds(): Set<String> {
+        val now = System.currentTimeMillis()
+        if (installedPackagesCache.isNotEmpty() && now - installedPackagesCacheAt < installedPackagesCacheTtlMs) {
+            return installedPackagesCache
+        }
+        installedPackagesCache = try {
+            requireContext().packageManager
+                .getInstalledApplications(0)
+                .map { it.packageName }
+                .toSet()
+        } catch (_: Exception) {
+            emptySet()
+        }
+        installedPackagesCacheAt = now
+        return installedPackagesCache
     }
 
     private fun showSortMenu() {

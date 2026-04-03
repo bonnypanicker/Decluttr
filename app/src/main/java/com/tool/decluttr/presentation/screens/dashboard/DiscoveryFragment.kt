@@ -264,7 +264,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
                     viewModel.uninstallProgress.collect { prog ->
                         if (prog.isUninstalling) {
                             overlayUninstalling.visibility = View.VISIBLE
-                            tvUninstallProgress.text = "Uninstalling app ${prog.current} of ${prog.total}"
+                            tvUninstallProgress.text = "Uninstalling ${prog.current}/${prog.total}"
                         } else {
                             overlayUninstalling.visibility = View.GONE
                         }

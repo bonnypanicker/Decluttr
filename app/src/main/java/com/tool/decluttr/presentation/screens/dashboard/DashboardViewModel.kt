@@ -264,8 +264,6 @@ class DashboardViewModel @Inject constructor(
         if (packageIds.isEmpty()) return
         
         val appsToUninstall = allInstalledApps.value.filter { it.packageId in packageIds }
-        val savedBytes = appsToUninstall.sumOf { it.apkSizeBytes }
-        
         val appInfoMap = appsToUninstall.associate { 
             it.packageId to Pair(it.isPlayStoreInstalled, it.lastTimeUsed)
         }
@@ -273,26 +271,34 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             _uninstallProgress.value = UninstallProgress(0, packageIds.size, true)
             var uninstalledCount = 0
+            val successfullyArchivedIds = mutableListOf<String>()
 
             for (packageId in packageIds) {
                 _uninstallProgress.value = UninstallProgress(uninstalledCount + 1, packageIds.size, true)
                 val success = awaitUninstall(packageId) {
-                    viewModelScope.launch {
-                        archiveAndUninstallUseCase(listOf(packageId), appInfoMap)
-                    }
+                    uninstallAppUseCase(packageId)
                 }
                 if (success) {
                     uninstalledCount++
+                    successfullyArchivedIds += packageId
+                    archiveAndUninstallUseCase(
+                        packageIds = listOf(packageId),
+                        appInfoMap = appInfoMap,
+                        performUninstall = false
+                    )
                 }
             }
 
             _uninstallProgress.value = UninstallProgress(0, 0, false)
             loadDiscoveryData()
             
-            if (uninstalledCount > 0) {
-                val celebration = CelebrationData(uninstalledCount, appsToUninstall.take(uninstalledCount).sumOf { it.apkSizeBytes })
+            if (successfullyArchivedIds.isNotEmpty()) {
+                val archivedIds = successfullyArchivedIds.toSet()
+                val savedBytes = appsToUninstall
+                    .filter { it.packageId in archivedIds }
+                    .sumOf { it.apkSizeBytes }
+                val celebration = CelebrationData(archivedIds.size, savedBytes)
                 // Wait for Room to have all newly archived apps before showing review
-                val archivedIds = packageIds.toSet()
                 val reviewApps = archivedApps.first { apps ->
                     archivedIds.all { id -> apps.any { it.packageId == id } }
                 }.filter { it.packageId in archivedIds }
