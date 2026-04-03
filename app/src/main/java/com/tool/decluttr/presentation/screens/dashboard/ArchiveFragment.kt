@@ -299,7 +299,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             .sortedBy { it.name.lowercase() }
         val visibleArchiveApps = apps.filterNot { it.packageId in installedPackages }
         if (isReinstalledPageVisible) {
-            reinstalledAdapter.submitList(reinstatedApps)
+            reinstalledAdapter.submitArchivedApps(reinstatedApps)
             tvReinstalledEmpty.visibility = if (reinstatedApps.isEmpty()) View.VISIBLE else View.GONE
         }
 
@@ -421,7 +421,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         isReinstalledPageVisible = visible
         reinstalledPageContainer.visibility = if (visible) View.VISIBLE else View.GONE
         if (visible) {
-            reinstalledAdapter.submitList(reinstatedApps)
+            reinstalledAdapter.submitArchivedApps(reinstatedApps)
             tvReinstalledEmpty.visibility = if (reinstatedApps.isEmpty()) View.VISIBLE else View.GONE
         }
     }
@@ -645,7 +645,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             holder.bind(getItem(position))
         }
 
-        fun submitList(apps: List<ArchivedApp>) {
+        fun submitArchivedApps(apps: List<ArchivedApp>) {
             submitList(apps.map { ReinstalledItem(it.packageId, it.name) })
         }
     }
