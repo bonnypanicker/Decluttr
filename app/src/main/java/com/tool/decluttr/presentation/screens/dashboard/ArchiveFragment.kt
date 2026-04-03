@@ -19,22 +19,27 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.activity.addCallback
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.appcompat.widget.PopupMenu
+import coil.load
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.chip.Chip
 import com.google.android.material.snackbar.Snackbar
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.ArchivedApp
+import com.tool.decluttr.presentation.util.AppIconModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -64,9 +69,15 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private lateinit var emptyStateContainer: View
     private lateinit var tvEmptyMessage: TextView
     private lateinit var btnFindApps: Button
+    private lateinit var reinstalledPageContainer: View
+    private lateinit var btnReinstalledBack: ImageView
+    private lateinit var reinstalledRecyclerView: RecyclerView
+    private lateinit var tvReinstalledEmpty: TextView
 
     private lateinit var adapter: ArchivedAppsAdapter
+    private lateinit var reinstalledAdapter: ReinstalledAppsAdapter
     private var isListMode = false
+    private var isReinstalledPageVisible = false
     private var sortOption: ArchiveSortOption = ArchiveSortOption.UNINSTALLED_DATE
     private var sizeMap: Map<String, Long?> = emptyMap()
     private var reinstatedApps: List<ArchivedApp> = emptyList()
@@ -103,6 +114,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         emptyStateContainer = v.findViewById(R.id.empty_state_container)
         tvEmptyMessage = v.findViewById(R.id.tv_empty_message)
         btnFindApps = v.findViewById(R.id.btn_find_apps)
+        reinstalledPageContainer = v.findViewById(R.id.reinstalled_page_container)
+        btnReinstalledBack = v.findViewById(R.id.btn_reinstalled_back)
+        reinstalledRecyclerView = v.findViewById(R.id.reinstalled_recycler_view)
+        tvReinstalledEmpty = v.findViewById(R.id.tv_reinstalled_empty)
 
         searchInput.hint = "Search"
     }
@@ -146,6 +161,13 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             moveDuration = 300
             changeDuration = 200
         }
+
+        reinstalledAdapter = ReinstalledAppsAdapter { app ->
+            openPlayStore(app.packageId)
+        }
+        reinstalledRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+        reinstalledRecyclerView.adapter = reinstalledAdapter
+        reinstalledRecyclerView.setHasFixedSize(true)
 
         recyclerView.setOnDragListener { rv, event ->
             when (event.action) {
@@ -220,9 +242,21 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         btnReinstalledApps.setOnClickListener {
             showReinstalledAppsMenu()
         }
+        btnReinstalledBack.setOnClickListener {
+            setReinstalledPageVisible(false)
+        }
 
         btnFindApps.setOnClickListener {
             requireActivity().findViewById<BottomNavigationView>(R.id.bottom_nav)?.selectedItemId = R.id.nav_discover
+        }
+
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
+            if (isReinstalledPageVisible) {
+                setReinstalledPageVisible(false)
+            } else {
+                isEnabled = false
+                requireActivity().onBackPressedDispatcher.onBackPressed()
+            }
         }
     }
 
@@ -264,6 +298,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             .filter { it.packageId in installedPackages }
             .sortedBy { it.name.lowercase() }
         val visibleArchiveApps = apps.filterNot { it.packageId in installedPackages }
+        if (isReinstalledPageVisible) {
+            reinstalledAdapter.submitList(reinstatedApps)
+            tvReinstalledEmpty.visibility = if (reinstatedApps.isEmpty()) View.VISIBLE else View.GONE
+        }
 
         val categories = listOf("All") + visibleArchiveApps
             .mapNotNull { it.category }
@@ -365,17 +403,27 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     }
 
     private fun showReinstalledAppsMenu() {
-        if (reinstatedApps.isEmpty()) return
         val popup = PopupMenu(requireContext(), btnReinstalledApps)
-        reinstatedApps.forEachIndexed { index, app ->
-            popup.menu.add(0, index, index, app.name)
-        }
+        MenuInflater(requireContext()).inflate(R.menu.archive_overflow_menu, popup.menu)
         popup.setOnMenuItemClickListener { item ->
-            val app = reinstatedApps.getOrNull(item.itemId) ?: return@setOnMenuItemClickListener false
-            openPlayStore(app.packageId)
-            true
+            when (item.itemId) {
+                R.id.menu_reinstalled_apps -> {
+                    setReinstalledPageVisible(true)
+                    true
+                }
+                else -> false
+            }
         }
         popup.show()
+    }
+
+    private fun setReinstalledPageVisible(visible: Boolean) {
+        isReinstalledPageVisible = visible
+        reinstalledPageContainer.visibility = if (visible) View.VISIBLE else View.GONE
+        if (visible) {
+            reinstalledAdapter.submitList(reinstatedApps)
+            tvReinstalledEmpty.visibility = if (reinstatedApps.isEmpty()) View.VISIBLE else View.GONE
+        }
     }
 
     private fun openPlayStore(packageId: String) {
@@ -551,5 +599,54 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             },
             onDismissRequest = {}
         ).show()
+    }
+
+    private data class ReinstalledItem(
+        val packageId: String,
+        val name: String
+    )
+
+    private class ReinstalledDiff : DiffUtil.ItemCallback<ReinstalledItem>() {
+        override fun areItemsTheSame(oldItem: ReinstalledItem, newItem: ReinstalledItem): Boolean {
+            return oldItem.packageId == newItem.packageId
+        }
+
+        override fun areContentsTheSame(oldItem: ReinstalledItem, newItem: ReinstalledItem): Boolean {
+            return oldItem == newItem
+        }
+    }
+
+    private inner class ReinstalledAppsAdapter(
+        private val onOpenPlayStore: (ReinstalledItem) -> Unit
+    ) : ListAdapter<ReinstalledItem, ReinstalledAppsAdapter.ReinstalledVH>(ReinstalledDiff()) {
+
+        inner class ReinstalledVH(view: View) : RecyclerView.ViewHolder(view) {
+            private val appIcon = view.findViewById<ImageView>(R.id.app_icon)
+            private val appName = view.findViewById<TextView>(R.id.app_name)
+            private val appMeta = view.findViewById<TextView>(R.id.app_meta)
+
+            fun bind(item: ReinstalledItem) {
+                appName.text = item.name
+                appMeta.text = "Tap to open in Play Store"
+                appIcon.load(AppIconModel(item.packageId)) {
+                    memoryCacheKey(item.packageId)
+                    crossfade(false)
+                }
+                itemView.setOnClickListener { onOpenPlayStore(item) }
+            }
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ReinstalledVH {
+            val view = layoutInflater.inflate(R.layout.item_archived_app_list, parent, false)
+            return ReinstalledVH(view)
+        }
+
+        override fun onBindViewHolder(holder: ReinstalledVH, position: Int) {
+            holder.bind(getItem(position))
+        }
+
+        fun submitList(apps: List<ArchivedApp>) {
+            submitList(apps.map { ReinstalledItem(it.packageId, it.name) })
+        }
     }
 }
