@@ -24,103 +24,203 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Data Management"
-                android:textAppearance="?attr/textAppearanceTitleLarge"
-                android:textColor="?attr/colorPrimary"
-                android:layout_marginBottom="16dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_export"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Export Archive (JSON)" />
+                app:cardCornerRadius="16dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_import"
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Account"
+                        android:textAppearance="?attr/textAppearanceTitleMedium"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_email"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:textAppearance="?attr/textAppearanceBodyMedium" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_signout"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="Sign Out" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="Import Archive (JSON)" />
+                app:cardCornerRadius="16dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp">
 
-            <ProgressBar
-                android:id="@+id/progress"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="32dp"
-                android:visibility="gone" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/settings_appearance"
-                android:textAppearance="?attr/textAppearanceTitleLarge"
-                android:textColor="?attr/colorPrimary"
-                android:layout_marginTop="48dp"
-                android:layout_marginBottom="16dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Data"
+                        android:textAppearance="?attr/textAppearanceTitleMedium"
+                        android:textStyle="bold" />
 
-            <com.google.android.material.button.MaterialButtonToggleGroup
-                android:id="@+id/theme_toggle_group"
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_export"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="Export Archive (JSON)" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_import"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="Import Archive (JSON)" />
+
+                    <ProgressBar
+                        android:id="@+id/progress"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="12dp"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:singleSelection="true"
-                app:selectionRequired="true">
+                android:layout_marginTop="16dp"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_theme_system"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="0dp"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/settings_theme_system"
-                    android:checkable="true" />
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_theme_light"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/settings_theme_light"
-                    android:checkable="true" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Appearance"
+                        android:textAppearance="?attr/textAppearanceTitleMedium"
+                        android:textStyle="bold" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_theme_dark"
-                    style="?attr/materialButtonOutlinedStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/settings_theme_dark"
-                    android:checkable="true" />
-            </com.google.android.material.button.MaterialButtonToggleGroup>
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/theme_toggle_group"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Account"
-                android:textAppearance="?attr/textAppearanceTitleLarge"
-                android:textColor="?attr/colorPrimary"
-                android:layout_marginTop="48dp"
-                android:layout_marginBottom="16dp" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_theme_system"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:checkable="true"
+                            android:text="@string/settings_theme_system" />
 
-            <TextView
-                android:id="@+id/tv_email"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorOnSurface"
-                android:layout_marginBottom="16dp" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_theme_light"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:checkable="true"
+                            android:text="@string/settings_theme_light" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_signout"
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_theme_dark"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:checkable="true"
+                            android:text="@string/settings_theme_dark" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:backgroundTint="?attr/colorError"
-                android:text="Sign Out"
-                android:visibility="gone" />
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="16dp"
+                app:strokeColor="?attr/colorOutline"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="About"
+                        android:textAppearance="?attr/textAppearanceTitleMedium"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_privacy_policy"
+                        style="?attr/materialButtonTextButtonStyle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="start|center_vertical"
+                        android:text="Privacy Policy" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_terms"
+                        style="?attr/materialButtonTextButtonStyle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="start|center_vertical"
+                        android:text="Terms & Conditions" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_licenses"
+                        style="?attr/materialButtonTextButtonStyle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="start|center_vertical"
+                        android:text="Open-source Licenses" />
+
+                    <TextView
+                        android:id="@+id/tv_app_version"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

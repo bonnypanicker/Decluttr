@@ -8,7 +8,6 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -101,15 +100,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
 
     private fun openSettings() {
         val navController = findNavController()
-        val currentId = navController.currentDestination?.id
-        if (currentId == R.id.settingsFragment) return
-        try {
-            if (currentId == R.id.dashboardFragment) {
-                navController.navigate(R.id.action_dashboard_to_settings)
-            } else {
-                navController.navigate(R.id.settingsFragment)
-            }
-        } catch (_: IllegalArgumentException) {
+        if (navController.currentDestination?.id != R.id.settingsFragment) {
             navController.navigate(R.id.settingsFragment)
         }
     }

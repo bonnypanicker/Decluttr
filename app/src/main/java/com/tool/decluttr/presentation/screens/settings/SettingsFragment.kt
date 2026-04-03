@@ -1,6 +1,7 @@
 package com.tool.decluttr.presentation.screens.settings
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.ProgressBar
@@ -8,6 +9,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.pm.PackageInfoCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -53,6 +55,10 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         val progress = view.findViewById<ProgressBar>(R.id.progress)
         val tvEmail = view.findViewById<TextView>(R.id.tv_email)
         val btnSignout = view.findViewById<MaterialButton>(R.id.btn_signout)
+        val btnPrivacyPolicy = view.findViewById<MaterialButton>(R.id.btn_privacy_policy)
+        val btnTerms = view.findViewById<MaterialButton>(R.id.btn_terms)
+        val btnLicenses = view.findViewById<MaterialButton>(R.id.btn_licenses)
+        val tvAppVersion = view.findViewById<TextView>(R.id.tv_app_version)
         val themeToggleGroup = view.findViewById<MaterialButtonToggleGroup>(R.id.theme_toggle_group)
         val btnThemeSystem = view.findViewById<MaterialButton>(R.id.btn_theme_system)
         val btnThemeLight = view.findViewById<MaterialButton>(R.id.btn_theme_light)
@@ -73,6 +79,19 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         btnSignout.setOnClickListener {
             viewModel.signOut()
         }
+        btnPrivacyPolicy.setOnClickListener {
+            openUrl("https://github.com/bonnypanicker/Decluttr/blob/main/PRIVACY_POLICY.md")
+        }
+        btnTerms.setOnClickListener {
+            openUrl("https://github.com/bonnypanicker/Decluttr/blob/main/TERMS_AND_CONDITIONS.md")
+        }
+        btnLicenses.setOnClickListener {
+            showLicensesDialog()
+        }
+
+        val packageInfo = requireContext().packageManager.getPackageInfo(requireContext().packageName, 0)
+        val versionCode = PackageInfoCompat.getLongVersionCode(packageInfo)
+        tvAppVersion.text = "Version ${packageInfo.versionName} ($versionCode)"
 
         val initialThemeButton = when (ThemePreferences.getThemeMode(requireContext())) {
             AppCompatDelegate.MODE_NIGHT_YES -> btnThemeDark.id
@@ -107,17 +126,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
                 }
                 launch {
                     viewModel.isLoggedIn.collect { loggedIn ->
-                        if (!loggedIn) {
-                            findNavController().navigate(
-                                R.id.authFragment,
-                                null,
-                                androidx.navigation.NavOptions.Builder()
-                                    .setPopUpTo(R.id.nav_graph, true)
-                                    .build()
-                            )
-                        } else {
-                            btnSignout.visibility = View.VISIBLE
-                        }
+                        btnSignout.visibility = if (loggedIn == true) View.VISIBLE else View.GONE
                     }
                 }
                 launch {
@@ -166,5 +175,29 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
                 }
             }
         }
+    }
+
+    private fun openUrl(url: String) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        } catch (_: Exception) {
+            Toast.makeText(requireContext(), "Unable to open link", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showLicensesDialog() {
+        val licensesText = """
+            AndroidX libraries (Apache 2.0)
+            Material Components (Apache 2.0)
+            Kotlin Coroutines (Apache 2.0)
+            Room (Apache 2.0)
+            Coil (Apache 2.0)
+            Firebase SDKs (Apache 2.0)
+        """.trimIndent()
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Open-source Licenses")
+            .setMessage(licensesText)
+            .setPositiveButton("OK", null)
+            .show()
     }
 }

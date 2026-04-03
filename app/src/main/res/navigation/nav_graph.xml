@@ -18,11 +18,7 @@
     <fragment
         android:id="@+id/dashboardFragment"
         android:name="com.tool.decluttr.presentation.screens.dashboard.DashboardFragment"
-        android:label="Dashboard">
-        <action
-            android:id="@+id/action_dashboard_to_settings"
-            app:destination="@id/settingsFragment" />
-    </fragment>
+        android:label="Dashboard" />
 
     <fragment
         android:id="@+id/settingsFragment"
