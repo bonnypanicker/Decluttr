@@ -260,7 +260,10 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    fun archiveAndUninstallSelected(packageIds: Set<String>) {
+    fun archiveAndUninstallSelected(
+        packageIds: Set<String>,
+        archiveEligiblePackageIds: Set<String> = packageIds
+    ) {
         if (packageIds.isEmpty()) return
         
         val appsToUninstall = allInstalledApps.value.filter { it.packageId in packageIds }
@@ -280,12 +283,14 @@ class DashboardViewModel @Inject constructor(
                 }
                 if (success) {
                     uninstalledCount++
-                    successfullyArchivedIds += packageId
-                    archiveAndUninstallUseCase(
-                        packageIds = listOf(packageId),
-                        appInfoMap = appInfoMap,
-                        performUninstall = false
-                    )
+                    if (packageId in archiveEligiblePackageIds) {
+                        successfullyArchivedIds += packageId
+                        archiveAndUninstallUseCase(
+                            packageIds = listOf(packageId),
+                            appInfoMap = appInfoMap,
+                            performUninstall = false
+                        )
+                    }
                 }
             }
 

@@ -424,9 +424,36 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
 
     private fun executeBatchArchive() {
         val ids = selectedApps.toSet()
-        selectedApps = emptySet()
-        setViewState(DiscoveryViewState.DASHBOARD)
-        viewModel.archiveAndUninstallSelected(ids)
+        if (ids.isEmpty()) return
+
+        val selectedAppsInfo = viewModel.allInstalledApps.value.filter { it.packageId in ids }
+        val sideloadedIds = selectedAppsInfo
+            .filter { !it.isPlayStoreInstalled }
+            .map { it.packageId }
+            .toSet()
+
+        val continueArchiveFlow = {
+            selectedApps = emptySet()
+            setViewState(DiscoveryViewState.DASHBOARD)
+            viewModel.archiveAndUninstallSelected(
+                packageIds = ids,
+                archiveEligiblePackageIds = ids - sideloadedIds
+            )
+        }
+
+        if (sideloadedIds.isNotEmpty()) {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Sideloaded Apps Detected")
+                .setMessage(
+                    "Some selected apps are sideloaded and cannot be archived. " +
+                        "They will be uninstalled only. Continue?"
+                )
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Continue") { _, _ -> continueArchiveFlow() }
+                .show()
+        } else {
+            continueArchiveFlow()
+        }
     }
 
     private fun bytesToMB(bytes: Long): String {
