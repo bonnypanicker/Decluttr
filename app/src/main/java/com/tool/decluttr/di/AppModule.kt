@@ -52,7 +52,8 @@ object AppModule {
             DecluttrDatabase.DATABASE_NAME
         ).addMigrations(
             DecluttrDatabase.MIGRATION_2_3,
-            DecluttrDatabase.MIGRATION_3_4
+            DecluttrDatabase.MIGRATION_3_4,
+            DecluttrDatabase.MIGRATION_4_5
         )
             .build()
     }

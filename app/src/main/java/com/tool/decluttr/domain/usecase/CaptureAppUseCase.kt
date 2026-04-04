@@ -22,7 +22,8 @@ class CaptureAppUseCase @Inject constructor(
             packageId = packageId,
             name = appDetails?.name ?: packageId, // Fallback to package ID if not installed
             iconBytes = appDetails?.iconBytes,
-            category = appDetails?.category
+            category = appDetails?.category,
+            archivedSizeBytes = appDetails?.archivedSizeBytes
         )
         
         repository.insertApp(archivedApp)

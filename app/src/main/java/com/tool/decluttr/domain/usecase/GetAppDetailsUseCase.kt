@@ -21,7 +21,8 @@ class GetAppDetailsUseCase @Inject constructor(
     data class AppDetailsResult(
         val name: String,
         val iconBytes: ByteArray?,
-        val category: String?
+        val category: String?,
+        val archivedSizeBytes: Long?
     )
 
     operator fun invoke(packageId: String, fetchIcon: Boolean = false): AppDetailsResult? {
@@ -38,8 +39,11 @@ class GetAppDetailsUseCase @Inject constructor(
             }
             
             val category = getCategoryName(appInfo.category)
+            val archivedSizeBytes = runCatching {
+                java.io.File(appInfo.sourceDir).length()
+            }.getOrNull()?.takeIf { it > 0L }
             
-            AppDetailsResult(name, iconBytes, category)
+            AppDetailsResult(name, iconBytes, category, archivedSizeBytes)
         } catch (e: PackageManager.NameNotFoundException) {
             null
         }

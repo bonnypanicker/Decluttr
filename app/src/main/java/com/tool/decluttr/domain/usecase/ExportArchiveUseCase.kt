@@ -21,6 +21,7 @@ class ExportArchiveUseCase @Inject constructor(
                 put("tags", app.tags.joinToString(","))
                 put("notes", app.notes ?: "")
                 put("archivedAt", app.archivedAt)
+                put("archivedSizeBytes", app.archivedSizeBytes ?: 0L)
                 put("isPlayStoreInstalled", app.isPlayStoreInstalled)
                 put("lastTimeUsed", app.lastTimeUsed)
                 put("folderName", app.folderName ?: "")

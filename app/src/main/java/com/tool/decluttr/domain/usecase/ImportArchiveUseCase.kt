@@ -22,6 +22,7 @@ class ImportArchiveUseCase @Inject constructor(
                     tags = obj.optString("tags").split(",").map { it.trim() }.filter { it.isNotEmpty() },
                     notes = obj.optString("notes").takeIf { it.isNotBlank() },
                     archivedAt = obj.optLong("archivedAt", System.currentTimeMillis()),
+                    archivedSizeBytes = obj.optLong("archivedSizeBytes", 0L).takeIf { it > 0L },
                     isPlayStoreInstalled = obj.optBoolean("isPlayStoreInstalled", true),
                     lastTimeUsed = obj.optLong("lastTimeUsed", 0L),
                     folderName = obj.optString("folderName").takeIf { it.isNotBlank() },

@@ -8,6 +8,7 @@ data class ArchivedApp(
     val tags: List<String> = emptyList(),
     val notes: String? = null,
     val iconBytes: ByteArray? = null,
+    val archivedSizeBytes: Long? = null,
     val archivedAt: Long = System.currentTimeMillis(),
     val lastTimeUsed: Long = 0L,
     val folderName: String? = null,
@@ -28,6 +29,7 @@ data class ArchivedApp(
             if (other.iconBytes == null) return false
             if (!iconBytes.contentEquals(other.iconBytes)) return false
         } else if (other.iconBytes != null) return false
+        if (archivedSizeBytes != other.archivedSizeBytes) return false
         if (archivedAt != other.archivedAt) return false
         if (isPlayStoreInstalled != other.isPlayStoreInstalled) return false
         if (lastTimeUsed != other.lastTimeUsed) return false
@@ -44,6 +46,7 @@ data class ArchivedApp(
         result = 31 * result + tags.hashCode()
         result = 31 * result + (notes?.hashCode() ?: 0)
         result = 31 * result + (iconBytes?.contentHashCode() ?: 0)
+        result = 31 * result + (archivedSizeBytes?.hashCode() ?: 0)
         result = 31 * result + archivedAt.hashCode()
         result = 31 * result + isPlayStoreInstalled.hashCode()
         result = 31 * result + lastTimeUsed.hashCode()

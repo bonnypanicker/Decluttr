@@ -274,8 +274,12 @@ class DashboardViewModel @Inject constructor(
         if (packageIds.isEmpty()) return
         
         val appsToUninstall = allInstalledApps.value.filter { it.packageId in packageIds }
-        val appInfoMap = appsToUninstall.associate { 
-            it.packageId to Pair(it.isPlayStoreInstalled, it.lastTimeUsed)
+        val appInfoMap = appsToUninstall.associate {
+            it.packageId to com.tool.decluttr.domain.usecase.ArchiveAndUninstallUseCase.ArchiveSourceInfo(
+                isPlayStoreInstalled = it.isPlayStoreInstalled,
+                lastTimeUsed = it.lastTimeUsed,
+                archivedSizeBytes = it.apkSizeBytes.takeIf { size -> size > 0L }
+            )
         }
         
         viewModelScope.launch {

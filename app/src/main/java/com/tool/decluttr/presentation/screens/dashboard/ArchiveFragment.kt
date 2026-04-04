@@ -434,7 +434,9 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         }
 
         if (isListMode) {
-            sizeMap = filteredApps.associate { it.packageId to getInstalledApkSize(it.packageId) }
+            sizeMap = filteredApps.associate { app ->
+                app.packageId to (app.archivedSizeBytes ?: getInstalledApkSize(app.packageId))
+            }
             val sortedApps = sortApps(filteredApps)
             val listItems = sortedApps.map { ArchivedItem.App(it) }
             if (listItems.isEmpty()) {
@@ -458,7 +460,9 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
 
         // Grid view intentionally keeps source order (no sort), so folder creation
         // does not reshuffle items.
-        sizeMap = filteredApps.associate { it.packageId to getInstalledApkSize(it.packageId) }
+        sizeMap = filteredApps.associate { app ->
+            app.packageId to (app.archivedSizeBytes ?: getInstalledApkSize(app.packageId))
+        }
         val folderAppsByName = filteredApps
             .filter { it.folderName != null }
             .groupBy { it.folderName!! }

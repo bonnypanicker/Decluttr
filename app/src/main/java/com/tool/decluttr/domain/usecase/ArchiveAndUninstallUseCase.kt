@@ -9,9 +9,15 @@ class ArchiveAndUninstallUseCase @Inject constructor(
     private val uninstallAppUseCase: UninstallAppUseCase,
     private val repository: AppRepository
 ) {
+    data class ArchiveSourceInfo(
+        val isPlayStoreInstalled: Boolean,
+        val lastTimeUsed: Long,
+        val archivedSizeBytes: Long?
+    )
+
     suspend operator fun invoke(
         packageIds: List<String>,
-        appInfoMap: Map<String, Pair<Boolean, Long>> = emptyMap(),
+        appInfoMap: Map<String, ArchiveSourceInfo> = emptyMap(),
         performUninstall: Boolean = true
     ) {
         for (packageId in packageIds) {
@@ -24,8 +30,9 @@ class ArchiveAndUninstallUseCase @Inject constructor(
                 name = details?.name ?: packageId,
                 iconBytes = details?.iconBytes,
                 category = details?.category,
-                isPlayStoreInstalled = info?.first ?: true,
-                lastTimeUsed = info?.second ?: 0L
+                isPlayStoreInstalled = info?.isPlayStoreInstalled ?: true,
+                lastTimeUsed = info?.lastTimeUsed ?: 0L,
+                archivedSizeBytes = details?.archivedSizeBytes ?: info?.archivedSizeBytes
             )
             
             repository.insertApp(app)

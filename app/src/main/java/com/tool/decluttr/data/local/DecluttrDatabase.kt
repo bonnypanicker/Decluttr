@@ -7,7 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.tool.decluttr.data.local.dao.AppDao
 import com.tool.decluttr.data.local.entity.AppEntity
 
-@Database(entities = [AppEntity::class], version = 4, exportSchema = true)
+@Database(entities = [AppEntity::class], version = 5, exportSchema = true)
 abstract class DecluttrDatabase : RoomDatabase() {
     abstract val appDao: AppDao
     
@@ -24,6 +24,12 @@ abstract class DecluttrDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE archived_apps ADD COLUMN lastModified INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("UPDATE archived_apps SET lastModified = archivedAt WHERE lastModified = 0")
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE archived_apps ADD COLUMN archivedSizeBytes INTEGER")
             }
         }
     }

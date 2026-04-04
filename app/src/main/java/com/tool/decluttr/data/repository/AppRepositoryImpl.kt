@@ -112,6 +112,7 @@ class AppRepositoryImpl(
             tags = parseTags(get("tags")),
             notes = getString("notes"),
             iconBytes = iconBytes,
+            archivedSizeBytes = getLong("archivedSizeBytes")?.takeIf { it > 0L },
             archivedAt = archivedAt,
             lastTimeUsed = getLong("lastTimeUsed") ?: 0L,
             folderName = getString("folderName"),
@@ -138,6 +139,7 @@ class AppRepositoryImpl(
                     "packageId" to app.packageId,
                     "name" to app.name,
                     "iconBase64" to iconBase64,
+                    "archivedSizeBytes" to app.archivedSizeBytes,
                     "category" to app.category,
                     "tags" to app.tags,
                     "notes" to app.notes,
@@ -208,9 +210,11 @@ class AppRepositoryImpl(
             app.name
         }
         val resolvedIconBytes = app.iconBytes ?: previous?.iconBytes
+        val resolvedSizeBytes = app.archivedSizeBytes ?: previous?.archivedSizeBytes
         val normalizedApp = app.copy(
             name = resolvedName,
-            iconBytes = resolvedIconBytes
+            iconBytes = resolvedIconBytes,
+            archivedSizeBytes = resolvedSizeBytes
         )
 
         val contentChanged = previous == null ||
@@ -219,6 +223,7 @@ class AppRepositoryImpl(
             previous.category != normalizedApp.category ||
             previous.tags != normalizedApp.tags ||
             previous.notes != normalizedApp.notes ||
+            previous.archivedSizeBytes != normalizedApp.archivedSizeBytes ||
             previous.lastTimeUsed != normalizedApp.lastTimeUsed ||
             previous.folderName != normalizedApp.folderName ||
             !previous.iconBytes.contentEquals(normalizedApp.iconBytes)
@@ -250,11 +255,17 @@ class AppRepositoryImpl(
             remoteApp.name
         }
         val resolvedIconBytes = remoteApp.iconBytes ?: localApp.iconBytes
-        return remoteApp.copy(name = resolvedName, iconBytes = resolvedIconBytes)
+        val resolvedSizeBytes = remoteApp.archivedSizeBytes ?: localApp.archivedSizeBytes
+        return remoteApp.copy(
+            name = resolvedName,
+            iconBytes = resolvedIconBytes,
+            archivedSizeBytes = resolvedSizeBytes
+        )
     }
 
     private fun requiresRemoteHealing(remoteApp: ArchivedApp, mergedApp: ArchivedApp): Boolean {
         return remoteApp.name != mergedApp.name ||
+            remoteApp.archivedSizeBytes != mergedApp.archivedSizeBytes ||
             !sameBytes(remoteApp.iconBytes, mergedApp.iconBytes)
     }
 
@@ -272,6 +283,12 @@ class AppRepositoryImpl(
             val label = pm.getApplicationLabel(appInfo)?.toString()?.trim()
             if (!label.isNullOrBlank() && (result.name.isBlank() || isLikelyPackageId(result.name))) {
                 result = result.copy(name = label)
+            }
+            if (result.archivedSizeBytes == null) {
+                val size = runCatching { java.io.File(appInfo.sourceDir).length() }.getOrNull()
+                if (size != null && size > 0L) {
+                    result = result.copy(archivedSizeBytes = size)
+                }
             }
             if (result.iconBytes == null) {
                 val drawable = pm.getApplicationIcon(appInfo)

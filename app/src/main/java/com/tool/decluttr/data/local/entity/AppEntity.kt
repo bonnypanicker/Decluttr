@@ -12,6 +12,7 @@ data class AppEntity(
     val tags: String, // Comma separated tags
     val notes: String?,
     val iconBytes: ByteArray?,
+    val archivedSizeBytes: Long?,
     val isPlayStoreInstalled: Boolean = true,
     val archivedAt: Long = System.currentTimeMillis(),
     val lastTimeUsed: Long = 0L,
@@ -33,6 +34,7 @@ data class AppEntity(
             if (other.iconBytes == null) return false
             if (!iconBytes.contentEquals(other.iconBytes)) return false
         } else if (other.iconBytes != null) return false
+        if (archivedSizeBytes != other.archivedSizeBytes) return false
         if (archivedAt != other.archivedAt) return false
         if (isPlayStoreInstalled != other.isPlayStoreInstalled) return false
         if (lastTimeUsed != other.lastTimeUsed) return false
@@ -49,6 +51,7 @@ data class AppEntity(
         result = 31 * result + tags.hashCode()
         result = 31 * result + (notes?.hashCode() ?: 0)
         result = 31 * result + (iconBytes?.contentHashCode() ?: 0)
+        result = 31 * result + (archivedSizeBytes?.hashCode() ?: 0)
         result = 31 * result + archivedAt.hashCode()
         result = 31 * result + isPlayStoreInstalled.hashCode()
         result = 31 * result + lastTimeUsed.hashCode()
