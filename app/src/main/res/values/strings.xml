@@ -67,5 +67,6 @@
     <string name="discovery_storage_subtitle_size_only">Based on %1$d high-impact apps from app size only</string>
     <string name="discovery_storage_score_default">Estimated impact: 0%%</string>
     <string name="discovery_storage_score">Estimated impact: %1$d%%</string>
+    <string name="discovery_toggle_search">Toggle search</string>
 </resources>
 

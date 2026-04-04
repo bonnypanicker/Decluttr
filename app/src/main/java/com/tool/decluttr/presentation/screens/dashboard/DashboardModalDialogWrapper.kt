@@ -7,25 +7,35 @@ import android.graphics.drawable.ColorDrawable
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import com.tool.decluttr.R
 
 internal class DashboardModalDialogWrapper(
     private val context: Context,
     private val contentLayoutRes: Int,
-    private val dismissOnOutside: Boolean
+    private val dismissOnOutside: Boolean,
+    private val maxWidthDp: Int = 520,
+    private val horizontalMarginDp: Int = 24,
+    private val fixedHeightFraction: Float? = null,
+    private val softInputMode: Int = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
 ) {
     fun build(): Dialog {
         return Dialog(context, R.style.ThemeOverlay_Decluttr_DashboardModal).apply {
             setContentView(contentLayoutRes)
             window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             window?.setDimAmount(0.58f)
+            window?.setSoftInputMode(softInputMode)
 
             val density = context.resources.displayMetrics.density
-            val maxDialogWidth = (520 * density).toInt()
-            val horizontalMargin = (24 * density).toInt()
+            val maxDialogWidth = (maxWidthDp * density).toInt()
+            val horizontalMargin = (horizontalMarginDp * density).toInt()
             val availableWidth = context.resources.displayMetrics.widthPixels - (horizontalMargin * 2)
             val targetWidth = minOf(maxDialogWidth, availableWidth)
-            window?.setLayout(targetWidth, ViewGroup.LayoutParams.WRAP_CONTENT)
+            val targetHeight = fixedHeightFraction?.let { fraction ->
+                val clamped = fraction.coerceIn(0.5f, 0.95f)
+                (context.resources.displayMetrics.heightPixels * clamped).toInt()
+            } ?: ViewGroup.LayoutParams.WRAP_CONTENT
+            window?.setLayout(targetWidth, targetHeight)
 
             setCancelable(true)
             setCanceledOnTouchOutside(dismissOnOutside)

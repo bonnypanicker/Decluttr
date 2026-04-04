@@ -4,6 +4,7 @@ import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.view.WindowManager
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
@@ -29,7 +30,11 @@ class NativeAppDetailsDialog(
         dialog = DashboardModalDialogWrapper(
             context = context,
             contentLayoutRes = R.layout.dialog_app_details,
-            dismissOnOutside = true
+            dismissOnOutside = true,
+            maxWidthDp = 640,
+            horizontalMarginDp = 12,
+            fixedHeightFraction = 0.86f,
+            softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
         ).build().apply {
             setOnDismissListener { onDismissRequest() }
 

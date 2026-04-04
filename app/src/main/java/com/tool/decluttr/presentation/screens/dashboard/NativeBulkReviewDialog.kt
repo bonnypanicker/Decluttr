@@ -31,7 +31,10 @@ class NativeBulkReviewDialog(
     private val dialog: Dialog = DashboardModalDialogWrapper(
         context = context,
         contentLayoutRes = R.layout.dialog_bulk_review,
-        dismissOnOutside = false
+        dismissOnOutside = false,
+        maxWidthDp = 680,
+        horizontalMarginDp = 12,
+        fixedHeightFraction = 0.84f
     ).build()
     private val notesMap = mutableMapOf<String, String>()
 

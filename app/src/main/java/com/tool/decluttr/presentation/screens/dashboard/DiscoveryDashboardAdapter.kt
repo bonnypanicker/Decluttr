@@ -199,16 +199,16 @@ class DiscoveryDashboardAdapter(
     }
 
     inner class AllAppsHeaderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val searchButton: MaterialButton = view.findViewById(R.id.search_icon)
+        private val searchButton: ImageView = view.findViewById(R.id.search_icon)
 
         init {
             searchButton.setOnClickListener { onSearchToggle() }
         }
 
         fun bind(item: DashboardItem.AllAppsHeader) {
-            searchButton.setIconResource(
-                if (item.isSearchActive) android.R.drawable.ic_menu_close_clear_cancel
-                else android.R.drawable.ic_menu_search
+            searchButton.setImageResource(
+                if (item.isSearchActive) R.drawable.ic_close
+                else R.drawable.ic_search
             )
         }
     }

@@ -7,7 +7,10 @@
         <item name="colorTertiary">@color/Tertiary80</item>
         <item name="android:colorBackground">@color/DarkBackground</item>
         <item name="colorSurface">@color/DarkSurface</item>
-        <item name="colorOnPrimary">@color/DarkPrimaryText</item>
+        <item name="colorOnPrimary">@color/DarkBackground</item>
+        <item name="colorOnPrimaryContainer">@color/DarkBackground</item>
+        <item name="colorOnSecondaryContainer">@color/DarkBackground</item>
+        <item name="colorOnTertiaryContainer">@color/DarkBackground</item>
         <item name="colorOnSecondary">@color/DarkPrimaryText</item>
         <item name="colorOnTertiary">@color/DarkPrimaryText</item>
         <item name="colorOnBackground">@color/DarkPrimaryText</item>

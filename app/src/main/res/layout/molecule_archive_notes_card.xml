@@ -48,10 +48,16 @@
                 android:id="@+id/btn_notes_inline_edit"
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
-                android:layout_height="48dp"
+                android:layout_height="40dp"
+                android:layout_gravity="top"
+                android:layout_marginStart="12dp"
                 android:contentDescription="@string/archive_popup_edit_toggle_cd"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="0dp"
                 android:text="@string/archive_popup_edit"
                 android:textAllCaps="false"
+                android:textAppearance="?attr/textAppearanceLabelLarge"
                 android:textStyle="bold" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
