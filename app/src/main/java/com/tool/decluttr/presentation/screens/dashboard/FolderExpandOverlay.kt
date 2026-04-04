@@ -100,16 +100,7 @@ class FolderExpandOverlay(
             } else false
         }
 
-        // Auto-focus title for new folders (when name is "New Folder")
-        if (folderName == "New Folder") {
-            titleEdit.post {
-                titleEdit.selectAll()
-                titleEdit.requestFocus()
-                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE)
-                    as InputMethodManager
-                imm.showSoftInput(titleEdit, InputMethodManager.SHOW_IMPLICIT)
-            }
-        }
+        // Keep keyboard closed on open. Folder title can still be edited manually.
 
         // Setup grid
         grid.layoutManager = GridLayoutManager(context, 4)

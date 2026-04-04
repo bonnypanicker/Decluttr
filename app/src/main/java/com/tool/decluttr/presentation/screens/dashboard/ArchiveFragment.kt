@@ -41,8 +41,9 @@ import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.ArchivedApp
 import com.tool.decluttr.presentation.util.AppIconModel
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.text.DateFormat
 import java.text.DecimalFormat
 
@@ -91,6 +92,8 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private var isDragInProgress: Boolean = false
     private var pendingAppsDuringDrag: List<ArchivedApp>? = null
     private val singletonCollapseInFlight = mutableSetOf<String>()
+    private val pendingFolderCreations = mutableMapOf<String, Long>()
+    private val pendingFolderCreationWindowMs = 3_000L
 
     private enum class ArchiveSortOption(val label: String) {
         UNINSTALLED_DATE("Uninstalled Date"),
@@ -498,14 +501,24 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     }
 
     private fun collapseSingletonFoldersIfNeeded(apps: List<ArchivedApp>) {
+        val now = System.currentTimeMillis()
+        pendingFolderCreations.entries.removeAll { it.value < now }
+
         val folderCounts = apps
             .mapNotNull { it.folderName }
             .groupingBy { it }
             .eachCount()
 
+        folderCounts
+            .filterValues { it >= 2 }
+            .keys
+            .forEach { pendingFolderCreations.remove(it) }
+
         val singletonApps = apps.filter { app ->
             val folder = app.folderName
-            folder != null && (folderCounts[folder] ?: 0) == 1
+            folder != null &&
+                (folderCounts[folder] ?: 0) == 1 &&
+                !pendingFolderCreations.containsKey(folder)
         }
 
         val singletonPkgIds = singletonApps.map { it.packageId }.toSet()
@@ -647,6 +660,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         if (latestDragged.folderName != null && latestDragged.folderName == latestTarget.folderName) return
 
         val defaultName = nextDefaultFolderName(apps)
+        pendingFolderCreations[defaultName] = System.currentTimeMillis() + pendingFolderCreationWindowMs
         try {
             viewModel.updateArchivedApp(latestDragged.copy(folderName = defaultName))
             viewModel.updateArchivedApp(latestTarget.copy(folderName = defaultName))
@@ -655,15 +669,24 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 "handleAppDropOnApp created/assigned folder='$defaultName' dragged=${latestDragged.packageId} target=${latestTarget.packageId}"
             )
         } catch (t: Throwable) {
+            pendingFolderCreations.remove(defaultName)
             android.util.Log.e(TAG, "handleAppDropOnApp failed assign folder $defaultName", t)
             return
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            delay(150)
-            expandedFolder = defaultName
-            runCatching { showFolderOverlay(defaultName, null) }
-                .onFailure { android.util.Log.e(TAG, "showFolderOverlay failed", it) }
+            val ready = withTimeoutOrNull(1500L) {
+                viewModel.archivedApps.first { list ->
+                    list.count { it.folderName == defaultName } >= 2
+                }
+            }
+            if (ready != null) {
+                expandedFolder = defaultName
+                runCatching { showFolderOverlay(defaultName, null) }
+                    .onFailure { android.util.Log.e(TAG, "showFolderOverlay failed", it) }
+            } else {
+                android.util.Log.w(TAG, "handleAppDropOnApp timed out waiting for folder '$defaultName' to contain 2 apps")
+            }
         }
     }
 
