@@ -60,7 +60,7 @@ class ArchivedAppsAdapter(
     private val onAppDropOnApp: (ArchivedApp, ArchivedApp) -> Unit,
     private val onAppDropOnFolder: (ArchivedApp, String) -> Unit,
     private val onRemoveFolder: (List<ArchivedApp>) -> Unit,
-    private val onFolderClick: (String) -> Unit,
+    private val onFolderClick: (String, View) -> Unit,
     private val appMetaProvider: (ArchivedApp) -> AppListMeta
 ) : ListAdapter<ArchivedItem, RecyclerView.ViewHolder>(ArchiveDiffCallback()) {
     companion object {
@@ -219,7 +219,13 @@ class ArchivedAppsAdapter(
             val apps = folderItem.apps.take(4)
             val icons = listOf(icon1, icon2, icon3, icon4)
             
-            icons.forEach { it.setImageDrawable(null) } // Clear previous
+            icons.forEach {
+                it.animate().cancel()
+                it.alpha = 1f
+                it.scaleX = 1f
+                it.scaleY = 1f
+                it.setImageDrawable(null)
+            } // Clear previous and reset icon state
             apps.forEachIndexed { index, app ->
                 icons[index].load(AppIconModel(app.packageId)) {
                     memoryCacheKey(app.packageId)
@@ -227,7 +233,7 @@ class ArchivedAppsAdapter(
                 }
             }
 
-            itemView.setOnClickListener { onFolderClick(folderItem.name) }
+            itemView.setOnClickListener { onFolderClick(folderItem.name, itemView) }
             itemView.setOnLongClickListener {
                 // Allows Long Click to delete Folder since we dropped DropdownMenu earlier
                 onRemoveFolder(folderItem.apps)
@@ -265,7 +271,7 @@ class ArchivedAppsAdapter(
             itemView.tag = folderItem
             folderName.text = folderItem.name
             folderMeta.text = "${folderItem.apps.size} apps"
-            itemView.setOnClickListener { onFolderClick(folderItem.name) }
+            itemView.setOnClickListener { onFolderClick(folderItem.name, itemView) }
         }
     }
 

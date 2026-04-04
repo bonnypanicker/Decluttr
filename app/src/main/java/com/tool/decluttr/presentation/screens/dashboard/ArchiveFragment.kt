@@ -90,6 +90,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private var savedItemAnimator: RecyclerView.ItemAnimator? = null
     private var isDragInProgress: Boolean = false
     private var pendingAppsDuringDrag: List<ArchivedApp>? = null
+    private val singletonCollapseInFlight = mutableSetOf<String>()
 
     private enum class ArchiveSortOption(val label: String) {
         UNINSTALLED_DATE("Uninstalled Date"),
@@ -140,9 +141,9 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             onRemoveFolder = { folderApps ->
                 folderApps.forEach { app -> viewModel.updateArchivedApp(app.copy(folderName = null)) }
             },
-            onFolderClick = { folderName ->
+            onFolderClick = { folderName, anchorView ->
                 expandedFolder = folderName
-                showFolderOverlay(folderName)
+                showFolderOverlay(folderName, anchorView)
             },
             appMetaProvider = { app ->
                 AppListMeta(
@@ -349,6 +350,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     }
 
     private fun renderArchivedApps(apps: List<ArchivedApp>) {
+        collapseSingletonFoldersIfNeeded(apps)
         android.util.Log.v(TAG, "renderArchivedApps size=${apps.size} expandedFolder=$expandedFolder")
         updateUI(apps)
         if (expandedFolder != null && folderOverlay != null) {
@@ -428,10 +430,9 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             matchesCategory && matchesQuery
         }
 
-        sizeMap = filteredApps.associate { it.packageId to getInstalledApkSize(it.packageId) }
-        val sortedApps = sortApps(filteredApps)
-
         if (isListMode) {
+            sizeMap = filteredApps.associate { it.packageId to getInstalledApkSize(it.packageId) }
+            val sortedApps = sortApps(filteredApps)
             val listItems = sortedApps.map { ArchivedItem.App(it) }
             if (listItems.isEmpty()) {
                 recyclerView.visibility = View.GONE
@@ -452,14 +453,29 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             return
         }
 
-        val standalones = sortedApps.filter { it.folderName == null }.map { ArchivedItem.App(it) }
-        val folders = sortedApps.filter { it.folderName != null }
+        // Grid view intentionally keeps source order (no sort), so folder creation
+        // does not reshuffle items.
+        sizeMap = filteredApps.associate { it.packageId to getInstalledApkSize(it.packageId) }
+        val folderAppsByName = filteredApps
+            .filter { it.folderName != null }
             .groupBy { it.folderName!! }
-            .map { (name, fapps) -> ArchivedItem.Folder(name, fapps) }
-        val groupedItems = (standalones + folders).sortedBy {
-            when (it) {
-                is ArchivedItem.App -> it.app.name.lowercase()
-                is ArchivedItem.Folder -> it.name.lowercase()
+        val emittedFolderNames = mutableSetOf<String>()
+        val groupedItems = mutableListOf<ArchivedItem>()
+        filteredApps.forEach { app ->
+            val folderName = app.folderName
+            if (folderName == null) {
+                groupedItems += ArchivedItem.App(app)
+                return@forEach
+            }
+            val folderApps = folderAppsByName[folderName].orEmpty()
+            if (folderApps.size <= 1) {
+                if (emittedFolderNames.add(folderName)) {
+                    groupedItems += ArchivedItem.App(app.copy(folderName = null))
+                }
+                return@forEach
+            }
+            if (emittedFolderNames.add(folderName)) {
+                groupedItems += ArchivedItem.Folder(folderName, folderApps)
             }
         }
 
@@ -478,6 +494,31 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             emptyStateContainer.visibility = View.GONE
             android.util.Log.v(TAG, "updateUI submitList gridMode count=${groupedItems.size}")
             adapter.submitList(groupedItems)
+        }
+    }
+
+    private fun collapseSingletonFoldersIfNeeded(apps: List<ArchivedApp>) {
+        val folderCounts = apps
+            .mapNotNull { it.folderName }
+            .groupingBy { it }
+            .eachCount()
+
+        val singletonApps = apps.filter { app ->
+            val folder = app.folderName
+            folder != null && (folderCounts[folder] ?: 0) == 1
+        }
+
+        val singletonPkgIds = singletonApps.map { it.packageId }.toSet()
+        singletonCollapseInFlight.removeAll { it !in singletonPkgIds }
+
+        singletonApps.forEach { app ->
+            if (singletonCollapseInFlight.add(app.packageId)) {
+                android.util.Log.d(
+                    TAG,
+                    "collapseSingletonFoldersIfNeeded pkg=${app.packageId} folder=${app.folderName}"
+                )
+                viewModel.updateArchivedApp(app.copy(folderName = null))
+            }
         }
     }
 
@@ -621,7 +662,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         viewLifecycleOwner.lifecycleScope.launch {
             delay(150)
             expandedFolder = defaultName
-            runCatching { showFolderOverlay(defaultName) }
+            runCatching { showFolderOverlay(defaultName, null) }
                 .onFailure { android.util.Log.e(TAG, "showFolderOverlay failed", it) }
         }
     }
@@ -638,8 +679,8 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         }
     }
 
-    private fun showFolderOverlay(folderName: String) {
-        android.util.Log.d(TAG, "showFolderOverlay folder=$folderName")
+    private fun showFolderOverlay(folderName: String, anchorView: View?) {
+        android.util.Log.d(TAG, "showFolderOverlay folder=$folderName anchor=${anchorView != null}")
         val root = requireActivity().findViewById<ViewGroup>(android.R.id.content)
         val overlay = FolderExpandOverlay(requireContext(), root)
         folderOverlay = overlay
@@ -650,7 +691,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         overlay.show(
             folderName = folderName,
             folderApps = apps,
-            anchorView = null,
+            anchorView = anchorView,
             onAppClick = { pkg ->
                 expandedFolder = null
                 openNativeAppDetails(pkg)

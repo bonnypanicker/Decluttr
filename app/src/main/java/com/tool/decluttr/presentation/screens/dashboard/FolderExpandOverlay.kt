@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.ArchivedApp
 import com.google.android.material.card.MaterialCardView
+import java.lang.ref.WeakReference
 
 /**
  * Full-screen overlay that expands a folder with Pixel-Launcher-style animations.
@@ -43,6 +44,7 @@ class FolderExpandOverlay(
 
     private var overlayView: View? = null
     private var isExpanded = false
+    private var anchorViewRef: WeakReference<View>? = null
 
     /**
      * Show the folder expansion overlay.
@@ -70,6 +72,7 @@ class FolderExpandOverlay(
         )
         if (isExpanded) return
         isExpanded = true
+        anchorViewRef = WeakReference(anchorView)
 
         val inflater = LayoutInflater.from(context)
         overlayView = inflater.inflate(R.layout.dialog_folder_expanded_modern, null)
@@ -132,6 +135,7 @@ class FolderExpandOverlay(
                 parentView.removeView(overlayView)
                 overlayView = null
                 isExpanded = false
+                animateAnchorFolderIcons(visible = true, animate = false)
                 android.util.Log.d(TAG, "FOLDER_OVERLAY removed instantly for drag folder=$folderName")
                 onDismiss()
                 onDragStartFromFolder?.invoke()
@@ -146,6 +150,8 @@ class FolderExpandOverlay(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
         ))
+
+        animateAnchorFolderIcons(visible = false, animate = true)
 
         // ── OPEN ANIMATION ──
 
@@ -242,6 +248,7 @@ class FolderExpandOverlay(
         card.animate().alpha(0f).setDuration(200).start()
         scaleXSpring.start()
         scaleYSpring.start()
+        animateAnchorFolderIcons(visible = true, animate = true)
 
         // Scrim fade out
         scrim.animate()
@@ -250,9 +257,50 @@ class FolderExpandOverlay(
             .withEndAction {
                 parentView.removeView(overlay)
                 overlayView = null
+                anchorViewRef = null
                 android.util.Log.d(TAG, "FOLDER_OVERLAY dismiss completed")
                 onDismiss()
             }
             .start()
+    }
+
+    private fun animateAnchorFolderIcons(visible: Boolean, animate: Boolean) {
+        val anchor = anchorViewRef?.get() ?: return
+        if (!anchor.isAttachedToWindow) return
+        val ids = intArrayOf(
+            R.id.folder_icon_1,
+            R.id.folder_icon_2,
+            R.id.folder_icon_3,
+            R.id.folder_icon_4
+        )
+        ids.forEachIndexed { index, id ->
+            val iconView = anchor.findViewById<View>(id) ?: return@forEachIndexed
+            iconView.animate().cancel()
+            if (animate) {
+                if (visible) {
+                    iconView.animate()
+                        .alpha(1f)
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setStartDelay(index * 15L)
+                        .setDuration(140L)
+                        .setInterpolator(android.view.animation.DecelerateInterpolator())
+                        .start()
+                } else {
+                    iconView.animate()
+                        .alpha(0f)
+                        .scaleX(0.7f)
+                        .scaleY(0.7f)
+                        .setStartDelay(index * 15L)
+                        .setDuration(120L)
+                        .setInterpolator(android.view.animation.AccelerateInterpolator())
+                        .start()
+                }
+            } else {
+                iconView.alpha = if (visible) 1f else 0f
+                iconView.scaleX = if (visible) 1f else 0.7f
+                iconView.scaleY = if (visible) 1f else 0.7f
+            }
+        }
     }
 }
