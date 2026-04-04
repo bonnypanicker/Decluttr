@@ -74,7 +74,7 @@ class FolderAppsAdapter(
                     )
 
                     android.util.Log.d(TAG, "FOLDER drag started pkg=${app.packageId}; dismiss overlay")
-                    onDragStartFromFolder?.invoke()
+                    view.post { onDragStartFromFolder?.invoke() }
                 } else {
                     android.util.Log.w(TAG, "FOLDER drag failed to start pkg=${app.packageId}")
                 }

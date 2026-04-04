@@ -185,12 +185,14 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                     DragEvent.ACTION_DRAG_STARTED -> {
                         val ok = event.clipDescription?.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) == true
                         android.util.Log.d(TAG, "RV DRAG_STARTED ok=$ok")
-                        if (ok) {
+                        if (ok && !isDragInProgress) {
                             isDragInProgress = true
                             pendingAppsDuringDrag = null
                             savedItemAnimator = recyclerView.itemAnimator
                             recyclerView.itemAnimator = null
                             android.util.Log.d(TAG, "RV drag animator disabled")
+                        } else if (ok) {
+                            android.util.Log.v(TAG, "RV DRAG_STARTED ignored duplicate while drag already in progress")
                         }
                         ok
                     }
@@ -235,6 +237,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                         }
                     }
                     DragEvent.ACTION_DRAG_ENDED -> {
+                        if (!isDragInProgress) {
+                            android.util.Log.v(TAG, "RV DRAG_ENDED ignored because no drag is in progress")
+                            return@setOnDragListener true
+                        }
                         recyclerView.post {
                             recyclerView.itemAnimator = savedItemAnimator
                             savedItemAnimator = null
