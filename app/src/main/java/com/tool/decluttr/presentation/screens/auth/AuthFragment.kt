@@ -130,7 +130,7 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
                 }
                 launch {
                     settingsViewModel.isLoggedIn.collect { loggedIn ->
-                        if (loggedIn) navigateToDashboard()
+                        if (loggedIn == true) navigateToDashboard()
                     }
                 }
             }
