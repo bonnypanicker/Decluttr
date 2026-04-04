@@ -40,7 +40,8 @@ sealed class DashboardItem {
         val estimatedFreedBytes: Long,
         val totalSizeBytes: Long,
         val impactPercent: Int,
-        val candidateAppsCount: Int
+        val candidateAppsCount: Int,
+        val usesUsageSignal: Boolean
     ) : DashboardItem()
 
     data class PermissionWarning(val dummy: Boolean = true) : DashboardItem()
@@ -157,7 +158,11 @@ class DiscoveryDashboardAdapter(
             storageValue.text = "${bytesToMB(item.estimatedFreedBytes)} MB"
             wasteScore.text = context.getString(R.string.discovery_storage_score, item.impactPercent)
             storageSubtitle.text = if (item.candidateAppsCount > 0) {
-                context.getString(R.string.discovery_storage_subtitle_candidates, item.candidateAppsCount)
+                if (item.usesUsageSignal) {
+                    context.getString(R.string.discovery_storage_subtitle_usage_and_size, item.candidateAppsCount)
+                } else {
+                    context.getString(R.string.discovery_storage_subtitle_size_only, item.candidateAppsCount)
+                }
             } else {
                 context.getString(R.string.discovery_storage_subtitle_empty)
             }

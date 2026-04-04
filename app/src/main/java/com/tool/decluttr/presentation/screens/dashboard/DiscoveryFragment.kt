@@ -81,6 +81,8 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
     companion object {
         private const val KEY_USAGE_DISCLOSURE_ACCEPTED = "usage_disclosure_accepted"
         private const val MILLIS_PER_DAY = 24L * 60L * 60L * 1000L
+        private const val MIN_ESTIMATE_CANDIDATE_SIZE_BYTES = 15L * 1024L * 1024L
+        private const val MAX_ESTIMATED_SHARE_OF_CANDIDATES = 0.72
     }
 
 
@@ -331,7 +333,8 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
                         estimatedFreedBytes = estimate.estimatedFreedBytes,
                         totalSizeBytes = estimate.totalSizeBytes,
                         impactPercent = estimate.impactPercent,
-                        candidateAppsCount = estimate.candidateAppsCount
+                        candidateAppsCount = estimate.candidateAppsCount,
+                        usesUsageSignal = estimate.usesUsageSignal
                     )
                 )
             }
@@ -471,7 +474,8 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         val estimatedFreedBytes: Long,
         val totalSizeBytes: Long,
         val impactPercent: Int,
-        val candidateAppsCount: Int
+        val candidateAppsCount: Int,
+        val usesUsageSignal: Boolean
     )
 
     private fun estimateStorageFreed(
@@ -482,7 +486,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
     ): StorageEstimate {
         val totalSizeBytes = allApps.sumOf { it.apkSizeBytes.coerceAtLeast(0L) }
         if (allApps.isEmpty() || totalSizeBytes <= 0L) {
-            return StorageEstimate(0L, 0L, 0, 0)
+            return StorageEstimate(0L, 0L, 0, 0, false)
         }
 
         val unusedMap = unusedApps.associateBy { it.packageId }
@@ -494,15 +498,19 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         largeApps.forEach { candidates[it.packageId] = it }
 
         if (candidates.isEmpty()) {
-            return StorageEstimate(0L, totalSizeBytes, 0, 0)
+            return StorageEstimate(0L, totalSizeBytes, 0, 0, hasUsagePermission)
         }
 
         val now = System.currentTimeMillis()
         var estimatedBytes = 0L
+        var candidatesTotalBytes = 0L
+        var effectiveCandidateCount = 0
 
         candidates.values.forEach { app ->
             val size = app.apkSizeBytes.coerceAtLeast(0L)
             if (size == 0L) return@forEach
+            val isLargeCandidate = app.packageId in largeMap
+            if (!isLargeCandidate && size < MIN_ESTIMATE_CANDIDATE_SIZE_BYTES) return@forEach
 
             val daysSinceUse = if (app.lastTimeUsed <= 0L) {
                 3650L
@@ -511,23 +519,30 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
             }
 
             var reclaimConfidence = when {
-                app.lastTimeUsed <= 0L -> 0.92
-                daysSinceUse >= 180L -> 0.85
-                daysSinceUse >= 120L -> 0.74
-                daysSinceUse >= 90L -> 0.64
-                daysSinceUse >= 60L -> 0.54
-                daysSinceUse >= 30L -> 0.43
-                daysSinceUse >= 14L -> 0.33
-                else -> 0.22
+                !hasUsagePermission -> 0.28
+                app.lastTimeUsed <= 0L -> 0.35
+                daysSinceUse >= 180L -> 0.75
+                daysSinceUse >= 120L -> 0.65
+                daysSinceUse >= 90L -> 0.55
+                daysSinceUse >= 60L -> 0.45
+                daysSinceUse >= 30L -> 0.35
+                else -> 0.25
             }
 
-            if (app.packageId in largeMap) reclaimConfidence += 0.10
+            if (isLargeCandidate) reclaimConfidence += 0.10
             if (hasUsagePermission && app.packageId in unusedMap) reclaimConfidence += 0.15
-            if (!hasUsagePermission) reclaimConfidence *= 0.72
-
-            reclaimConfidence = reclaimConfidence.coerceIn(0.15, 0.95)
+            reclaimConfidence = reclaimConfidence.coerceIn(0.12, 0.80)
+            candidatesTotalBytes += size
+            effectiveCandidateCount += 1
             estimatedBytes += (size.toDouble() * reclaimConfidence).toLong()
         }
+
+        if (effectiveCandidateCount == 0 || candidatesTotalBytes <= 0L) {
+            return StorageEstimate(0L, totalSizeBytes, 0, 0, hasUsagePermission)
+        }
+
+        val capByCandidates = (candidatesTotalBytes.toDouble() * MAX_ESTIMATED_SHARE_OF_CANDIDATES).toLong()
+        estimatedBytes = estimatedBytes.coerceAtMost(capByCandidates).coerceAtLeast(0L)
 
         val impactPercent = ((estimatedBytes.toDouble() / totalSizeBytes.toDouble()) * 100.0)
             .roundToInt()
@@ -537,7 +552,8 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
             estimatedFreedBytes = estimatedBytes.coerceAtLeast(0L),
             totalSizeBytes = totalSizeBytes,
             impactPercent = impactPercent,
-            candidateAppsCount = candidates.size
+            candidateAppsCount = effectiveCandidateCount,
+            usesUsageSignal = hasUsagePermission
         )
     }
 
