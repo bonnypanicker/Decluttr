@@ -140,7 +140,7 @@ class ArchivedAppsAdapter(
             itemView.scaleX = 1f
             itemView.scaleY = 1f
             name.text = toDisplayName(app.name, app.packageId)
-            icon.load(AppIconModel(app.packageId)) {
+            icon.load(iconDataFor(app)) {
                 memoryCacheKey(app.packageId)
                 crossfade(false)
                 placeholder(R.drawable.ic_launcher)
@@ -229,7 +229,7 @@ class ArchivedAppsAdapter(
                 it.setImageDrawable(null)
             } // Clear previous and reset icon state
             apps.forEachIndexed { index, app ->
-                icons[index].load(AppIconModel(app.packageId)) {
+                icons[index].load(iconDataFor(app)) {
                     memoryCacheKey(app.packageId)
                     crossfade(false)
                     placeholder(R.drawable.ic_launcher)
@@ -259,7 +259,7 @@ class ArchivedAppsAdapter(
             val m = appMetaProvider(app)
             val category = app.category ?: "Uncategorized"
             meta.text = "${m.sizeLabel} • ${m.uninstallDateLabel} • $category"
-            icon.load(AppIconModel(app.packageId)) {
+            icon.load(iconDataFor(app)) {
                 memoryCacheKey(app.packageId)
                 crossfade(false)
                 placeholder(R.drawable.ic_launcher)
@@ -584,6 +584,10 @@ class ArchivedAppsAdapter(
         is ArchivedItem.App -> "App(pkg=${item.app.packageId},folder=${item.app.folderName})"
         is ArchivedItem.Folder -> "Folder(name=${item.name},size=${item.apps.size})"
         null -> "null"
+    }
+
+    private fun iconDataFor(app: ArchivedApp): Any {
+        return app.iconBytes ?: AppIconModel(app.packageId)
     }
 
     private fun toDisplayName(name: String?, packageId: String): String {

@@ -46,7 +46,7 @@ class FolderAppsAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val app = apps[position]
         holder.name.text = toDisplayName(app.name, app.packageId)
-        holder.icon.load(AppIconModel(app.packageId)) {
+        holder.icon.load(iconDataFor(app)) {
             memoryCacheKey(app.packageId)
             crossfade(false)
             placeholder(R.drawable.ic_launcher)
@@ -89,6 +89,10 @@ class FolderAppsAdapter(
     }
 
     override fun getItemCount() = apps.size
+
+    private fun iconDataFor(app: ArchivedApp): Any {
+        return app.iconBytes ?: AppIconModel(app.packageId)
+    }
 
     private fun toDisplayName(name: String?, packageId: String): String {
         val raw = name?.trim().orEmpty()
