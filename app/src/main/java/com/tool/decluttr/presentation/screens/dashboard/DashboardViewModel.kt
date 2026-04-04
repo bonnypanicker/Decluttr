@@ -43,6 +43,9 @@ class DashboardViewModel @Inject constructor(
     private val uninstallAppUseCase: com.tool.decluttr.domain.usecase.UninstallAppUseCase,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
+    companion object {
+        private const val TAG = "DecluttrDragDbgVm"
+    }
 
     val archivedApps: StateFlow<List<ArchivedApp>> = appRepository.getAllArchivedApps()
         .stateIn(
@@ -256,6 +259,10 @@ class DashboardViewModel @Inject constructor(
 
     fun updateArchivedApp(app: ArchivedApp) {
         viewModelScope.launch {
+            android.util.Log.d(
+                TAG,
+                "updateArchivedApp pkg=${app.packageId} folder=${app.folderName} notesLen=${app.notes?.length ?: 0}"
+            )
             appRepository.updateApp(app)
         }
     }

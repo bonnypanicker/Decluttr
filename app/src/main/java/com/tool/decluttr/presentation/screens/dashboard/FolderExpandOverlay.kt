@@ -37,6 +37,10 @@ class FolderExpandOverlay(
     private val context: Context,
     private val parentView: ViewGroup
 ) {
+    companion object {
+        private const val TAG = "DecluttrDragDbg"
+    }
+
     private var overlayView: View? = null
     private var isExpanded = false
 
@@ -60,6 +64,10 @@ class FolderExpandOverlay(
         onDragStartFromFolder: (() -> Unit)? = null,
         onDismiss: () -> Unit
     ) {
+        android.util.Log.d(
+            TAG,
+            "FOLDER_OVERLAY show folder=$folderName appCount=${folderApps.size} isExpanded=$isExpanded anchor=${anchorView != null}"
+        )
         if (isExpanded) return
         isExpanded = true
 
@@ -109,6 +117,7 @@ class FolderExpandOverlay(
                 onAppClick(packageId)
             },
             onDragStartFromFolder = {
+                android.util.Log.d(TAG, "FOLDER_OVERLAY drag start from folder=$folderName gridChildren=${grid.childCount}")
                 // Restore any hidden source view before tearing down overlay.
                 for (i in 0 until grid.childCount) {
                     val child = grid.getChildAt(i)
@@ -123,6 +132,7 @@ class FolderExpandOverlay(
                 parentView.removeView(overlayView)
                 overlayView = null
                 isExpanded = false
+                android.util.Log.d(TAG, "FOLDER_OVERLAY removed instantly for drag folder=$folderName")
                 onDismiss()
                 onDragStartFromFolder?.invoke()
             }
@@ -199,6 +209,7 @@ class FolderExpandOverlay(
      * Updates the apps in the grid without recreating the overlay.
      */
     fun updateApps(newApps: List<ArchivedApp>) {
+        android.util.Log.v(TAG, "FOLDER_OVERLAY updateApps size=${newApps.size} isExpanded=$isExpanded hasView=${overlayView != null}")
         val grid = overlayView?.findViewById<RecyclerView>(R.id.folder_grid)
         val adapter = grid?.adapter as? FolderAppsAdapter
         adapter?.updateData(newApps)
@@ -208,6 +219,7 @@ class FolderExpandOverlay(
      * Dismiss with bouncy spring-back animation (Pixel Launcher QPR3 style).
      */
     fun dismiss(onDismiss: () -> Unit) {
+        android.util.Log.d(TAG, "FOLDER_OVERLAY dismiss requested isExpanded=$isExpanded hasView=${overlayView != null}")
         if (!isExpanded) return
         isExpanded = false
 
@@ -238,6 +250,7 @@ class FolderExpandOverlay(
             .withEndAction {
                 parentView.removeView(overlay)
                 overlayView = null
+                android.util.Log.d(TAG, "FOLDER_OVERLAY dismiss completed")
                 onDismiss()
             }
             .start()

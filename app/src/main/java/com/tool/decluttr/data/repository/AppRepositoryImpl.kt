@@ -29,6 +29,9 @@ class AppRepositoryImpl(
     private val authProvider: Provider<FirebaseAuth>,
     private val firestoreProvider: Provider<FirebaseFirestore>
 ) : AppRepository {
+    companion object {
+        private const val TAG = "DecluttrDragDbgRepo"
+    }
     
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -141,6 +144,10 @@ class AppRepositoryImpl(
             previous.lastTimeUsed != app.lastTimeUsed ||
             previous.folderName != app.folderName ||
             !previous.iconBytes.contentEquals(app.iconBytes)
+        android.util.Log.v(
+            TAG,
+            "normalizeForWrite pkg=${app.packageId} changed=$contentChanged prevFolder=${previous?.folderName} newFolder=${app.folderName}"
+        )
         return if (contentChanged) {
             app.copy(lastModified = System.currentTimeMillis())
         } else {
@@ -197,6 +204,10 @@ class AppRepositoryImpl(
     override suspend fun insertApp(app: ArchivedApp) {
         val previous = dao.getAppById(app.packageId)?.toArchivedApp()
         val updatedApp = normalizeForWrite(previous, app)
+        android.util.Log.d(
+            TAG,
+            "insertApp pkg=${app.packageId} prevExists=${previous != null} prevFolder=${previous?.folderName} newFolder=${updatedApp.folderName}"
+        )
         dao.insertApp(updatedApp.toAppEntity())
         syncToFirestore(updatedApp)
     }
@@ -214,6 +225,10 @@ class AppRepositoryImpl(
     override suspend fun updateApp(app: ArchivedApp) {
         val previous = dao.getAppById(app.packageId)?.toArchivedApp()
         val updatedApp = normalizeForWrite(previous, app)
+        android.util.Log.d(
+            TAG,
+            "updateApp pkg=${app.packageId} prevExists=${previous != null} prevFolder=${previous?.folderName} newFolder=${updatedApp.folderName}"
+        )
         dao.updateApp(updatedApp.toAppEntity())
         syncToFirestore(updatedApp)
     }

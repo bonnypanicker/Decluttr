@@ -20,8 +20,12 @@ import com.tool.decluttr.presentation.util.AppIconModel
 class FolderAppsAdapter(
     private var apps: List<ArchivedApp>,
     private val onAppClick: (String) -> Unit,
-    private val onDragStartFromFolder: (() -> Unit)? = null  // NEW: dismiss dialog on drag out
+    private val onDragStartFromFolder: (() -> Unit)? = null
 ) : RecyclerView.Adapter<FolderAppsAdapter.ViewHolder>() {
+
+    companion object {
+        private const val TAG = "DecluttrDragDbg"
+    }
 
     fun updateData(newApps: List<ArchivedApp>) {
         apps = newApps
@@ -47,30 +51,38 @@ class FolderAppsAdapter(
             crossfade(false)
         }
         holder.itemView.setOnClickListener { onAppClick(app.packageId) }
-        
-        // Add long-press drag support
+
         holder.itemView.setOnLongClickListener { view ->
-            val clipData = ClipData.newPlainText("packageId", app.packageId)
-            val shadowBuilder = ScaledDragShadowBuilder(view, 1.1f)
-            val started = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                view.startDragAndDrop(clipData, shadowBuilder, app, 0)
-            } else {
-                @Suppress("DEPRECATION")
-                view.startDrag(clipData, shadowBuilder, app, 0)
-            }
-            if (started) {
-                view.visibility = View.INVISIBLE
-            
-                // Haptic feedback
-                view.performHapticFeedback(
-                    android.view.HapticFeedbackConstants.LONG_PRESS,
-                    android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+            try {
+                android.util.Log.d(
+                    TAG,
+                    "FOLDER longPress start pkg=${app.packageId} pos=${holder.bindingAdapterPosition} viewHash=${System.identityHashCode(view)}"
                 )
-            
-                // Dismiss the folder dialog — the drag continues on the main grid
-                onDragStartFromFolder?.invoke()
+                val clipData = ClipData.newPlainText("packageId", app.packageId)
+                val shadowBuilder = ScaledDragShadowBuilder(view, 1.1f)
+                val started = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    view.startDragAndDrop(clipData, shadowBuilder, app, 0)
+                } else {
+                    @Suppress("DEPRECATION")
+                    view.startDrag(clipData, shadowBuilder, app, 0)
+                }
+                if (started) {
+                    view.visibility = View.INVISIBLE
+                    view.performHapticFeedback(
+                        android.view.HapticFeedbackConstants.LONG_PRESS,
+                        android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                    )
+
+                    android.util.Log.d(TAG, "FOLDER drag started pkg=${app.packageId}; dismiss overlay")
+                    onDragStartFromFolder?.invoke()
+                } else {
+                    android.util.Log.w(TAG, "FOLDER drag failed to start pkg=${app.packageId}")
+                }
+                started
+            } catch (t: Throwable) {
+                android.util.Log.e(TAG, "FOLDER longPress exception pkg=${app.packageId}", t)
+                throw t
             }
-            started
         }
     }
 

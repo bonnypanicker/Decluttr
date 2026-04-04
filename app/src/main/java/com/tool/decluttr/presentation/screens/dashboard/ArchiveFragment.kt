@@ -48,6 +48,9 @@ import java.text.DecimalFormat
 
 @AndroidEntryPoint
 class ArchiveFragment : Fragment(R.layout.fragment_archive) {
+    companion object {
+        private const val TAG = "DecluttrDragDbg"
+    }
 
     private val viewModel: DashboardViewModel by activityViewModels()
 
@@ -173,58 +176,84 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         reinstalledRecyclerView.setHasFixedSize(true)
 
         recyclerView.setOnDragListener { rv, event ->
-            when (event.action) {
-                DragEvent.ACTION_DRAG_STARTED -> {
-                    val ok = event.clipDescription?.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) == true
-                    android.util.Log.d("ArchiveFragment", "DRAG_STARTED ok=$ok")
-                    if (ok) {
-                        isDragInProgress = true
-                        pendingAppsDuringDrag = null
-                        savedItemAnimator = recyclerView.itemAnimator
-                        recyclerView.itemAnimator = null
+            try {
+                android.util.Log.v(
+                    TAG,
+                    "RV_LISTENER action=${dragActionName(event.action)} local=${describeApp(event.localState as? ArchivedApp)} dragInProgress=$isDragInProgress pendingApps=${pendingAppsDuringDrag?.size ?: 0}"
+                )
+                when (event.action) {
+                    DragEvent.ACTION_DRAG_STARTED -> {
+                        val ok = event.clipDescription?.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) == true
+                        android.util.Log.d(TAG, "RV DRAG_STARTED ok=$ok")
+                        if (ok) {
+                            isDragInProgress = true
+                            pendingAppsDuringDrag = null
+                            savedItemAnimator = recyclerView.itemAnimator
+                            recyclerView.itemAnimator = null
+                            android.util.Log.d(TAG, "RV drag animator disabled")
+                        }
+                        ok
                     }
-                    ok
-                }
-                DragEvent.ACTION_DROP -> {
-                    val draggedApp = event.localState as? ArchivedApp
-                    val dropX = event.x
-                    val dropY = event.y
-                    android.util.Log.d("ArchiveFragment", "DROP rv hit test. dragged=${draggedApp?.packageId}")
-                    if (draggedApp != null) {
-                        (rv as RecyclerView).post {
-                            val currentApp = viewModel.archivedApps.value.firstOrNull {
-                                it.packageId == draggedApp.packageId
-                            }
-                            if (currentApp?.folderName != null) {
-                                val childUnder = rv.findChildViewUnder(dropX, dropY)
-                                if (childUnder == null) {
-                                    try {
-                                        viewModel.updateArchivedApp(currentApp.copy(folderName = null))
-                                    } catch (t: Throwable) {
-                                        android.util.Log.e("ArchiveFragment", "Failed to remove from folder on DROP", t)
+                    DragEvent.ACTION_DROP -> {
+                        val draggedApp = event.localState as? ArchivedApp
+                        val dropX = event.x
+                        val dropY = event.y
+                        android.util.Log.d(
+                            TAG,
+                            "RV DROP start dragged=${describeApp(draggedApp)} x=$dropX y=$dropY"
+                        )
+                        if (draggedApp != null) {
+                            (rv as RecyclerView).post {
+                                val currentApp = viewModel.archivedApps.value.firstOrNull {
+                                    it.packageId == draggedApp.packageId
+                                }
+                                android.util.Log.d(
+                                    TAG,
+                                    "RV DROP post current=${describeApp(currentApp)} totalApps=${viewModel.archivedApps.value.size}"
+                                )
+                                if (currentApp?.folderName != null) {
+                                    val childUnder = rv.findChildViewUnder(dropX, dropY)
+                                    android.util.Log.d(
+                                        TAG,
+                                        "RV DROP hitTest childUnderNull=${childUnder == null} child=${describeView(childUnder)}"
+                                    )
+                                    if (childUnder == null) {
+                                        try {
+                                            viewModel.updateArchivedApp(currentApp.copy(folderName = null))
+                                            android.util.Log.d(TAG, "RV DROP removed app from folder pkg=${currentApp.packageId}")
+                                        } catch (t: Throwable) {
+                                            android.util.Log.e(TAG, "RV DROP failed remove from folder", t)
+                                        }
+                                    } else {
+                                        android.util.Log.d(TAG, "RV DROP landed on child; skip remove-from-folder")
                                     }
-                                } else {
-                                    android.util.Log.d("ArchiveFragment", "DROP landed on a child view; ignoring RV handler")
                                 }
                             }
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                    DragEvent.ACTION_DRAG_ENDED -> {
+                        recyclerView.post {
+                            recyclerView.itemAnimator = savedItemAnimator
+                            savedItemAnimator = null
+                            isDragInProgress = false
+                            val latestApps = pendingAppsDuringDrag ?: viewModel.archivedApps.value
+                            pendingAppsDuringDrag = null
+                            android.util.Log.d(
+                                TAG,
+                                "RV DRAG_ENDED restore animator + render apps=${latestApps.size}"
+                            )
+                            renderArchivedApps(latestApps)
                         }
                         true
-                    } else {
-                        false
                     }
+                    else -> true
                 }
-                DragEvent.ACTION_DRAG_ENDED -> {
-                    recyclerView.post {
-                        recyclerView.itemAnimator = savedItemAnimator
-                        savedItemAnimator = null
-                        isDragInProgress = false
-                        val latestApps = pendingAppsDuringDrag ?: viewModel.archivedApps.value
-                        pendingAppsDuringDrag = null
-                        renderArchivedApps(latestApps)
-                    }
-                    true
-                }
-                else -> true
+            } catch (t: Throwable) {
+                android.util.Log.e(TAG, "RV_LISTENER exception action=${dragActionName(event.action)}", t)
+                throw t
             }
         }
     }
@@ -288,8 +317,13 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     viewModel.archivedApps.collect { apps ->
+                        android.util.Log.v(
+                            TAG,
+                            "archivedApps.collect size=${apps.size} dragInProgress=$isDragInProgress pending=${pendingAppsDuringDrag?.size ?: 0}"
+                        )
                         if (isDragInProgress) {
                             pendingAppsDuringDrag = apps
+                            android.util.Log.v(TAG, "archivedApps.collect queued during drag size=${apps.size}")
                         } else {
                             renderArchivedApps(apps)
                         }
@@ -309,20 +343,27 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     }
 
     private fun renderArchivedApps(apps: List<ArchivedApp>) {
+        android.util.Log.v(TAG, "renderArchivedApps size=${apps.size} expandedFolder=$expandedFolder")
         updateUI(apps)
         if (expandedFolder != null && folderOverlay != null) {
             val folderApps = apps.filter { it.folderName == expandedFolder }
             if (folderApps.isEmpty()) {
+                android.util.Log.d(TAG, "renderArchivedApps folder became empty; dismiss overlay")
                 expandedFolder = null
                 folderOverlay?.dismiss {}
                 folderOverlay = null
             } else {
+                android.util.Log.v(TAG, "renderArchivedApps updateOverlay folder=$expandedFolder size=${folderApps.size}")
                 folderOverlay?.updateApps(folderApps)
             }
         }
     }
 
     private fun updateUI(apps: List<ArchivedApp>) {
+        android.util.Log.v(
+            TAG,
+            "updateUI input=${apps.size} query='$searchQuery' category='$selectedCategory' listMode=$isListMode"
+        )
         val installedPackages = getInstalledPackageIds()
         reinstatedApps = apps
             .filter { it.packageId in installedPackages }
@@ -399,6 +440,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             } else {
                 recyclerView.visibility = View.VISIBLE
                 emptyStateContainer.visibility = View.GONE
+                android.util.Log.v(TAG, "updateUI submitList listMode count=${listItems.size}")
                 adapter.submitList(listItems)
             }
             return
@@ -428,6 +470,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         } else {
             recyclerView.visibility = View.VISIBLE
             emptyStateContainer.visibility = View.GONE
+            android.util.Log.v(TAG, "updateUI submitList gridMode count=${groupedItems.size}")
             adapter.submitList(groupedItems)
         }
     }
@@ -548,7 +591,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     }
 
     private fun handleAppDropOnApp(draggedApp: ArchivedApp, targetApp: ArchivedApp) {
-        android.util.Log.d("ArchiveFragment", "handleAppDropOnApp dragged=${draggedApp.packageId} -> target=${targetApp.packageId}")
+        android.util.Log.d(TAG, "handleAppDropOnApp dragged=${draggedApp.packageId} target=${targetApp.packageId}")
         if (draggedApp.packageId == targetApp.packageId) return
         val apps = viewModel.archivedApps.value
         val latestDragged = apps.firstOrNull { it.packageId == draggedApp.packageId } ?: return
@@ -560,8 +603,12 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         try {
             viewModel.updateArchivedApp(latestDragged.copy(folderName = defaultName))
             viewModel.updateArchivedApp(latestTarget.copy(folderName = defaultName))
+            android.util.Log.d(
+                TAG,
+                "handleAppDropOnApp created/assigned folder='$defaultName' dragged=${latestDragged.packageId} target=${latestTarget.packageId}"
+            )
         } catch (t: Throwable) {
-            android.util.Log.e("ArchiveFragment", "Failed to assign folder $defaultName", t)
+            android.util.Log.e(TAG, "handleAppDropOnApp failed assign folder $defaultName", t)
             return
         }
 
@@ -569,7 +616,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             delay(150)
             expandedFolder = defaultName
             runCatching { showFolderOverlay(defaultName) }
-                .onFailure { android.util.Log.e("ArchiveFragment", "showFolderOverlay failed", it) }
+                .onFailure { android.util.Log.e(TAG, "showFolderOverlay failed", it) }
         }
     }
 
@@ -586,6 +633,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     }
 
     private fun showFolderOverlay(folderName: String) {
+        android.util.Log.d(TAG, "showFolderOverlay folder=$folderName")
         val root = requireActivity().findViewById<ViewGroup>(android.R.id.content)
         val overlay = FolderExpandOverlay(requireContext(), root)
         folderOverlay = overlay
@@ -607,13 +655,35 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 }
             },
             onDragStartFromFolder = {
+                android.util.Log.d(TAG, "showFolderOverlay onDragStartFromFolder folder=$folderName")
                 expandedFolder = null
             },
             onDismiss = {
+                android.util.Log.d(TAG, "showFolderOverlay onDismiss folder=$folderName expandedFolder=$expandedFolder")
                 if (expandedFolder == folderName) expandedFolder = null
                 folderOverlay = null
             }
         )
+    }
+
+    private fun dragActionName(action: Int): String = when (action) {
+        DragEvent.ACTION_DRAG_STARTED -> "ACTION_DRAG_STARTED"
+        DragEvent.ACTION_DRAG_LOCATION -> "ACTION_DRAG_LOCATION"
+        DragEvent.ACTION_DROP -> "ACTION_DROP"
+        DragEvent.ACTION_DRAG_ENDED -> "ACTION_DRAG_ENDED"
+        DragEvent.ACTION_DRAG_ENTERED -> "ACTION_DRAG_ENTERED"
+        DragEvent.ACTION_DRAG_EXITED -> "ACTION_DRAG_EXITED"
+        else -> "ACTION_UNKNOWN_$action"
+    }
+
+    private fun describeApp(app: ArchivedApp?): String {
+        if (app == null) return "null"
+        return "pkg=${app.packageId},folder=${app.folderName}"
+    }
+
+    private fun describeView(view: View?): String {
+        if (view == null) return "null"
+        return "id=${view.id} hash=${System.identityHashCode(view)} vis=${view.visibility}"
     }
 
     private fun openNativeAppDetails(packageId: String) {

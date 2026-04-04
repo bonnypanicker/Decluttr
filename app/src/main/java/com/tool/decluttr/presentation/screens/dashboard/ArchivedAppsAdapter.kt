@@ -63,10 +63,16 @@ class ArchivedAppsAdapter(
     private val onFolderClick: (String) -> Unit,
     private val appMetaProvider: (ArchivedApp) -> AppListMeta
 ) : ListAdapter<ArchivedItem, RecyclerView.ViewHolder>(ArchiveDiffCallback()) {
+    companion object {
+        private const val TAG = "DecluttrDragDbg"
+    }
+
     private var pendingDropAction: (() -> Unit)? = null
     private var draggingPackageId: String? = null
     private var draggingViewRef: WeakReference<View>? = null
     private var dragEndHandled: Boolean = false
+    private var dragSessionCounter: Long = 0L
+    private var activeDragSessionId: Long = -1L
     private val pulseAnimators = mutableMapOf<View, ObjectAnimator>()
     private var isListMode: Boolean = false
 
@@ -157,9 +163,15 @@ class ArchivedAppsAdapter(
                 }
 
                 if (started) {
+                    dragSessionCounter += 1L
+                    activeDragSessionId = dragSessionCounter
                     draggingPackageId = app.packageId
                     draggingViewRef = WeakReference(view)
                     dragEndHandled = false
+                    android.util.Log.d(
+                        TAG,
+                        "session=$activeDragSessionId START_DRAG pkg=${app.packageId} pos=${bindingAdapterPosition} view=${describeView(view)}"
+                    )
                     // 4. CRITICAL: Hide the source view so it doesn't duplicate
                     //    Pixel Launcher hides the icon from its cell during drag.
                     view.visibility = View.INVISIBLE
@@ -168,6 +180,13 @@ class ArchivedAppsAdapter(
                     view.performHapticFeedback(
                         android.view.HapticFeedbackConstants.LONG_PRESS,
                         android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                    )
+                }
+
+                if (!started) {
+                    android.util.Log.w(
+                        TAG,
+                        "session=$activeDragSessionId START_DRAG_FAILED pkg=${app.packageId} pos=${bindingAdapterPosition} view=${describeView(view)}"
                     )
                 }
 
@@ -251,160 +270,226 @@ class ArchivedAppsAdapter(
         private var originalBackground: android.graphics.drawable.Drawable? = null
 
         override fun onDrag(view: View, event: DragEvent): Boolean {
-            val rv = findParentRecyclerView(view)
-            val pos = rv?.getChildAdapterPosition(view) ?: -1
-            android.util.Log.d("ArchivedAppsAdapter", "onDrag action=${event.action} adapterPos=$pos")
-            val targetItem = view.tag as? ArchivedItem
-            val draggedApp = event.localState as? ArchivedApp
+            try {
+                val rv = findParentRecyclerView(view)
+                val pos = rv?.getChildAdapterPosition(view) ?: -1
+                val targetItem = view.tag as? ArchivedItem
+                val draggedApp = event.localState as? ArchivedApp
 
-            when (event.action) {
-                DragEvent.ACTION_DRAG_STARTED -> {
-                    pendingDropAction = null
-                    dragEndHandled = false
-                    val ok = event.clipDescription?.hasMimeType(
-                        android.content.ClipDescription.MIMETYPE_TEXT_PLAIN
-                    ) == true
-                    android.util.Log.d("ArchivedAppsAdapter", "DRAG_STARTED ok=$ok hasLocal=${draggedApp!=null}")
-                    return ok
-                }
+                android.util.Log.v(
+                    TAG,
+                    "session=$activeDragSessionId action=${dragActionName(event.action)} pos=$pos target=${describeTarget(targetItem)} dragged=${describeApp(draggedApp)} view=${describeView(view)}"
+                )
 
-                DragEvent.ACTION_DRAG_ENTERED -> {
-                    // Visual feedback: scale up + highlight the drop target
-                    if (targetItem != null && draggedApp != null) {
-                        when (targetItem) {
-                            is ArchivedItem.App -> {
-                                if (draggedApp.packageId != targetItem.app.packageId) {
-                                    // Scale up + dashed border = "will create folder"
+                when (event.action) {
+                    DragEvent.ACTION_DRAG_STARTED -> {
+                        pendingDropAction = null
+                        dragEndHandled = false
+                        val ok = event.clipDescription?.hasMimeType(
+                            android.content.ClipDescription.MIMETYPE_TEXT_PLAIN
+                        ) == true
+                        android.util.Log.d(
+                            TAG,
+                            "session=$activeDragSessionId DRAG_STARTED ok=$ok hasLocal=${draggedApp != null} pos=$pos"
+                        )
+                        return ok
+                    }
+
+                    DragEvent.ACTION_DRAG_ENTERED -> {
+                        // Visual feedback: scale up + highlight the drop target
+                        if (targetItem != null && draggedApp != null) {
+                            when (targetItem) {
+                                is ArchivedItem.App -> {
+                                    if (draggedApp.packageId != targetItem.app.packageId) {
+                                        // Scale up + dashed border = "will create folder"
+                                        originalBackground = view.background
+                                        view.setBackgroundResource(R.drawable.bg_drag_target_highlight)
+                                        view.animate()
+                                            .scaleX(1.2f)
+                                            .scaleY(1.2f)
+                                            .setDuration(200)
+                                            .setInterpolator(OvershootInterpolator(3f))
+                                            .start()
+                                        android.util.Log.d(
+                                            TAG,
+                                            "session=$activeDragSessionId DRAG_ENTERED_APP targetPkg=${targetItem.app.packageId} draggedPkg=${draggedApp.packageId}"
+                                        )
+                                    }
+                                }
+                                is ArchivedItem.Folder -> {
+                                    // Folder "breathing" pulse animation
                                     originalBackground = view.background
                                     view.setBackgroundResource(R.drawable.bg_drag_target_highlight)
-                                    view.animate()
-                                        .scaleX(1.2f)
-                                        .scaleY(1.2f)
-                                        .setDuration(200)
-                                        .setInterpolator(OvershootInterpolator(3f))
-                                        .start()
+
+                                    val pulseAnimator = ObjectAnimator.ofFloat(
+                                        view, "scaleX", 1.0f, 1.08f
+                                    ).apply {
+                                        duration = 600
+                                        repeatMode = android.animation.ValueAnimator.REVERSE
+                                        repeatCount = android.animation.ValueAnimator.INFINITE
+                                        interpolator = AccelerateDecelerateInterpolator()
+                                        addUpdateListener { anim ->
+                                            view.scaleY = anim.animatedValue as Float
+                                        }
+                                        start()
+                                    }
+                                    pulseAnimators[view] = pulseAnimator
+                                    android.util.Log.d(
+                                        TAG,
+                                        "session=$activeDragSessionId DRAG_ENTERED_FOLDER targetFolder=${targetItem.name} draggedPkg=${draggedApp.packageId}"
+                                    )
                                 }
                             }
-                            is ArchivedItem.Folder -> {
-                                // Folder "breathing" pulse animation
-                                originalBackground = view.background
-                                view.setBackgroundResource(R.drawable.bg_drag_target_highlight)
-
-                                val pulseAnimator = ObjectAnimator.ofFloat(
-                                    view, "scaleX", 1.0f, 1.08f
-                                ).apply {
-                                    duration = 600
-                                    repeatMode = android.animation.ValueAnimator.REVERSE
-                                    repeatCount = android.animation.ValueAnimator.INFINITE
-                                    interpolator = AccelerateDecelerateInterpolator()
-                                    addUpdateListener { anim ->
-                                        view.scaleY = anim.animatedValue as Float
-                                    }
-                                    start()
-                                }
-                                pulseAnimators[view] = pulseAnimator
-                            }
-                        }
-                    }
-                    return true
-                }
-
-                DragEvent.ACTION_DRAG_EXITED -> {
-                    // Reset visual feedback
-                    pulseAnimators.remove(view)?.cancel()
-                    view.background = originalBackground
-                    view.animate()
-                        .scaleX(1.0f)
-                        .scaleY(1.0f)
-                        .setDuration(200)
-                        .setInterpolator(DecelerateInterpolator())
-                        .start()
-                    return true
-                }
-
-                DragEvent.ACTION_DROP -> {
-                    android.util.Log.d("ArchivedAppsAdapter", "DROP target=$targetItem dragged=${draggedApp?.packageId}")
-                    // Reset target visuals
-                    pulseAnimators.remove(view)?.cancel()
-                    view.background = originalBackground
-                    view.animate().scaleX(1f).scaleY(1f).setDuration(100).start()
-
-                    if (draggedApp != null && targetItem != null) {
-                        // Haptic on successful drop
-                        view.performHapticFeedback(
-                            android.view.HapticFeedbackConstants.CONFIRM
-                        )
-
-                        try {
-                            pendingDropAction = when {
-                                targetItem is ArchivedItem.App &&
-                                    draggedApp.packageId != targetItem.app.packageId -> {
-                                    {
-                                        onAppDropOnApp(draggedApp, targetItem.app)
-                                    }
-                                }
-                                targetItem is ArchivedItem.Folder -> {
-                                    {
-                                        onAppDropOnFolder(draggedApp, targetItem.name)
-                                    }
-                                }
-                                else -> null
-                            }
-                        } catch (t: Throwable) {
-                            android.util.Log.e("ArchivedAppsAdapter", "DROP failed", t)
-                            return false
                         }
                         return true
                     }
-                    return false
-                }
 
-                DragEvent.ACTION_DRAG_ENDED -> {
-                    if (dragEndHandled) return true
-                    // CRITICAL: Restore visibility of the source view
-                    pulseAnimators.remove(view)?.cancel()
-                    view.background = originalBackground
-                    view.scaleX = 1f
-                    view.scaleY = 1f
+                    DragEvent.ACTION_DRAG_EXITED -> {
+                        // Reset visual feedback
+                        pulseAnimators.remove(view)?.cancel()
+                        view.background = originalBackground
+                        view.animate()
+                            .scaleX(1.0f)
+                            .scaleY(1.0f)
+                            .setDuration(200)
+                            .setInterpolator(DecelerateInterpolator())
+                            .start()
+                        return true
+                    }
 
-                    val recyclerView = findParentRecyclerView(view) ?: return true
-                    dragEndHandled = true
-                    run {
-                        val rv = recyclerView
-                        val dragSource = draggingViewRef?.get()
-                        if (dragSource != null && dragSource.visibility != View.VISIBLE) {
-                            restoreDraggedSourceView(dragSource)
-                        } else {
-                            val draggingPkg = draggingPackageId
-                            if (draggingPkg != null) {
-                                for (i in 0 until rv.childCount) {
-                                    val child = rv.getChildAt(i)
-                                    val tagged = child.tag as? ArchivedItem.App
-                                    if (tagged?.app?.packageId == draggingPkg && child.visibility != View.VISIBLE) {
-                                        restoreDraggedSourceView(child)
-                                        break
+                    DragEvent.ACTION_DROP -> {
+                        android.util.Log.d(
+                            TAG,
+                            "session=$activeDragSessionId DROP target=${describeTarget(targetItem)} dragged=${describeApp(draggedApp)} pos=$pos"
+                        )
+                        // Reset target visuals
+                        pulseAnimators.remove(view)?.cancel()
+                        view.background = originalBackground
+                        view.animate().scaleX(1f).scaleY(1f).setDuration(100).start()
+
+                        if (draggedApp != null && targetItem != null) {
+                            // Haptic on successful drop
+                            view.performHapticFeedback(
+                                android.view.HapticFeedbackConstants.CONFIRM
+                            )
+
+                            try {
+                                pendingDropAction = when {
+                                    targetItem is ArchivedItem.App &&
+                                        draggedApp.packageId != targetItem.app.packageId -> {
+                                        {
+                                            onAppDropOnApp(draggedApp, targetItem.app)
+                                        }
+                                    }
+                                    targetItem is ArchivedItem.Folder -> {
+                                        {
+                                            onAppDropOnFolder(draggedApp, targetItem.name)
+                                        }
+                                    }
+                                    else -> null
+                                }
+                                android.util.Log.d(
+                                    TAG,
+                                    "session=$activeDragSessionId DROP_QUEUED actionPresent=${pendingDropAction != null}"
+                                )
+                            } catch (t: Throwable) {
+                                android.util.Log.e(TAG, "session=$activeDragSessionId DROP failed", t)
+                                return false
+                            }
+                            return true
+                        }
+                        return false
+                    }
+
+                    DragEvent.ACTION_DRAG_ENDED -> {
+                        if (dragEndHandled) {
+                            android.util.Log.v(
+                                TAG,
+                                "session=$activeDragSessionId DRAG_ENDED skipped duplicate pos=$pos"
+                            )
+                            return true
+                        }
+                        // CRITICAL: Restore visibility of the source view
+                        pulseAnimators.remove(view)?.cancel()
+                        view.background = originalBackground
+                        view.scaleX = 1f
+                        view.scaleY = 1f
+
+                        val recyclerView = findParentRecyclerView(view)
+                        if (recyclerView == null) {
+                            android.util.Log.w(
+                                TAG,
+                                "session=$activeDragSessionId DRAG_ENDED noRecyclerView pos=$pos view=${describeView(view)}"
+                            )
+                            return true
+                        }
+                        dragEndHandled = true
+                        run {
+                            val rv = recyclerView
+                            val dragSource = draggingViewRef?.get()
+                            if (dragSource != null && dragSource.visibility != View.VISIBLE) {
+                                android.util.Log.d(
+                                    TAG,
+                                    "session=$activeDragSessionId RESTORE source=weakRef view=${describeView(dragSource)}"
+                                )
+                                restoreDraggedSourceView(dragSource)
+                            } else {
+                                val draggingPkg = draggingPackageId
+                                if (draggingPkg != null) {
+                                    for (i in 0 until rv.childCount) {
+                                        val child = rv.getChildAt(i)
+                                        val tagged = child.tag as? ArchivedItem.App
+                                        if (tagged?.app?.packageId == draggingPkg && child.visibility != View.VISIBLE) {
+                                            android.util.Log.d(
+                                                TAG,
+                                                "session=$activeDragSessionId RESTORE source=scan pkg=$draggingPkg child=${describeView(child)}"
+                                            )
+                                            restoreDraggedSourceView(child)
+                                            break
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        val dropAction = pendingDropAction
-                        pendingDropAction = null
-                        if (dropAction != null) {
-                            rv.post {
-                                runCatching { dropAction.invoke() }
-                                    .onFailure {
-                                        android.util.Log.e("ArchivedAppsAdapter", "Executing pending drop action failed", it)
-                                    }
+                            val dropAction = pendingDropAction
+                            pendingDropAction = null
+                            if (dropAction != null) {
+                                rv.post {
+                                    android.util.Log.d(
+                                        TAG,
+                                        "session=$activeDragSessionId EXECUTE_DROP_ACTION"
+                                    )
+                                    runCatching { dropAction.invoke() }
+                                        .onFailure {
+                                            android.util.Log.e(
+                                                TAG,
+                                                "session=$activeDragSessionId Executing pending drop action failed",
+                                                it
+                                            )
+                                        }
+                                }
+                            } else {
+                                android.util.Log.d(
+                                    TAG,
+                                    "session=$activeDragSessionId DRAG_ENDED no pending drop action"
+                                )
                             }
                         }
+                        draggingViewRef = null
+                        draggingPackageId = null
+                        android.util.Log.d(TAG, "session=$activeDragSessionId DRAG_ENDED cleanup complete")
+                        return true
                     }
-                    draggingViewRef = null
-                    draggingPackageId = null
-                    return true
-                }
 
-                else -> return false
+                    else -> return false
+                }
+            } catch (t: Throwable) {
+                android.util.Log.e(
+                    TAG,
+                    "session=$activeDragSessionId onDrag exception action=${dragActionName(event.action)} view=${describeView(view)}",
+                    t
+                )
+                throw t
             }
         }
 
@@ -419,6 +504,7 @@ class ArchivedAppsAdapter(
     }
 
     private fun restoreDraggedSourceView(view: View) {
+        android.util.Log.v(TAG, "session=$activeDragSessionId restoreDraggedSourceView view=${describeView(view)}")
         view.animate().cancel()
         view.visibility = View.VISIBLE
         view.alpha = 0f
@@ -435,11 +521,38 @@ class ArchivedAppsAdapter(
 
     override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
         super.onViewRecycled(holder)
+        android.util.Log.v(TAG, "session=$activeDragSessionId onViewRecycled view=${describeView(holder.itemView)}")
         holder.itemView.animate().cancel()
         pulseAnimators.remove(holder.itemView)?.cancel()
         holder.itemView.visibility = View.VISIBLE
         holder.itemView.alpha = 1f
         holder.itemView.scaleX = 1f
         holder.itemView.scaleY = 1f
+    }
+
+    private fun dragActionName(action: Int): String = when (action) {
+        DragEvent.ACTION_DRAG_STARTED -> "ACTION_DRAG_STARTED"
+        DragEvent.ACTION_DRAG_LOCATION -> "ACTION_DRAG_LOCATION"
+        DragEvent.ACTION_DROP -> "ACTION_DROP"
+        DragEvent.ACTION_DRAG_ENDED -> "ACTION_DRAG_ENDED"
+        DragEvent.ACTION_DRAG_ENTERED -> "ACTION_DRAG_ENTERED"
+        DragEvent.ACTION_DRAG_EXITED -> "ACTION_DRAG_EXITED"
+        else -> "ACTION_UNKNOWN_$action"
+    }
+
+    private fun describeView(view: View?): String {
+        if (view == null) return "null"
+        return "id=${view.id} hash=${System.identityHashCode(view)} vis=${view.visibility} alpha=${view.alpha} sx=${view.scaleX} sy=${view.scaleY}"
+    }
+
+    private fun describeApp(app: ArchivedApp?): String {
+        if (app == null) return "null"
+        return "pkg=${app.packageId},folder=${app.folderName}"
+    }
+
+    private fun describeTarget(item: ArchivedItem?): String = when (item) {
+        is ArchivedItem.App -> "App(pkg=${item.app.packageId},folder=${item.app.folderName})"
+        is ArchivedItem.Folder -> "Folder(name=${item.name},size=${item.apps.size})"
+        null -> "null"
     }
 }
