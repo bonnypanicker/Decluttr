@@ -1,0 +1,3 @@
+<resources>
+    <dimen name="discovery_item_horizontal_margin">4dp</dimen>
+</resources>

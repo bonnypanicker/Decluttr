@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="12dp"
+    android:layout_marginHorizontal="@dimen/discovery_item_horizontal_margin"
     android:layout_marginBottom="12dp"
     app:cardBackgroundColor="?attr/colorSecondaryContainer"
     app:cardCornerRadius="20dp"
@@ -42,7 +42,7 @@
                     android:id="@+id/storage_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Potential Storage Freed"
+                    android:text="@string/discovery_storage_estimated_label"
                     android:textAppearance="?attr/textAppearanceTitleMedium"
                     android:textColor="?attr/colorOnSecondaryContainer"
                     android:textStyle="bold" />
@@ -52,7 +52,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="Clear apps you rarely use"
+                    android:text="@string/discovery_storage_subtitle_empty"
                     android:textAppearance="?attr/textAppearanceBodySmall"
                     android:textColor="?attr/colorOnSecondaryContainer"
                     android:alpha="0.8" />
@@ -87,7 +87,7 @@
                     android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
-                    android:text="Waste Score: 0%"
+                    android:text="@string/discovery_storage_score_default"
                     android:textAppearance="?attr/textAppearanceLabelLarge"
                     android:textStyle="bold"
                     android:textColor="?attr/colorOnSecondaryContainer" />

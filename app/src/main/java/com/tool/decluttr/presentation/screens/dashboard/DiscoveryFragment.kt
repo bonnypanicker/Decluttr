@@ -80,6 +80,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
 
     companion object {
         private const val KEY_USAGE_DISCLOSURE_ACCEPTED = "usage_disclosure_accepted"
+        private const val MILLIS_PER_DAY = 24L * 60L * 60L * 1000L
     }
 
 
@@ -319,10 +320,20 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         val items = mutableListOf<DashboardItem>()
         if (!isSearchActive) {
             if (allApps.isNotEmpty()) {
-                val totalSize = allApps.sumOf { it.apkSizeBytes }
-                val wasteSize = unusedApps.sumOf { it.apkSizeBytes }
-                val percentage = if (totalSize > 0) ((wasteSize.toFloat() / totalSize.toFloat()) * 100).roundToInt() else 0
-                items.add(DashboardItem.StorageMeter(wasteSize, totalSize, percentage))
+                val estimate = estimateStorageFreed(
+                    allApps = allApps,
+                    unusedApps = unusedApps,
+                    largeApps = largeApps,
+                    hasUsagePermission = hasUsagePerm
+                )
+                items.add(
+                    DashboardItem.StorageMeter(
+                        estimatedFreedBytes = estimate.estimatedFreedBytes,
+                        totalSizeBytes = estimate.totalSizeBytes,
+                        impactPercent = estimate.impactPercent,
+                        candidateAppsCount = estimate.candidateAppsCount
+                    )
+                )
             }
             if (!hasUsagePerm) items.add(DashboardItem.PermissionWarning())
             else items.add(DashboardItem.SmartCard(R.drawable.ic_archive_outlined, "Rarely Used Apps", "${unusedApps.size} apps • ${bytesToMB(unusedApps.sumOf { it.apkSizeBytes })} MB", DiscoveryViewState.RARELY_USED))
@@ -454,6 +465,80 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         } else {
             continueArchiveFlow()
         }
+    }
+
+    private data class StorageEstimate(
+        val estimatedFreedBytes: Long,
+        val totalSizeBytes: Long,
+        val impactPercent: Int,
+        val candidateAppsCount: Int
+    )
+
+    private fun estimateStorageFreed(
+        allApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
+        unusedApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
+        largeApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
+        hasUsagePermission: Boolean
+    ): StorageEstimate {
+        val totalSizeBytes = allApps.sumOf { it.apkSizeBytes.coerceAtLeast(0L) }
+        if (allApps.isEmpty() || totalSizeBytes <= 0L) {
+            return StorageEstimate(0L, 0L, 0, 0)
+        }
+
+        val unusedMap = unusedApps.associateBy { it.packageId }
+        val largeMap = largeApps.associateBy { it.packageId }
+        val candidates = linkedMapOf<String, GetInstalledAppsUseCase.InstalledAppInfo>()
+        if (hasUsagePermission) {
+            unusedApps.forEach { candidates[it.packageId] = it }
+        }
+        largeApps.forEach { candidates[it.packageId] = it }
+
+        if (candidates.isEmpty()) {
+            return StorageEstimate(0L, totalSizeBytes, 0, 0)
+        }
+
+        val now = System.currentTimeMillis()
+        var estimatedBytes = 0L
+
+        candidates.values.forEach { app ->
+            val size = app.apkSizeBytes.coerceAtLeast(0L)
+            if (size == 0L) return@forEach
+
+            val daysSinceUse = if (app.lastTimeUsed <= 0L) {
+                3650L
+            } else {
+                ((now - app.lastTimeUsed).coerceAtLeast(0L) / MILLIS_PER_DAY)
+            }
+
+            var reclaimConfidence = when {
+                app.lastTimeUsed <= 0L -> 0.92
+                daysSinceUse >= 180L -> 0.85
+                daysSinceUse >= 120L -> 0.74
+                daysSinceUse >= 90L -> 0.64
+                daysSinceUse >= 60L -> 0.54
+                daysSinceUse >= 30L -> 0.43
+                daysSinceUse >= 14L -> 0.33
+                else -> 0.22
+            }
+
+            if (app.packageId in largeMap) reclaimConfidence += 0.10
+            if (hasUsagePermission && app.packageId in unusedMap) reclaimConfidence += 0.15
+            if (!hasUsagePermission) reclaimConfidence *= 0.72
+
+            reclaimConfidence = reclaimConfidence.coerceIn(0.15, 0.95)
+            estimatedBytes += (size.toDouble() * reclaimConfidence).toLong()
+        }
+
+        val impactPercent = ((estimatedBytes.toDouble() / totalSizeBytes.toDouble()) * 100.0)
+            .roundToInt()
+            .coerceIn(0, 100)
+
+        return StorageEstimate(
+            estimatedFreedBytes = estimatedBytes.coerceAtLeast(0L),
+            totalSizeBytes = totalSizeBytes,
+            impactPercent = impactPercent,
+            candidateAppsCount = candidates.size
+        )
     }
 
     private fun bytesToMB(bytes: Long): String {

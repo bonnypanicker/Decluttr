@@ -37,9 +37,10 @@ enum class SortOption {
 
 sealed class DashboardItem {
     data class StorageMeter(
-        val wasteSize: Long,
-        val totalSize: Long,
-        val percentage: Int
+        val estimatedFreedBytes: Long,
+        val totalSizeBytes: Long,
+        val impactPercent: Int,
+        val candidateAppsCount: Int
     ) : DashboardItem()
 
     data class PermissionWarning(val dummy: Boolean = true) : DashboardItem()
@@ -146,14 +147,21 @@ class DiscoveryDashboardAdapter(
     }
 
     inner class StorageMeterViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        private val storageSubtitle: TextView = view.findViewById(R.id.storage_subtitle)
         private val storageValue: TextView = view.findViewById(R.id.storage_value)
         private val wasteScore: TextView = view.findViewById(R.id.waste_score)
         private val progressBar: LinearProgressIndicator = view.findViewById(R.id.storage_progress)
 
         fun bind(item: DashboardItem.StorageMeter) {
-            storageValue.text = "${bytesToMB(item.wasteSize)} MB"
-            wasteScore.text = "Waste Score: ${item.percentage}%"
-            progressBar.progress = item.percentage
+            val context = itemView.context
+            storageValue.text = "${bytesToMB(item.estimatedFreedBytes)} MB"
+            wasteScore.text = context.getString(R.string.discovery_storage_score, item.impactPercent)
+            storageSubtitle.text = if (item.candidateAppsCount > 0) {
+                context.getString(R.string.discovery_storage_subtitle_candidates, item.candidateAppsCount)
+            } else {
+                context.getString(R.string.discovery_storage_subtitle_empty)
+            }
+            progressBar.progress = item.impactPercent
         }
     }
 
