@@ -1,12 +1,12 @@
 package com.tool.decluttr.data.repository
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
-import android.content.pm.PackageManager
 import android.util.Base64
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
@@ -38,11 +38,9 @@ class AppRepositoryImpl(
     companion object {
         private const val TAG = "DecluttrDragDbgRepo"
         private const val LOCAL_ICON_DIM = 144
-        private const val LOCAL_ICON_MAX_BYTES = 45 * 1024
-        private val LOCAL_ICON_QUALITIES = intArrayOf(90, 84, 78, 72, 66)
         private const val FIRESTORE_ICON_MAX_DIM = 128
-        private const val FIRESTORE_ICON_MAX_BYTES = 16 * 1024
-        private val FIRESTORE_ICON_QUALITIES = intArrayOf(82, 74, 66, 58)
+        private const val FIRESTORE_ICON_MAX_BYTES = 24 * 1024
+        private val FIRESTORE_JPEG_QUALITIES = intArrayOf(92, 84, 76, 68)
     }
     
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -72,20 +70,17 @@ class AppRepositoryImpl(
 
             remoteApps.forEach { remoteApp ->
                 val localApp = localApps[remoteApp.packageId]?.toArchivedApp()
-                val mergedRemoteApp = if (
-                    localApp != null &&
-                    isLikelyPackageId(remoteApp.name) &&
-                    !isLikelyPackageId(localApp.name)
-                ) {
-                    remoteApp.copy(name = localApp.name)
-                } else {
-                    remoteApp
-                }
+                val mergedRemoteApp = mergeRemoteWithLocal(remoteApp, localApp)
                 val enrichedRemoteApp = enrichArchiveApp(mergedRemoteApp)
+                val shouldHealRemote = requiresRemoteHealing(remoteApp, enrichedRemoteApp)
+                val usingRemoteAsSource = localApp == null || remoteApp.lastModified >= localApp.lastModified
                 when {
                     localApp == null -> dao.insertApp(enrichedRemoteApp.toAppEntity())
                     remoteApp.lastModified >= localApp.lastModified -> dao.insertApp(enrichedRemoteApp.toAppEntity())
                     else -> syncToFirestore(localApp)
+                }
+                if (usingRemoteAsSource && shouldHealRemote) {
+                    syncToFirestore(enrichedRemoteApp)
                 }
             }
 
@@ -103,6 +98,12 @@ class AppRepositoryImpl(
     private fun DocumentSnapshot.toArchivedAppOrNull(): ArchivedApp? {
         val id = getString("packageId") ?: return null
         val archivedAt = getLong("archivedAt") ?: System.currentTimeMillis()
+        val rawIconBase64 = getString("iconBase64")
+        val iconBytes = decodeIconBase64(rawIconBase64).also { decoded ->
+            if (rawIconBase64 != null && decoded == null) {
+                android.util.Log.w(TAG, "decodeIconBase64 failed pkg=$id")
+            }
+        }
         return ArchivedApp(
             packageId = id,
             name = getString("name") ?: id,
@@ -110,7 +111,7 @@ class AppRepositoryImpl(
             category = getString("category"),
             tags = parseTags(get("tags")),
             notes = getString("notes"),
-            iconBytes = getString("iconBase64")?.let { Base64.decode(it, Base64.DEFAULT) },
+            iconBytes = iconBytes,
             archivedAt = archivedAt,
             lastTimeUsed = getLong("lastTimeUsed") ?: 0L,
             folderName = getString("folderName"),
@@ -163,7 +164,7 @@ class AppRepositoryImpl(
             ?: return Base64.encodeToString(iconBytes, Base64.NO_WRAP)
 
         val scaledBitmap = scaleDownIfNeeded(bitmap, FIRESTORE_ICON_MAX_DIM)
-        val compressedBytes = compressBitmapAdaptiveForFirestore(scaledBitmap)
+        val compressedBytes = compressBitmapForFirestore(scaledBitmap)
         if (scaledBitmap !== bitmap && !scaledBitmap.isRecycled) {
             scaledBitmap.recycle()
         }
@@ -181,22 +182,17 @@ class AppRepositoryImpl(
         return Bitmap.createScaledBitmap(bitmap, targetW, targetH, true)
     }
 
-    private fun compressBitmapAdaptiveForFirestore(bitmap: Bitmap): ByteArray? {
-        val format = if (android.os.Build.VERSION.SDK_INT >= 30) {
-            Bitmap.CompressFormat.WEBP_LOSSY
-        } else {
-            @Suppress("DEPRECATION")
-            Bitmap.CompressFormat.WEBP
+    private fun compressBitmapForFirestore(bitmap: Bitmap): ByteArray? {
+        val pngBytes = encodeBitmap(bitmap, Bitmap.CompressFormat.PNG, 100)
+        if (pngBytes != null && pngBytes.size <= FIRESTORE_ICON_MAX_BYTES) {
+            return pngBytes
         }
-        var best: ByteArray? = null
-        for (quality in FIRESTORE_ICON_QUALITIES) {
-            val stream = java.io.ByteArrayOutputStream()
-            val ok = bitmap.compress(format, quality, stream)
-            if (!ok) continue
-            val bytes = stream.toByteArray()
-            if (bytes.isEmpty()) continue
-            if (best == null || bytes.size < best.size) best = bytes
-            if (bytes.size <= FIRESTORE_ICON_MAX_BYTES) return bytes
+
+        var best = pngBytes
+        for (quality in FIRESTORE_JPEG_QUALITIES) {
+            val jpegBytes = encodeBitmap(bitmap, Bitmap.CompressFormat.JPEG, quality) ?: continue
+            if (best == null || jpegBytes.size < best.size) best = jpegBytes
+            if (jpegBytes.size <= FIRESTORE_ICON_MAX_BYTES) return jpegBytes
         }
         return best
     }
@@ -211,7 +207,11 @@ class AppRepositoryImpl(
         } else {
             app.name
         }
-        val normalizedApp = if (resolvedName != app.name) app.copy(name = resolvedName) else app
+        val resolvedIconBytes = app.iconBytes ?: previous?.iconBytes
+        val normalizedApp = app.copy(
+            name = resolvedName,
+            iconBytes = resolvedIconBytes
+        )
 
         val contentChanged = previous == null ||
             previous.name != normalizedApp.name ||
@@ -236,6 +236,32 @@ class AppRepositoryImpl(
     private fun isLikelyPackageId(value: String?): Boolean {
         if (value.isNullOrBlank()) return true
         return value.contains('.') && value == value.lowercase()
+    }
+
+    private fun mergeRemoteWithLocal(remoteApp: ArchivedApp, localApp: ArchivedApp?): ArchivedApp {
+        if (localApp == null) return remoteApp
+
+        val resolvedName = if (
+            isLikelyPackageId(remoteApp.name) &&
+            !isLikelyPackageId(localApp.name)
+        ) {
+            localApp.name
+        } else {
+            remoteApp.name
+        }
+        val resolvedIconBytes = remoteApp.iconBytes ?: localApp.iconBytes
+        return remoteApp.copy(name = resolvedName, iconBytes = resolvedIconBytes)
+    }
+
+    private fun requiresRemoteHealing(remoteApp: ArchivedApp, mergedApp: ArchivedApp): Boolean {
+        return remoteApp.name != mergedApp.name ||
+            !sameBytes(remoteApp.iconBytes, mergedApp.iconBytes)
+    }
+
+    private fun sameBytes(a: ByteArray?, b: ByteArray?): Boolean {
+        if (a == null && b == null) return true
+        if (a == null || b == null) return false
+        return a.contentEquals(b)
     }
 
     private fun enrichArchiveApp(app: ArchivedApp): ArchivedApp {
@@ -275,7 +301,7 @@ class AppRepositoryImpl(
             }
         }
         val scaled = Bitmap.createScaledBitmap(bitmap, LOCAL_ICON_DIM, LOCAL_ICON_DIM, true)
-        val bytes = compressBitmapAdaptive(scaled, LOCAL_ICON_QUALITIES, LOCAL_ICON_MAX_BYTES)
+        val bytes = encodeBitmap(scaled, Bitmap.CompressFormat.PNG, 100)
         if (scaled !== bitmap && !scaled.isRecycled) {
             scaled.recycle()
         }
@@ -362,27 +388,43 @@ class AppRepositoryImpl(
         syncToFirestore(updatedApp)
     }
 
-    private fun compressBitmapAdaptive(
+    private fun decodeIconBase64(base64: String?): ByteArray? {
+        if (base64.isNullOrBlank()) return null
+
+        val sanitized = base64.trim()
+            .replace("\n", "")
+            .replace("\r", "")
+        val candidates = listOf(base64, sanitized).distinct()
+        val flags = intArrayOf(
+            Base64.DEFAULT,
+            Base64.NO_WRAP,
+            Base64.URL_SAFE,
+            Base64.URL_SAFE or Base64.NO_WRAP
+        )
+        for (candidate in candidates) {
+            for (flag in flags) {
+                val decoded = runCatching { Base64.decode(candidate, flag) }.getOrNull() ?: continue
+                if (decoded.isNotEmpty() && isDecodableBitmap(decoded)) {
+                    return decoded
+                }
+            }
+        }
+        return null
+    }
+
+    private fun encodeBitmap(
         bitmap: Bitmap,
-        qualities: IntArray,
-        maxBytes: Int
+        format: Bitmap.CompressFormat,
+        quality: Int
     ): ByteArray? {
-        val format = if (android.os.Build.VERSION.SDK_INT >= 30) {
-            Bitmap.CompressFormat.WEBP_LOSSY
-        } else {
-            @Suppress("DEPRECATION")
-            Bitmap.CompressFormat.WEBP
-        }
-        var best: ByteArray? = null
-        for (quality in qualities) {
-            val stream = java.io.ByteArrayOutputStream()
-            val ok = bitmap.compress(format, quality, stream)
-            if (!ok) continue
-            val bytes = stream.toByteArray()
-            if (bytes.isEmpty()) continue
-            if (best == null || bytes.size < best.size) best = bytes
-            if (bytes.size <= maxBytes) return bytes
-        }
-        return best
+        val stream = java.io.ByteArrayOutputStream()
+        val ok = bitmap.compress(format, quality, stream)
+        if (!ok) return null
+        val bytes = stream.toByteArray()
+        return bytes.takeIf { it.isNotEmpty() && isDecodableBitmap(it) }
+    }
+
+    private fun isDecodableBitmap(bytes: ByteArray): Boolean {
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size) != null
     }
 }

@@ -3,6 +3,7 @@ package com.tool.decluttr.domain.usecase
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
@@ -15,8 +16,6 @@ class GetAppDetailsUseCase @Inject constructor(
 ) {
     companion object {
         private const val ARCHIVE_ICON_SIZE_PX = 144
-        private const val ARCHIVE_ICON_MAX_BYTES = 45 * 1024
-        private val ARCHIVE_ICON_QUALITIES = intArrayOf(90, 84, 78, 72, 66)
     }
 
     data class AppDetailsResult(
@@ -82,31 +81,23 @@ class GetAppDetailsUseCase @Inject constructor(
             ARCHIVE_ICON_SIZE_PX,
             true
         )
-        val compressed = compressBitmapAdaptive(scaledBitmap)
+        val compressed = encodeBitmap(scaledBitmap, Bitmap.CompressFormat.PNG, 100)
+            ?: encodeBitmap(scaledBitmap, Bitmap.CompressFormat.JPEG, 92)
         if (scaledBitmap !== bitmap && !scaledBitmap.isRecycled) {
             scaledBitmap.recycle()
         }
         return compressed
     }
 
-    private fun compressBitmapAdaptive(bitmap: Bitmap): ByteArray? {
-        val format = if (android.os.Build.VERSION.SDK_INT >= 30) {
-            Bitmap.CompressFormat.WEBP_LOSSY
-        } else {
-            @Suppress("DEPRECATION")
-            Bitmap.CompressFormat.WEBP
-        }
-
-        var best: ByteArray? = null
-        for (quality in ARCHIVE_ICON_QUALITIES) {
-            val stream = ByteArrayOutputStream()
-            val ok = bitmap.compress(format, quality, stream)
-            if (!ok) continue
-            val bytes = stream.toByteArray()
-            if (bytes.isEmpty()) continue
-            if (best == null || bytes.size < best.size) best = bytes
-            if (bytes.size <= ARCHIVE_ICON_MAX_BYTES) return bytes
-        }
-        return best
+    private fun encodeBitmap(
+        bitmap: Bitmap,
+        format: Bitmap.CompressFormat,
+        quality: Int
+    ): ByteArray? {
+        val stream = ByteArrayOutputStream()
+        if (!bitmap.compress(format, quality, stream)) return null
+        val bytes = stream.toByteArray()
+        if (bytes.isEmpty()) return null
+        return bytes.takeIf { BitmapFactory.decodeByteArray(it, 0, it.size) != null }
     }
 }
