@@ -1,6 +1,8 @@
 package com.tool.decluttr.data.repository
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.util.Base64
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
@@ -31,6 +33,9 @@ class AppRepositoryImpl(
 ) : AppRepository {
     companion object {
         private const val TAG = "DecluttrDragDbgRepo"
+        private const val FIRESTORE_ICON_MAX_DIM = 128
+        private const val FIRESTORE_ICON_MAX_BYTES = 16 * 1024
+        private val FIRESTORE_ICON_QUALITIES = intArrayOf(82, 74, 66, 58)
     }
     
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -110,7 +115,7 @@ class AppRepositoryImpl(
         val user = auth.currentUser ?: return
         scope.launch {
             try {
-                val iconBase64 = app.iconBytes?.let { Base64.encodeToString(it, Base64.DEFAULT) }
+                val iconBase64 = compressIconForFirestore(app.iconBytes)
                 val data = mapOf(
                     "packageId" to app.packageId,
                     "name" to app.name,
@@ -132,6 +137,51 @@ class AppRepositoryImpl(
                 recordException(e)
             }
         }
+    }
+
+    private fun compressIconForFirestore(iconBytes: ByteArray?): String? {
+        if (iconBytes == null) return null
+
+        val bitmap = BitmapFactory.decodeByteArray(iconBytes, 0, iconBytes.size)
+            ?: return Base64.encodeToString(iconBytes, Base64.NO_WRAP)
+
+        val scaledBitmap = scaleDownIfNeeded(bitmap, FIRESTORE_ICON_MAX_DIM)
+        val compressedBytes = compressBitmapAdaptiveForFirestore(scaledBitmap)
+        if (scaledBitmap !== bitmap && !scaledBitmap.isRecycled) {
+            scaledBitmap.recycle()
+        }
+        return Base64.encodeToString(compressedBytes ?: iconBytes, Base64.NO_WRAP)
+    }
+
+    private fun scaleDownIfNeeded(bitmap: Bitmap, maxDim: Int): Bitmap {
+        val width = bitmap.width.coerceAtLeast(1)
+        val height = bitmap.height.coerceAtLeast(1)
+        val largest = maxOf(width, height)
+        if (largest <= maxDim) return bitmap
+        val ratio = maxDim.toFloat() / largest.toFloat()
+        val targetW = (width * ratio).toInt().coerceAtLeast(1)
+        val targetH = (height * ratio).toInt().coerceAtLeast(1)
+        return Bitmap.createScaledBitmap(bitmap, targetW, targetH, true)
+    }
+
+    private fun compressBitmapAdaptiveForFirestore(bitmap: Bitmap): ByteArray? {
+        val format = if (android.os.Build.VERSION.SDK_INT >= 30) {
+            Bitmap.CompressFormat.WEBP_LOSSY
+        } else {
+            @Suppress("DEPRECATION")
+            Bitmap.CompressFormat.WEBP
+        }
+        var best: ByteArray? = null
+        for (quality in FIRESTORE_ICON_QUALITIES) {
+            val stream = java.io.ByteArrayOutputStream()
+            val ok = bitmap.compress(format, quality, stream)
+            if (!ok) continue
+            val bytes = stream.toByteArray()
+            if (bytes.isEmpty()) continue
+            if (best == null || bytes.size < best.size) best = bytes
+            if (bytes.size <= FIRESTORE_ICON_MAX_BYTES) return bytes
+        }
+        return best
     }
 
     private fun normalizeForWrite(previous: ArchivedApp?, app: ArchivedApp): ArchivedApp {

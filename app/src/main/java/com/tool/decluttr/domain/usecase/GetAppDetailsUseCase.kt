@@ -13,6 +13,12 @@ import javax.inject.Inject
 class GetAppDetailsUseCase @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+    companion object {
+        private const val ARCHIVE_ICON_SIZE_PX = 144
+        private const val ARCHIVE_ICON_MAX_BYTES = 45 * 1024
+        private val ARCHIVE_ICON_QUALITIES = intArrayOf(90, 84, 78, 72, 66)
+    }
+
     data class AppDetailsResult(
         val name: String,
         val iconBytes: ByteArray?,
@@ -70,19 +76,37 @@ class GetAppDetailsUseCase @Inject constructor(
             bmp
         }
 
-        val stream = ByteArrayOutputStream()
-        // Compress as PNG with 100% quality or WEBP? PNG is safer. 
-        // 50KB constraint means maybe lower quality or WEBP, but let's stick to standard size icon
-        val scaledBitmap = Bitmap.createScaledBitmap(bitmap, 96, 96, true)
+        val scaledBitmap = Bitmap.createScaledBitmap(
+            bitmap,
+            ARCHIVE_ICON_SIZE_PX,
+            ARCHIVE_ICON_SIZE_PX,
+            true
+        )
+        val compressed = compressBitmapAdaptive(scaledBitmap)
+        if (scaledBitmap !== bitmap && !scaledBitmap.isRecycled) {
+            scaledBitmap.recycle()
+        }
+        return compressed
+    }
+
+    private fun compressBitmapAdaptive(bitmap: Bitmap): ByteArray? {
         val format = if (android.os.Build.VERSION.SDK_INT >= 30) {
             Bitmap.CompressFormat.WEBP_LOSSY
         } else {
             @Suppress("DEPRECATION")
             Bitmap.CompressFormat.WEBP
         }
-        scaledBitmap.compress(format, 60, stream)
-        val byteArray = stream.toByteArray()
-        
-        return byteArray.takeIf { it.isNotEmpty() }
+
+        var best: ByteArray? = null
+        for (quality in ARCHIVE_ICON_QUALITIES) {
+            val stream = ByteArrayOutputStream()
+            val ok = bitmap.compress(format, quality, stream)
+            if (!ok) continue
+            val bytes = stream.toByteArray()
+            if (bytes.isEmpty()) continue
+            if (best == null || bytes.size < best.size) best = bytes
+            if (bytes.size <= ARCHIVE_ICON_MAX_BYTES) return bytes
+        }
+        return best
     }
 }
