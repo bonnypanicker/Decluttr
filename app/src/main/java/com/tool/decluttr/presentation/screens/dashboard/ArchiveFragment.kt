@@ -720,8 +720,16 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 openNativeAppDetails(pkg)
             },
             onFolderRenamed = { newName ->
-                viewModel.archivedApps.value.filter { it.folderName == folderName }.forEach { app ->
-                    viewModel.updateArchivedApp(app.copy(folderName = newName))
+                val normalized = newName.trim()
+                if (normalized.isEmpty()) return@show
+                val now = System.currentTimeMillis()
+                pendingFolderCreations[folderName] = now + pendingFolderCreationWindowMs
+                pendingFolderCreations[normalized] = now + pendingFolderCreationWindowMs
+                val appsToRename = viewModel.archivedApps.value.filter { it.folderName == folderName }
+                if (appsToRename.isEmpty()) return@show
+                expandedFolder = normalized
+                appsToRename.forEach { app ->
+                    viewModel.updateArchivedApp(app.copy(folderName = normalized))
                 }
             },
             onDragStartFromFolder = {

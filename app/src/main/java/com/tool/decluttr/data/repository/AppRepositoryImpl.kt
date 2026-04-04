@@ -65,9 +65,18 @@ class AppRepositoryImpl(
 
             remoteApps.forEach { remoteApp ->
                 val localApp = localApps[remoteApp.packageId]?.toArchivedApp()
+                val mergedRemoteApp = if (
+                    localApp != null &&
+                    isLikelyPackageId(remoteApp.name) &&
+                    !isLikelyPackageId(localApp.name)
+                ) {
+                    remoteApp.copy(name = localApp.name)
+                } else {
+                    remoteApp
+                }
                 when {
-                    localApp == null -> dao.insertApp(remoteApp.toAppEntity())
-                    remoteApp.lastModified >= localApp.lastModified -> dao.insertApp(remoteApp.toAppEntity())
+                    localApp == null -> dao.insertApp(mergedRemoteApp.toAppEntity())
+                    remoteApp.lastModified >= localApp.lastModified -> dao.insertApp(mergedRemoteApp.toAppEntity())
                     else -> syncToFirestore(localApp)
                 }
             }
@@ -185,24 +194,40 @@ class AppRepositoryImpl(
     }
 
     private fun normalizeForWrite(previous: ArchivedApp?, app: ArchivedApp): ArchivedApp {
+        val resolvedName = if (
+            previous != null &&
+            isLikelyPackageId(app.name) &&
+            !isLikelyPackageId(previous.name)
+        ) {
+            previous.name
+        } else {
+            app.name
+        }
+        val normalizedApp = if (resolvedName != app.name) app.copy(name = resolvedName) else app
+
         val contentChanged = previous == null ||
-            previous.name != app.name ||
-            previous.isPlayStoreInstalled != app.isPlayStoreInstalled ||
-            previous.category != app.category ||
-            previous.tags != app.tags ||
-            previous.notes != app.notes ||
-            previous.lastTimeUsed != app.lastTimeUsed ||
-            previous.folderName != app.folderName ||
-            !previous.iconBytes.contentEquals(app.iconBytes)
+            previous.name != normalizedApp.name ||
+            previous.isPlayStoreInstalled != normalizedApp.isPlayStoreInstalled ||
+            previous.category != normalizedApp.category ||
+            previous.tags != normalizedApp.tags ||
+            previous.notes != normalizedApp.notes ||
+            previous.lastTimeUsed != normalizedApp.lastTimeUsed ||
+            previous.folderName != normalizedApp.folderName ||
+            !previous.iconBytes.contentEquals(normalizedApp.iconBytes)
         android.util.Log.v(
             TAG,
-            "normalizeForWrite pkg=${app.packageId} changed=$contentChanged prevFolder=${previous?.folderName} newFolder=${app.folderName}"
+            "normalizeForWrite pkg=${app.packageId} changed=$contentChanged prevFolder=${previous?.folderName} newFolder=${normalizedApp.folderName}"
         )
         return if (contentChanged) {
-            app.copy(lastModified = System.currentTimeMillis())
+            normalizedApp.copy(lastModified = System.currentTimeMillis())
         } else {
-            app
+            normalizedApp
         }
+    }
+
+    private fun isLikelyPackageId(value: String?): Boolean {
+        if (value.isNullOrBlank()) return true
+        return value.contains('.') && value == value.lowercase()
     }
 
     private fun firebaseAuthOrNull(): FirebaseAuth? {
