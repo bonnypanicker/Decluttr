@@ -3,6 +3,10 @@ package com.tool.decluttr.data.repository
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
+import android.content.pm.PackageManager
 import android.util.Base64
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
@@ -33,6 +37,9 @@ class AppRepositoryImpl(
 ) : AppRepository {
     companion object {
         private const val TAG = "DecluttrDragDbgRepo"
+        private const val LOCAL_ICON_DIM = 144
+        private const val LOCAL_ICON_MAX_BYTES = 45 * 1024
+        private val LOCAL_ICON_QUALITIES = intArrayOf(90, 84, 78, 72, 66)
         private const val FIRESTORE_ICON_MAX_DIM = 128
         private const val FIRESTORE_ICON_MAX_BYTES = 16 * 1024
         private val FIRESTORE_ICON_QUALITIES = intArrayOf(82, 74, 66, 58)
@@ -74,9 +81,10 @@ class AppRepositoryImpl(
                 } else {
                     remoteApp
                 }
+                val enrichedRemoteApp = enrichArchiveApp(mergedRemoteApp)
                 when {
-                    localApp == null -> dao.insertApp(mergedRemoteApp.toAppEntity())
-                    remoteApp.lastModified >= localApp.lastModified -> dao.insertApp(mergedRemoteApp.toAppEntity())
+                    localApp == null -> dao.insertApp(enrichedRemoteApp.toAppEntity())
+                    remoteApp.lastModified >= localApp.lastModified -> dao.insertApp(enrichedRemoteApp.toAppEntity())
                     else -> syncToFirestore(localApp)
                 }
             }
@@ -230,6 +238,50 @@ class AppRepositoryImpl(
         return value.contains('.') && value == value.lowercase()
     }
 
+    private fun enrichArchiveApp(app: ArchivedApp): ArchivedApp {
+        var result = app
+        val pm = context.packageManager
+        try {
+            val appInfo = pm.getApplicationInfo(app.packageId, 0)
+            val label = pm.getApplicationLabel(appInfo)?.toString()?.trim()
+            if (!label.isNullOrBlank() && (result.name.isBlank() || isLikelyPackageId(result.name))) {
+                result = result.copy(name = label)
+            }
+            if (result.iconBytes == null) {
+                val drawable = pm.getApplicationIcon(appInfo)
+                val iconBytes = drawableToCompressedIconBytes(drawable)
+                if (iconBytes != null) {
+                    result = result.copy(iconBytes = iconBytes)
+                }
+            }
+        } catch (_: PackageManager.NameNotFoundException) {
+            // App not installed; keep archived data as-is.
+        } catch (e: Exception) {
+            recordException(e)
+        }
+        return result
+    }
+
+    private fun drawableToCompressedIconBytes(drawable: Drawable): ByteArray? {
+        val bitmap = if (drawable is BitmapDrawable && drawable.bitmap != null) {
+            drawable.bitmap
+        } else {
+            val w = drawable.intrinsicWidth.takeIf { it > 0 } ?: 1
+            val h = drawable.intrinsicHeight.takeIf { it > 0 } ?: 1
+            Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also { bmp ->
+                val canvas = Canvas(bmp)
+                drawable.setBounds(0, 0, canvas.width, canvas.height)
+                drawable.draw(canvas)
+            }
+        }
+        val scaled = Bitmap.createScaledBitmap(bitmap, LOCAL_ICON_DIM, LOCAL_ICON_DIM, true)
+        val bytes = compressBitmapAdaptive(scaled, LOCAL_ICON_QUALITIES, LOCAL_ICON_MAX_BYTES)
+        if (scaled !== bitmap && !scaled.isRecycled) {
+            scaled.recycle()
+        }
+        return bytes
+    }
+
     private fun firebaseAuthOrNull(): FirebaseAuth? {
         if (FirebaseApp.getApps(context).isEmpty()) {
             return null
@@ -277,8 +329,9 @@ class AppRepositoryImpl(
     }
 
     override suspend fun insertApp(app: ArchivedApp) {
+        val enriched = enrichArchiveApp(app)
         val previous = dao.getAppById(app.packageId)?.toArchivedApp()
-        val updatedApp = normalizeForWrite(previous, app)
+        val updatedApp = normalizeForWrite(previous, enriched)
         android.util.Log.d(
             TAG,
             "insertApp pkg=${app.packageId} prevExists=${previous != null} prevFolder=${previous?.folderName} newFolder=${updatedApp.folderName}"
@@ -298,13 +351,38 @@ class AppRepositoryImpl(
     }
 
     override suspend fun updateApp(app: ArchivedApp) {
+        val enriched = enrichArchiveApp(app)
         val previous = dao.getAppById(app.packageId)?.toArchivedApp()
-        val updatedApp = normalizeForWrite(previous, app)
+        val updatedApp = normalizeForWrite(previous, enriched)
         android.util.Log.d(
             TAG,
             "updateApp pkg=${app.packageId} prevExists=${previous != null} prevFolder=${previous?.folderName} newFolder=${updatedApp.folderName}"
         )
         dao.updateApp(updatedApp.toAppEntity())
         syncToFirestore(updatedApp)
+    }
+
+    private fun compressBitmapAdaptive(
+        bitmap: Bitmap,
+        qualities: IntArray,
+        maxBytes: Int
+    ): ByteArray? {
+        val format = if (android.os.Build.VERSION.SDK_INT >= 30) {
+            Bitmap.CompressFormat.WEBP_LOSSY
+        } else {
+            @Suppress("DEPRECATION")
+            Bitmap.CompressFormat.WEBP
+        }
+        var best: ByteArray? = null
+        for (quality in qualities) {
+            val stream = java.io.ByteArrayOutputStream()
+            val ok = bitmap.compress(format, quality, stream)
+            if (!ok) continue
+            val bytes = stream.toByteArray()
+            if (bytes.isEmpty()) continue
+            if (best == null || bytes.size < best.size) best = bytes
+            if (bytes.size <= maxBytes) return bytes
+        }
+        return best
     }
 }

@@ -139,10 +139,12 @@ class ArchivedAppsAdapter(
             itemView.alpha = 1f
             itemView.scaleX = 1f
             itemView.scaleY = 1f
-            name.text = app.name
+            name.text = toDisplayName(app.name, app.packageId)
             icon.load(AppIconModel(app.packageId)) {
                 memoryCacheKey(app.packageId)
                 crossfade(false)
+                placeholder(R.drawable.ic_launcher)
+                error(R.drawable.ic_launcher)
             }
 
             itemView.setOnClickListener { onAppClick(app.packageId) }
@@ -230,6 +232,8 @@ class ArchivedAppsAdapter(
                 icons[index].load(AppIconModel(app.packageId)) {
                     memoryCacheKey(app.packageId)
                     crossfade(false)
+                    placeholder(R.drawable.ic_launcher)
+                    error(R.drawable.ic_launcher)
                 }
             }
 
@@ -251,13 +255,15 @@ class ArchivedAppsAdapter(
         fun bind(appItem: ArchivedItem.App) {
             val app = appItem.app
             itemView.tag = appItem
-            name.text = app.name
+            name.text = toDisplayName(app.name, app.packageId)
             val m = appMetaProvider(app)
             val category = app.category ?: "Uncategorized"
             meta.text = "${m.sizeLabel} • ${m.uninstallDateLabel} • $category"
             icon.load(AppIconModel(app.packageId)) {
                 memoryCacheKey(app.packageId)
                 crossfade(false)
+                placeholder(R.drawable.ic_launcher)
+                error(R.drawable.ic_launcher)
             }
             itemView.setOnClickListener { onAppClick(app.packageId) }
         }
@@ -579,4 +585,31 @@ class ArchivedAppsAdapter(
         is ArchivedItem.Folder -> "Folder(name=${item.name},size=${item.apps.size})"
         null -> "null"
     }
+
+    private fun toDisplayName(name: String?, packageId: String): String {
+        val raw = name?.trim().orEmpty()
+        if (raw.isNotBlank() && !isLikelyPackageId(raw)) return raw
+        return humanizePackageId(packageId)
+    }
+
+    private fun isLikelyPackageId(value: String): Boolean {
+        return value.contains('.') && value == value.lowercase()
+    }
+
+    private fun humanizePackageId(packageId: String): String {
+        val segments = packageId.split('.').filter { it.isNotBlank() }
+        var token = segments.lastOrNull().orEmpty()
+        if (token.length <= 2 && segments.size > 1) {
+            token = segments[segments.lastIndex - 1]
+        }
+        val cleaned = token.replace('_', ' ').replace('-', ' ')
+            .replace(Regex("([a-z])([A-Z])"), "$1 $2")
+            .trim()
+        if (cleaned.isBlank()) return packageId
+        return cleaned.split(Regex("\\s+"))
+            .joinToString(" ") { part ->
+                part.lowercase().replaceFirstChar { it.uppercase() }
+            }
+    }
 }
+

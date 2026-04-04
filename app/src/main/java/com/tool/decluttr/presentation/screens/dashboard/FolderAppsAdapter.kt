@@ -45,10 +45,12 @@ class FolderAppsAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val app = apps[position]
-        holder.name.text = app.name
+        holder.name.text = toDisplayName(app.name, app.packageId)
         holder.icon.load(AppIconModel(app.packageId)) {
             memoryCacheKey(app.packageId)
             crossfade(false)
+            placeholder(R.drawable.ic_launcher)
+            error(R.drawable.ic_launcher)
         }
         holder.itemView.setOnClickListener { onAppClick(app.packageId) }
 
@@ -87,4 +89,30 @@ class FolderAppsAdapter(
     }
 
     override fun getItemCount() = apps.size
+
+    private fun toDisplayName(name: String?, packageId: String): String {
+        val raw = name?.trim().orEmpty()
+        if (raw.isNotBlank() && !isLikelyPackageId(raw)) return raw
+        return humanizePackageId(packageId)
+    }
+
+    private fun isLikelyPackageId(value: String): Boolean {
+        return value.contains('.') && value == value.lowercase()
+    }
+
+    private fun humanizePackageId(packageId: String): String {
+        val segments = packageId.split('.').filter { it.isNotBlank() }
+        var token = segments.lastOrNull().orEmpty()
+        if (token.length <= 2 && segments.size > 1) {
+            token = segments[segments.lastIndex - 1]
+        }
+        val cleaned = token.replace('_', ' ').replace('-', ' ')
+            .replace(Regex("([a-z])([A-Z])"), "$1 $2")
+            .trim()
+        if (cleaned.isBlank()) return packageId
+        return cleaned.split(Regex("\\s+"))
+            .joinToString(" ") { part ->
+                part.lowercase().replaceFirstChar { it.uppercase() }
+            }
+    }
 }
