@@ -84,6 +84,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private var installedPackagesCache: Set<String> = emptySet()
     private var installedPackagesCacheAt: Long = 0L
     private val installedPackagesCacheTtlMs: Long = 8_000L
+    private var savedItemAnimator: RecyclerView.ItemAnimator? = null
 
     private enum class ArchiveSortOption(val label: String) {
         UNINSTALLED_DATE("Uninstalled Date"),
@@ -148,7 +149,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
 
         recyclerView.layoutManager = GridLayoutManager(requireContext(), 4)
         recyclerView.adapter = adapter
-        recyclerView.setHasFixedSize(true)
+        recyclerView.setHasFixedSize(false)
 
         val enterAnim = AnimationUtils.loadAnimation(requireContext(), android.R.anim.fade_in).apply { duration = 200 }
         val controller = LayoutAnimationController(enterAnim, 0.05f)
@@ -174,22 +175,33 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 DragEvent.ACTION_DRAG_STARTED -> {
                     val ok = event.clipDescription?.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) == true
                     android.util.Log.d("ArchiveFragment", "DRAG_STARTED ok=$ok")
+                    if (ok) {
+                        savedItemAnimator = recyclerView.itemAnimator
+                        recyclerView.itemAnimator = null
+                    }
                     ok
                 }
                 DragEvent.ACTION_DROP -> {
                     val draggedApp = event.localState as? ArchivedApp
+                    val dropX = event.x
+                    val dropY = event.y
                     android.util.Log.d("ArchiveFragment", "DROP rv hit test. dragged=${draggedApp?.packageId}")
-                    if (draggedApp != null && draggedApp.folderName != null) {
+                    if (draggedApp != null) {
                         (rv as RecyclerView).post {
-                            val childUnder = rv.findChildViewUnder(event.x, event.y)
-                            if (childUnder == null) {
-                                try {
-                                    viewModel.updateArchivedApp(draggedApp.copy(folderName = null))
-                                } catch (t: Throwable) {
-                                    android.util.Log.e("ArchiveFragment", "Failed to remove from folder on DROP", t)
+                            val currentApp = viewModel.archivedApps.value.firstOrNull {
+                                it.packageId == draggedApp.packageId
+                            }
+                            if (currentApp?.folderName != null) {
+                                val childUnder = rv.findChildViewUnder(dropX, dropY)
+                                if (childUnder == null) {
+                                    try {
+                                        viewModel.updateArchivedApp(currentApp.copy(folderName = null))
+                                    } catch (t: Throwable) {
+                                        android.util.Log.e("ArchiveFragment", "Failed to remove from folder on DROP", t)
+                                    }
+                                } else {
+                                    android.util.Log.d("ArchiveFragment", "DROP landed on a child view; ignoring RV handler")
                                 }
-                            } else {
-                                android.util.Log.d("ArchiveFragment", "DROP landed on a child view; ignoring RV handler")
                             }
                         }
                         true
@@ -198,7 +210,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                     }
                 }
                 DragEvent.ACTION_DRAG_ENDED -> {
-                    // Restoration is handled in adapter drag listeners.
+                    recyclerView.post {
+                        recyclerView.itemAnimator = savedItemAnimator
+                        savedItemAnimator = null
+                    }
                     true
                 }
                 else -> true

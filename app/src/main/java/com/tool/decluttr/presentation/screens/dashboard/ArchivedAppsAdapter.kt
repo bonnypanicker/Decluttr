@@ -19,6 +19,7 @@ import coil.load
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.ArchivedApp
 import com.tool.decluttr.presentation.util.AppIconModel
+import java.lang.ref.WeakReference
 
 sealed class ArchivedItem {
     data class App(val app: ArchivedApp) : ArchivedItem()
@@ -64,6 +65,7 @@ class ArchivedAppsAdapter(
 ) : ListAdapter<ArchivedItem, RecyclerView.ViewHolder>(ArchiveDiffCallback()) {
     private var pendingDropAction: (() -> Unit)? = null
     private var draggingPackageId: String? = null
+    private var draggingViewRef: WeakReference<View>? = null
     private val pulseAnimators = mutableMapOf<View, ObjectAnimator>()
     private var isListMode: Boolean = false
 
@@ -155,6 +157,7 @@ class ArchivedAppsAdapter(
 
                 if (started) {
                     draggingPackageId = app.packageId
+                    draggingViewRef = WeakReference(view)
                     // 4. CRITICAL: Hide the source view so it doesn't duplicate
                     //    Pixel Launcher hides the icon from its cell during drag.
                     view.visibility = View.INVISIBLE
@@ -244,7 +247,6 @@ class ArchivedAppsAdapter(
 
     private inner class DragListener : View.OnDragListener {
         private var originalBackground: android.graphics.drawable.Drawable? = null
-        private var pulseAnimator: ObjectAnimator? = null
 
         override fun onDrag(view: View, event: DragEvent): Boolean {
             val rv = findParentRecyclerView(view)
@@ -285,7 +287,7 @@ class ArchivedAppsAdapter(
                                 originalBackground = view.background
                                 view.setBackgroundResource(R.drawable.bg_drag_target_highlight)
 
-                                pulseAnimator = ObjectAnimator.ofFloat(
+                                val pulseAnimator = ObjectAnimator.ofFloat(
                                     view, "scaleX", 1.0f, 1.08f
                                 ).apply {
                                     duration = 600
@@ -297,7 +299,7 @@ class ArchivedAppsAdapter(
                                     }
                                     start()
                                 }
-                                pulseAnimators[view] = pulseAnimator!!
+                                pulseAnimators[view] = pulseAnimator
                             }
                         }
                     }
@@ -306,9 +308,7 @@ class ArchivedAppsAdapter(
 
                 DragEvent.ACTION_DRAG_EXITED -> {
                     // Reset visual feedback
-                    pulseAnimator?.cancel()
-                    pulseAnimator = null
-                    pulseAnimators.remove(view)
+                    pulseAnimators.remove(view)?.cancel()
                     view.background = originalBackground
                     view.animate()
                         .scaleX(1.0f)
@@ -322,9 +322,7 @@ class ArchivedAppsAdapter(
                 DragEvent.ACTION_DROP -> {
                     android.util.Log.d("ArchivedAppsAdapter", "DROP target=$targetItem dragged=${draggedApp?.packageId}")
                     // Reset target visuals
-                    pulseAnimator?.cancel()
-                    pulseAnimator = null
-                    pulseAnimators.remove(view)
+                    pulseAnimators.remove(view)?.cancel()
                     view.background = originalBackground
                     view.animate().scaleX(1f).scaleY(1f).setDuration(100).start()
 
@@ -360,45 +358,42 @@ class ArchivedAppsAdapter(
 
                 DragEvent.ACTION_DRAG_ENDED -> {
                     // CRITICAL: Restore visibility of the source view
-                    pulseAnimator?.cancel()
-                    pulseAnimator = null
-                    pulseAnimators.remove(view)
+                    pulseAnimators.remove(view)?.cancel()
                     view.background = originalBackground
                     view.scaleX = 1f
                     view.scaleY = 1f
 
-                    // Find the source view in the RecyclerView and make it visible again
                     val recyclerView = findParentRecyclerView(view)
                     recyclerView?.let { rv ->
-                        for (i in 0 until rv.childCount) {
-                            val child = rv.getChildAt(i)
-                            if (child.visibility == View.INVISIBLE) {
-                                // Animate back in with a spring-like pop
-                                child.animate().cancel()
-                                child.visibility = View.VISIBLE
-                                child.alpha = 0f
-                                child.scaleX = 0.5f
-                                child.scaleY = 0.5f
-                                child.animate()
-                                    .alpha(1f)
-                                    .scaleX(1f)
-                                    .scaleY(1f)
-                                    .setDuration(300)
-                                    .setInterpolator(OvershootInterpolator(1.5f))
-                                    .start()
+                        val dragSource = draggingViewRef?.get()
+                        if (dragSource != null && dragSource.visibility != View.VISIBLE) {
+                            restoreDraggedSourceView(dragSource)
+                        } else {
+                            val draggingPkg = draggingPackageId
+                            if (draggingPkg != null) {
+                                for (i in 0 until rv.childCount) {
+                                    val child = rv.getChildAt(i)
+                                    val tagged = child.tag as? ArchivedItem.App
+                                    if (tagged?.app?.packageId == draggingPkg && child.visibility != View.VISIBLE) {
+                                        restoreDraggedSourceView(child)
+                                        break
+                                    }
+                                }
                             }
                         }
+
                         val dropAction = pendingDropAction
                         pendingDropAction = null
                         if (dropAction != null) {
-                            rv.postDelayed({
+                            rv.post {
                                 runCatching { dropAction.invoke() }
                                     .onFailure {
                                         android.util.Log.e("ArchivedAppsAdapter", "Executing pending drop action failed", it)
                                     }
-                            }, 260L)
+                            }
                         }
                     }
+                    draggingViewRef = null
                     draggingPackageId = null
                     return true
                 }
@@ -415,6 +410,21 @@ class ArchivedAppsAdapter(
             }
             return null
         }
+    }
+
+    private fun restoreDraggedSourceView(view: View) {
+        view.animate().cancel()
+        view.visibility = View.VISIBLE
+        view.alpha = 0f
+        view.scaleX = 0.5f
+        view.scaleY = 0.5f
+        view.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(300)
+            .setInterpolator(OvershootInterpolator(1.5f))
+            .start()
     }
 
     override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
