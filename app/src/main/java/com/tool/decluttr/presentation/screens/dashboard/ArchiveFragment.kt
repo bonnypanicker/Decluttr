@@ -85,6 +85,8 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private var installedPackagesCacheAt: Long = 0L
     private val installedPackagesCacheTtlMs: Long = 8_000L
     private var savedItemAnimator: RecyclerView.ItemAnimator? = null
+    private var isDragInProgress: Boolean = false
+    private var pendingAppsDuringDrag: List<ArchivedApp>? = null
 
     private enum class ArchiveSortOption(val label: String) {
         UNINSTALLED_DATE("Uninstalled Date"),
@@ -176,6 +178,8 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                     val ok = event.clipDescription?.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) == true
                     android.util.Log.d("ArchiveFragment", "DRAG_STARTED ok=$ok")
                     if (ok) {
+                        isDragInProgress = true
+                        pendingAppsDuringDrag = null
                         savedItemAnimator = recyclerView.itemAnimator
                         recyclerView.itemAnimator = null
                     }
@@ -213,6 +217,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                     recyclerView.post {
                         recyclerView.itemAnimator = savedItemAnimator
                         savedItemAnimator = null
+                        isDragInProgress = false
+                        val latestApps = pendingAppsDuringDrag ?: viewModel.archivedApps.value
+                        pendingAppsDuringDrag = null
+                        renderArchivedApps(latestApps)
                     }
                     true
                 }
@@ -280,17 +288,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     viewModel.archivedApps.collect { apps ->
-                        updateUI(apps)
-
-                        if (expandedFolder != null && folderOverlay != null) {
-                            val folderApps = apps.filter { it.folderName == expandedFolder }
-                            if (folderApps.isEmpty()) {
-                                expandedFolder = null
-                                folderOverlay?.dismiss {}
-                                folderOverlay = null
-                            } else {
-                                folderOverlay?.updateApps(folderApps)
-                            }
+                        if (isDragInProgress) {
+                            pendingAppsDuringDrag = apps
+                        } else {
+                            renderArchivedApps(apps)
                         }
                     }
                 }
@@ -303,6 +304,20 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                             .show()
                     }
                 }
+            }
+        }
+    }
+
+    private fun renderArchivedApps(apps: List<ArchivedApp>) {
+        updateUI(apps)
+        if (expandedFolder != null && folderOverlay != null) {
+            val folderApps = apps.filter { it.folderName == expandedFolder }
+            if (folderApps.isEmpty()) {
+                expandedFolder = null
+                folderOverlay?.dismiss {}
+                folderOverlay = null
+            } else {
+                folderOverlay?.updateApps(folderApps)
             }
         }
     }

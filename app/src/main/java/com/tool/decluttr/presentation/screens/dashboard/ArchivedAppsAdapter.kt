@@ -66,6 +66,7 @@ class ArchivedAppsAdapter(
     private var pendingDropAction: (() -> Unit)? = null
     private var draggingPackageId: String? = null
     private var draggingViewRef: WeakReference<View>? = null
+    private var dragEndHandled: Boolean = false
     private val pulseAnimators = mutableMapOf<View, ObjectAnimator>()
     private var isListMode: Boolean = false
 
@@ -158,6 +159,7 @@ class ArchivedAppsAdapter(
                 if (started) {
                     draggingPackageId = app.packageId
                     draggingViewRef = WeakReference(view)
+                    dragEndHandled = false
                     // 4. CRITICAL: Hide the source view so it doesn't duplicate
                     //    Pixel Launcher hides the icon from its cell during drag.
                     view.visibility = View.INVISIBLE
@@ -258,6 +260,7 @@ class ArchivedAppsAdapter(
             when (event.action) {
                 DragEvent.ACTION_DRAG_STARTED -> {
                     pendingDropAction = null
+                    dragEndHandled = false
                     val ok = event.clipDescription?.hasMimeType(
                         android.content.ClipDescription.MIMETYPE_TEXT_PLAIN
                     ) == true
@@ -357,14 +360,17 @@ class ArchivedAppsAdapter(
                 }
 
                 DragEvent.ACTION_DRAG_ENDED -> {
+                    if (dragEndHandled) return true
                     // CRITICAL: Restore visibility of the source view
                     pulseAnimators.remove(view)?.cancel()
                     view.background = originalBackground
                     view.scaleX = 1f
                     view.scaleY = 1f
 
-                    val recyclerView = findParentRecyclerView(view)
-                    recyclerView?.let { rv ->
+                    val recyclerView = findParentRecyclerView(view) ?: return true
+                    dragEndHandled = true
+                    run {
+                        val rv = recyclerView
                         val dragSource = draggingViewRef?.get()
                         if (dragSource != null && dragSource.visibility != View.VISIBLE) {
                             restoreDraggedSourceView(dragSource)

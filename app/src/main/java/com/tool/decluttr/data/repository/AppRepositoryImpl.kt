@@ -131,8 +131,21 @@ class AppRepositoryImpl(
         }
     }
 
-    private fun normalizeForWrite(app: ArchivedApp): ArchivedApp {
-        return app.copy(lastModified = System.currentTimeMillis())
+    private fun normalizeForWrite(previous: ArchivedApp?, app: ArchivedApp): ArchivedApp {
+        val contentChanged = previous == null ||
+            previous.name != app.name ||
+            previous.isPlayStoreInstalled != app.isPlayStoreInstalled ||
+            previous.category != app.category ||
+            previous.tags != app.tags ||
+            previous.notes != app.notes ||
+            previous.lastTimeUsed != app.lastTimeUsed ||
+            previous.folderName != app.folderName ||
+            !previous.iconBytes.contentEquals(app.iconBytes)
+        return if (contentChanged) {
+            app.copy(lastModified = System.currentTimeMillis())
+        } else {
+            app
+        }
     }
 
     private fun firebaseAuthOrNull(): FirebaseAuth? {
@@ -182,7 +195,8 @@ class AppRepositoryImpl(
     }
 
     override suspend fun insertApp(app: ArchivedApp) {
-        val updatedApp = normalizeForWrite(app)
+        val previous = dao.getAppById(app.packageId)?.toArchivedApp()
+        val updatedApp = normalizeForWrite(previous, app)
         dao.insertApp(updatedApp.toAppEntity())
         syncToFirestore(updatedApp)
     }
@@ -198,7 +212,8 @@ class AppRepositoryImpl(
     }
 
     override suspend fun updateApp(app: ArchivedApp) {
-        val updatedApp = normalizeForWrite(app)
+        val previous = dao.getAppById(app.packageId)?.toArchivedApp()
+        val updatedApp = normalizeForWrite(previous, app)
         dao.updateApp(updatedApp.toAppEntity())
         syncToFirestore(updatedApp)
     }
