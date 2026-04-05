@@ -62,11 +62,16 @@
     <string name="discovery_empty_message">Try changing search or sort to discover more apps.</string>
     <string name="discovery_loading">Analyzing installed apps…</string>
     <string name="discovery_storage_estimated_label">Estimated storage freed</string>
-    <string name="discovery_storage_subtitle_empty">No strong cleanup candidates yet</string>
-    <string name="discovery_storage_subtitle_usage_and_size">Based on %1$d high-impact apps from usage + size</string>
-    <string name="discovery_storage_subtitle_size_only">Based on %1$d high-impact apps from app size only</string>
+    <string name="discovery_storage_subtitle_empty">No high-impact cleanup targets right now</string>
+    <string name="discovery_storage_subtitle_usage_and_size">%1$d high-impact candidates identified from usage and size</string>
+    <string name="discovery_storage_subtitle_size_only">%1$d high-impact candidates identified from app size</string>
     <string name="discovery_storage_score_default">Estimated impact: 0%%</string>
     <string name="discovery_storage_score">Estimated impact: %1$d%%</string>
+    <string name="discovery_storage_motivation_high">Excellent opportunity. One cleanup pass can free serious space.</string>
+    <string name="discovery_storage_motivation_medium">Great momentum. Removing a few apps can make your phone feel lighter.</string>
+    <string name="discovery_storage_motivation_low">Nice start. Small cleanup wins keep performance smooth.</string>
+    <string name="discovery_storage_motivation_tiny">You are on track. Keep curating what you do not use.</string>
+    <string name="discovery_storage_motivation_empty">Your storage habits look healthy. Check back after a few days.</string>
     <string name="discovery_toggle_search">Toggle search</string>
 </resources>
 

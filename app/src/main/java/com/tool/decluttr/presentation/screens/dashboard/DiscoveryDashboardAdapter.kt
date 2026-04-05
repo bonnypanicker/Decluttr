@@ -150,6 +150,7 @@ class DiscoveryDashboardAdapter(
     inner class StorageMeterViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val storageSubtitle: TextView = view.findViewById(R.id.storage_subtitle)
         private val storageValue: TextView = view.findViewById(R.id.storage_value)
+        private val storageMotivation: TextView = view.findViewById(R.id.storage_motivation)
         private val wasteScore: TextView = view.findViewById(R.id.waste_score)
         private val progressBar: LinearProgressIndicator = view.findViewById(R.id.storage_progress)
 
@@ -166,7 +167,14 @@ class DiscoveryDashboardAdapter(
             } else {
                 context.getString(R.string.discovery_storage_subtitle_empty)
             }
-            progressBar.progress = item.impactPercent
+            storageMotivation.text = when {
+                item.candidateAppsCount == 0 -> context.getString(R.string.discovery_storage_motivation_empty)
+                item.impactPercent >= 60 -> context.getString(R.string.discovery_storage_motivation_high)
+                item.impactPercent >= 35 -> context.getString(R.string.discovery_storage_motivation_medium)
+                item.impactPercent >= 15 -> context.getString(R.string.discovery_storage_motivation_low)
+                else -> context.getString(R.string.discovery_storage_motivation_tiny)
+            }
+            progressBar.setProgressCompat(item.impactPercent, true)
         }
     }
 
