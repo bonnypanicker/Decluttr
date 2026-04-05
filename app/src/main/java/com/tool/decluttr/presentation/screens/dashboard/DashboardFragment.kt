@@ -9,7 +9,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import com.google.android.material.appbar.MaterialToolbar
+import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -36,6 +40,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         val toolbar = view.findViewById<MaterialToolbar>(R.id.toolbar)
         val bottomNav = view.findViewById<BottomNavigationView>(R.id.bottom_nav)
         val contentContainer = view.findViewById<FrameLayout>(R.id.content_container)
+        val appBar = view.findViewById<AppBarLayout>(R.id.app_bar)
 
         // Toolbar
         toolbar.setOnMenuItemClickListener { item ->
@@ -52,13 +57,39 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         bottomNav.itemTextColor = colorStateList
         bottomNav.setBackgroundColor(MaterialColors.getColor(bottomNav, com.google.android.material.R.attr.colorSurface))
         bottomNav.elevation = 8f
-        bottomNav.post {
-            contentContainer.setPadding(
-                contentContainer.paddingLeft,
-                contentContainer.paddingTop,
-                contentContainer.paddingRight,
-                bottomNav.height
+
+        val appBarStart = appBar.paddingStart
+        val appBarTop = appBar.paddingTop
+        val appBarEnd = appBar.paddingEnd
+        val bottomNavStart = bottomNav.paddingStart
+        val bottomNavBottom = bottomNav.paddingBottom
+        val bottomNavEnd = bottomNav.paddingEnd
+        val contentStart = contentContainer.paddingStart
+        val contentEnd = contentContainer.paddingEnd
+
+        ViewCompat.setOnApplyWindowInsetsListener(view) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            appBar.updatePadding(
+                left = appBarStart + systemBars.left,
+                top = appBarTop + systemBars.top,
+                right = appBarEnd + systemBars.right
             )
+            bottomNav.updatePadding(
+                left = bottomNavStart + systemBars.left,
+                right = bottomNavEnd + systemBars.right,
+                bottom = bottomNavBottom + systemBars.bottom
+            )
+            contentContainer.updatePadding(
+                left = contentStart + systemBars.left,
+                right = contentEnd + systemBars.right,
+                bottom = bottomNav.measuredHeight + systemBars.bottom
+            )
+            insets
+        }
+        bottomNav.post {
+            val systemBars = ViewCompat.getRootWindowInsets(view)?.getInsets(WindowInsetsCompat.Type.systemBars())
+            val bottomInset = systemBars?.bottom ?: 0
+            contentContainer.updatePadding(bottom = bottomNav.height + bottomInset)
         }
 
         // Bottom navigation

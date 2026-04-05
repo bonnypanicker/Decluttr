@@ -10,6 +10,9 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.pm.PackageInfoCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -63,6 +66,33 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         val btnThemeSystem = view.findViewById<MaterialButton>(R.id.btn_theme_system)
         val btnThemeLight = view.findViewById<MaterialButton>(R.id.btn_theme_light)
         val btnThemeDark = view.findViewById<MaterialButton>(R.id.btn_theme_dark)
+        val settingsScroll = view.findViewById<View>(R.id.settings_scroll)
+
+        val toolbarStart = toolbar.paddingStart
+        val toolbarTop = toolbar.paddingTop
+        val toolbarEnd = toolbar.paddingEnd
+        val toolbarBottom = toolbar.paddingBottom
+        val scrollStart = settingsScroll.paddingStart
+        val scrollTop = settingsScroll.paddingTop
+        val scrollEnd = settingsScroll.paddingEnd
+        val scrollBottom = settingsScroll.paddingBottom
+
+        ViewCompat.setOnApplyWindowInsetsListener(view) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            toolbar.updatePadding(
+                left = toolbarStart + systemBars.left,
+                top = toolbarTop + systemBars.top,
+                right = toolbarEnd + systemBars.right,
+                bottom = toolbarBottom
+            )
+            settingsScroll.updatePadding(
+                left = scrollStart + systemBars.left,
+                top = scrollTop,
+                right = scrollEnd + systemBars.right,
+                bottom = scrollBottom + systemBars.bottom
+            )
+            insets
+        }
 
         toolbar.setNavigationOnClickListener {
             findNavController().navigateUp()
