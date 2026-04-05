@@ -80,7 +80,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             viewModel.signOut()
         }
         btnPrivacyPolicy.setOnClickListener {
-            openUrl("https://github.com/bonnypanicker/Decluttr/blob/main/PRIVACY_POLICY.md")
+            openUrl("https://github.com/bonnypanicker/Decluttr/edit/main/PRIVACY_POLICY.md")
         }
         btnTerms.setOnClickListener {
             openUrl("https://github.com/bonnypanicker/Decluttr/blob/main/TERMS_AND_CONDITIONS.md")
