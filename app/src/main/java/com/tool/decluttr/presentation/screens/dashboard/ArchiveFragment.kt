@@ -83,6 +83,16 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private var isListMode = false
     private var isReinstalledPageVisible = false
     private var sortOption: ArchiveSortOption = ArchiveSortOption.UNINSTALLED_DATE
+    
+    private val prefs by lazy { requireContext().getSharedPreferences("archive_info_prefs", android.content.Context.MODE_PRIVATE) }
+    private var isDragInfoDismissed = false
+    private var isViewSwitchInfoDismissed = false
+    
+    private lateinit var infoCardsContainer: View
+    private lateinit var cardDragInfo: View
+    private lateinit var cardViewSwitchInfo: View
+    private lateinit var btnDismissDragInfo: ImageView
+    private lateinit var btnDismissViewSwitchInfo: ImageView
     private var sizeMap: Map<String, Long?> = emptyMap()
     private var reinstatedApps: List<ArchivedApp> = emptyList()
     private var installedPackagesCache: Set<String> = emptySet()
@@ -128,6 +138,15 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         btnReinstalledBack = v.findViewById(R.id.btn_reinstalled_back)
         reinstalledRecyclerView = v.findViewById(R.id.reinstalled_recycler_view)
         tvReinstalledEmpty = v.findViewById(R.id.tv_reinstalled_empty)
+
+        infoCardsContainer = v.findViewById(R.id.info_cards_container)
+        cardDragInfo = v.findViewById(R.id.card_drag_info)
+        cardViewSwitchInfo = v.findViewById(R.id.card_view_switch_info)
+        btnDismissDragInfo = v.findViewById(R.id.btn_dismiss_drag_info)
+        btnDismissViewSwitchInfo = v.findViewById(R.id.btn_dismiss_view_switch_info)
+
+        isDragInfoDismissed = prefs.getBoolean("drag_info_dismissed", false)
+        isViewSwitchInfoDismissed = prefs.getBoolean("view_switch_info_dismissed", false)
 
         searchInput.hint = "Search"
     }
@@ -301,6 +320,17 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         btnSort.setOnClickListener { showSortMenu() }
         btnSort.visibility = if (isListMode) View.VISIBLE else View.GONE
 
+        btnDismissDragInfo.setOnClickListener {
+            isDragInfoDismissed = true
+            prefs.edit().putBoolean("drag_info_dismissed", true).apply()
+            updateInfoCardsVisibility()
+        }
+        btnDismissViewSwitchInfo.setOnClickListener {
+            isViewSwitchInfoDismissed = true
+            prefs.edit().putBoolean("view_switch_info_dismissed", true).apply()
+            updateInfoCardsVisibility()
+        }
+
         btnReinstalledApps.setOnClickListener {
             showReinstalledAppsMenu()
         }
@@ -370,7 +400,17 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         }
     }
 
+    private fun updateInfoCardsVisibility() {
+        val showDragCard = !isListMode && !isDragInfoDismissed
+        val showSwitchCard = !isViewSwitchInfoDismissed
+        
+        cardDragInfo.visibility = if (showDragCard) View.VISIBLE else View.GONE
+        cardViewSwitchInfo.visibility = if (showSwitchCard) View.VISIBLE else View.GONE
+        infoCardsContainer.visibility = if (showDragCard || showSwitchCard) View.VISIBLE else View.GONE
+    }
+
     private fun updateUI(apps: List<ArchivedApp>) {
+        updateInfoCardsVisibility()
         android.util.Log.v(
             TAG,
             "updateUI input=${apps.size} query='$searchQuery' category='$selectedCategory' listMode=$isListMode"
