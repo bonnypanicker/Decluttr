@@ -6,5 +6,6 @@
         android:icon="@drawable/ic_settings_gear"
         android:title="Settings"
         android:contentDescription="Open Settings"
+        app:iconTint="?attr/colorOnSurface"
         app:showAsAction="always" />
 </menu>
