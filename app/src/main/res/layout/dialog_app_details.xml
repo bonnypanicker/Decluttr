@@ -110,7 +110,7 @@
             android:textStyle="bold"
             android:textColor="?attr/colorOnPrimaryContainer"
             app:backgroundTint="?attr/colorPrimaryContainer"
-            app:icon="@drawable/ic_play_store"
+            app:icon="@drawable/ic_google_play"
             app:iconGravity="textStart"
             app:iconTint="?attr/colorOnPrimaryContainer"
             app:iconPadding="10dp" />

@@ -19,7 +19,7 @@
     <string name="archive_popup_app_icon_cd">Archived app icon</string>
     <string name="archive_popup_delete_cd">Remove app from archive</string>
     <string name="archive_popup_reinstall_cd">Open in Google Play Store</string>
-    <string name="archive_popup_reinstall">Open in Play Store</string>
+    <string name="archive_popup_reinstall">Reinstall</string>
     <string name="archive_popup_notes_title">Why I kept this</string>
     <string name="archive_popup_notes_hint">Add a quick reminder for future you</string>
     <string name="archive_popup_notes_empty">No note yet. Add one to remember why you kept this app.</string>
