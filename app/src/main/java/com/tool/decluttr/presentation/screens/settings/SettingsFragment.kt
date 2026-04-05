@@ -68,6 +68,10 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         val btnThemeDark = view.findViewById<MaterialButton>(R.id.btn_theme_dark)
         val settingsScroll = view.findViewById<View>(R.id.settings_scroll)
 
+        val rootStart = view.paddingStart
+        val rootTop = view.paddingTop
+        val rootEnd = view.paddingEnd
+        val rootBottom = view.paddingBottom
         val toolbarStart = toolbar.paddingStart
         val toolbarTop = toolbar.paddingTop
         val toolbarEnd = toolbar.paddingEnd
@@ -79,20 +83,27 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
 
         ViewCompat.setOnApplyWindowInsetsListener(view) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.updatePadding(
+                left = rootStart + systemBars.left,
+                top = rootTop + systemBars.top,
+                right = rootEnd + systemBars.right,
+                bottom = rootBottom
+            )
             toolbar.updatePadding(
-                left = toolbarStart + systemBars.left,
-                top = toolbarTop + systemBars.top,
-                right = toolbarEnd + systemBars.right,
+                left = toolbarStart,
+                top = toolbarTop,
+                right = toolbarEnd,
                 bottom = toolbarBottom
             )
             settingsScroll.updatePadding(
-                left = scrollStart + systemBars.left,
+                left = scrollStart,
                 top = scrollTop,
-                right = scrollEnd + systemBars.right,
+                right = scrollEnd,
                 bottom = scrollBottom + systemBars.bottom
             )
             insets
         }
+        ViewCompat.requestApplyInsets(view)
 
         toolbar.setNavigationOnClickListener {
             findNavController().navigateUp()

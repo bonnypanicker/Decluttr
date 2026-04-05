@@ -158,29 +158,31 @@ class DiscoveryDashboardAdapter(
             val context = itemView.context
             storageValue.text = "${bytesToMB(item.estimatedFreedBytes)} MB"
             wasteScore.text = context.getString(R.string.discovery_storage_score, item.impactPercent)
-            storageSubtitle.text = if (item.candidateAppsCount > 0) {
-                if (item.usesUsageSignal) {
+            storageSubtitle.text = when {
+                item.candidateAppsCount > 0 ->
                     context.getString(R.string.discovery_storage_subtitle_usage_only, item.candidateAppsCount)
-                } else {
-                    context.getString(R.string.discovery_storage_subtitle_permission_needed)
-                }
-            } else {
-                if (item.usesUsageSignal) {
+                item.usesUsageSignal ->
                     context.getString(R.string.discovery_storage_subtitle_empty)
-                } else {
+                else ->
                     context.getString(R.string.discovery_storage_subtitle_permission_needed)
-                }
             }
             storageMotivation.text = when {
                 item.candidateAppsCount == 0 && !item.usesUsageSignal ->
                     context.getString(R.string.discovery_storage_motivation_permission_needed)
                 item.candidateAppsCount == 0 -> context.getString(R.string.discovery_storage_motivation_empty)
-                item.impactPercent >= 60 -> context.getString(R.string.discovery_storage_motivation_high)
-                item.impactPercent >= 35 -> context.getString(R.string.discovery_storage_motivation_medium)
-                item.impactPercent >= 15 -> context.getString(R.string.discovery_storage_motivation_low)
-                else -> context.getString(R.string.discovery_storage_motivation_tiny)
+                else -> pickRotatingMotivationLine(context)
             }
             progressBar.setProgressCompat(item.impactPercent, true)
+        }
+
+        private fun pickRotatingMotivationLine(context: android.content.Context): String {
+            val quotes = context.resources.getStringArray(R.array.discovery_storage_motivation_rotation)
+            if (quotes.isEmpty()) {
+                return context.getString(R.string.discovery_storage_motivation_empty)
+            }
+            val sixHourWindow = 6L * 60L * 60L * 1000L
+            val quoteIndex = ((System.currentTimeMillis() / sixHourWindow) % quotes.size).toInt()
+            return quotes[quoteIndex]
         }
     }
 
