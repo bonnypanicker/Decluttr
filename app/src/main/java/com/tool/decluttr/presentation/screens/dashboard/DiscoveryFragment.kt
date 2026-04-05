@@ -177,19 +177,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
     }
 
     private fun showUsageDisclosureIfNeeded() {
-        if (disclosurePrefs.getBoolean(KEY_USAGE_DISCLOSURE_ACCEPTED, false)) {
-            openUsageAccessSettings()
-            return
-        }
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.usage_disclosure_title)
-            .setMessage(R.string.usage_disclosure_message)
-            .setNegativeButton(R.string.usage_disclosure_cancel, null)
-            .setPositiveButton(R.string.usage_disclosure_continue) { _, _ ->
-                disclosurePrefs.edit().putBoolean(KEY_USAGE_DISCLOSURE_ACCEPTED, true).apply()
-                openUsageAccessSettings()
-            }
-            .show()
+        openUsageAccessSettings()
     }
 
     private fun openUsageAccessSettings() {

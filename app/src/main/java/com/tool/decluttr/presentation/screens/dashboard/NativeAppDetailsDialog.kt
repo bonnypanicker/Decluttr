@@ -33,7 +33,6 @@ class NativeAppDetailsDialog(
             dismissOnOutside = true,
             maxWidthDp = 640,
             horizontalMarginDp = 12,
-            fixedHeightFraction = 0.86f,
             softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
         ).build().apply {
             setOnDismissListener { onDismissRequest() }

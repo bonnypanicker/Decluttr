@@ -31,7 +31,6 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
     }
 
     companion object {
-        private const val KEY_ONBOARDING_SHOWN = "onboarding_dashboard_shown"
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -104,7 +103,6 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         // Initial tab
         if (savedInstanceState == null) {
             switchTab(0)
-            showOnboardingIfNeeded()
         }
 
         // Observe review events for bulk review dialog
@@ -155,13 +153,4 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         ).show()
     }
 
-    private fun showOnboardingIfNeeded() {
-        if (onboardingPrefs.getBoolean(KEY_ONBOARDING_SHOWN, false)) return
-        onboardingPrefs.edit().putBoolean(KEY_ONBOARDING_SHOWN, true).apply()
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.onboarding_title)
-            .setMessage(R.string.onboarding_message)
-            .setPositiveButton(R.string.onboarding_cta, null)
-            .show()
-    }
 }
