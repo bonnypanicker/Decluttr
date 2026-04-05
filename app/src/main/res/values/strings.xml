@@ -65,6 +65,8 @@
     <string name="discovery_storage_subtitle_empty">No high-impact cleanup targets right now</string>
     <string name="discovery_storage_subtitle_usage_and_size">%1$d high-impact candidates identified from usage and size</string>
     <string name="discovery_storage_subtitle_size_only">%1$d high-impact candidates identified from app size</string>
+    <string name="discovery_storage_subtitle_usage_only">%1$d rarely used apps are ready to archive</string>
+    <string name="discovery_storage_subtitle_permission_needed">Enable Usage Access to estimate cleanup from rarely used apps</string>
     <string name="discovery_storage_score_default">Estimated impact: 0%%</string>
     <string name="discovery_storage_score">Estimated impact: %1$d%%</string>
     <string name="discovery_storage_motivation_high">Excellent opportunity. One cleanup pass can free serious space.</string>
@@ -72,6 +74,7 @@
     <string name="discovery_storage_motivation_low">Nice start. Small cleanup wins keep performance smooth.</string>
     <string name="discovery_storage_motivation_tiny">You are on track. Keep curating what you do not use.</string>
     <string name="discovery_storage_motivation_empty">Your storage habits look healthy. Check back after a few days.</string>
+    <string name="discovery_storage_motivation_permission_needed">Turn on Usage Access to discover rarely used apps worth archiving.</string>
     <string name="discovery_toggle_search">Toggle search</string>
 </resources>
 

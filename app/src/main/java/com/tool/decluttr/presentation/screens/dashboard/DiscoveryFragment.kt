@@ -80,9 +80,8 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
 
     companion object {
         private const val KEY_USAGE_DISCLOSURE_ACCEPTED = "usage_disclosure_accepted"
-        private const val SIZE_ONLY_RECLAIM_CONFIDENCE = 0.38
-        private const val LARGE_APP_THRESHOLD = 100L * 1024L * 1024L
-        private const val MAX_ESTIMATED_SHARE_OF_CANDIDATES = 0.72
+        private const val UNUSED_RECLAIM_CONFIDENCE = 0.55
+        private const val MAX_ESTIMATED_SHARE_OF_CANDIDATES = 0.85
     }
 
 
@@ -316,6 +315,9 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         val unusedApps = viewModel.unusedApps.value
         val largeApps = viewModel.largeApps.value
         val hasUsagePerm = viewModel.hasUsagePermission.value
+        val archivedPackageIds = viewModel.archivedApps.value.map { it.packageId }.toSet()
+        val archiveReadyUnusedApps = unusedApps.filterNot { it.packageId in archivedPackageIds }
+        val archiveReadyLargeApps = largeApps.filterNot { it.packageId in archivedPackageIds }
 
         val filteredApps = if (searchQuery.isBlank()) allApps else allApps.filter { it.name.contains(searchQuery, true) }
 
@@ -323,7 +325,10 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         if (!isSearchActive) {
             if (allApps.isNotEmpty()) {
                 val estimate = estimateStorageFreed(
-                    allApps = allApps
+                    allApps = allApps,
+                    unusedApps = archiveReadyUnusedApps,
+                    hasUsagePermission = hasUsagePerm,
+                    archivedPackageIds = archivedPackageIds
                 )
                 items.add(
                     DashboardItem.StorageMeter(
@@ -336,8 +341,8 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
                 )
             }
             if (!hasUsagePerm) items.add(DashboardItem.PermissionWarning())
-            else items.add(DashboardItem.SmartCard(R.drawable.ic_archive_outlined, "Rarely Used Apps", "${unusedApps.size} apps • ${bytesToMB(unusedApps.sumOf { it.apkSizeBytes })} MB", DiscoveryViewState.RARELY_USED))
-            items.add(DashboardItem.SmartCard(R.drawable.ic_storage_outlined, "Large Apps", "${largeApps.size} apps • ${bytesToMB(largeApps.sumOf { it.apkSizeBytes })} MB", DiscoveryViewState.LARGE_APPS))
+            else items.add(DashboardItem.SmartCard(R.drawable.ic_archive_outlined, "Rarely Used Apps", "${archiveReadyUnusedApps.size} apps • ${bytesToMB(archiveReadyUnusedApps.sumOf { it.apkSizeBytes })} MB", DiscoveryViewState.RARELY_USED))
+            items.add(DashboardItem.SmartCard(R.drawable.ic_storage_outlined, "Large Apps", "${archiveReadyLargeApps.size} apps • ${bytesToMB(archiveReadyLargeApps.sumOf { it.apkSizeBytes })} MB", DiscoveryViewState.LARGE_APPS))
         }
 
         items.add(DashboardItem.AllAppsHeader(isSearchActive))
@@ -369,10 +374,13 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         val allApps = viewModel.allInstalledApps.value
         val unusedApps = viewModel.unusedApps.value
         val largeApps = viewModel.largeApps.value
+        val archivedPackageIds = viewModel.archivedApps.value.map { it.packageId }.toSet()
+        val archiveReadyUnusedApps = unusedApps.filterNot { it.packageId in archivedPackageIds }
+        val archiveReadyLargeApps = largeApps.filterNot { it.packageId in archivedPackageIds }
 
         val appList = when (viewState) {
-            DiscoveryViewState.RARELY_USED -> unusedApps
-            DiscoveryViewState.LARGE_APPS -> largeApps
+            DiscoveryViewState.RARELY_USED -> archiveReadyUnusedApps
+            DiscoveryViewState.LARGE_APPS -> archiveReadyLargeApps
             else -> allApps
         }
 
@@ -476,18 +484,26 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
     )
 
     private fun estimateStorageFreed(
-        allApps: List<GetInstalledAppsUseCase.InstalledAppInfo>
+        allApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
+        unusedApps: List<GetInstalledAppsUseCase.InstalledAppInfo>,
+        hasUsagePermission: Boolean,
+        archivedPackageIds: Set<String>
     ): StorageEstimate {
-        val totalSizeBytes = allApps.sumOf { it.apkSizeBytes.coerceAtLeast(0L) }
-        if (allApps.isEmpty() || totalSizeBytes <= 0L) {
+        val eligibleInstalledApps = allApps.filterNot { it.packageId in archivedPackageIds }
+        val totalSizeBytes = eligibleInstalledApps.sumOf { it.apkSizeBytes.coerceAtLeast(0L) }
+        if (eligibleInstalledApps.isEmpty() || totalSizeBytes <= 0L) {
             return StorageEstimate(0L, 0L, 0, 0, false)
         }
 
-        // Intentionally size-only so granting Usage Access never changes this estimate.
-        val candidates = allApps.filter { it.apkSizeBytes > LARGE_APP_THRESHOLD }
+        // Match user intent: estimate archive-driven cleanup from rarely used apps, not size-only.
+        if (!hasUsagePermission) {
+            return StorageEstimate(0L, totalSizeBytes, 0, 0, false)
+        }
+
+        val candidates = unusedApps.filter { it.apkSizeBytes.coerceAtLeast(0L) > 0L }
 
         if (candidates.isEmpty()) {
-            return StorageEstimate(0L, totalSizeBytes, 0, 0, false)
+            return StorageEstimate(0L, totalSizeBytes, 0, 0, true)
         }
 
         var estimatedBytes = 0L
@@ -497,7 +513,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
             val size = app.apkSizeBytes.coerceAtLeast(0L)
             if (size == 0L) return@forEach
             candidatesTotalBytes += size
-            estimatedBytes += (size.toDouble() * SIZE_ONLY_RECLAIM_CONFIDENCE).toLong()
+            estimatedBytes += (size.toDouble() * UNUSED_RECLAIM_CONFIDENCE).toLong()
         }
 
         if (candidatesTotalBytes <= 0L) {

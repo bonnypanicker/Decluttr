@@ -160,14 +160,20 @@ class DiscoveryDashboardAdapter(
             wasteScore.text = context.getString(R.string.discovery_storage_score, item.impactPercent)
             storageSubtitle.text = if (item.candidateAppsCount > 0) {
                 if (item.usesUsageSignal) {
-                    context.getString(R.string.discovery_storage_subtitle_usage_and_size, item.candidateAppsCount)
+                    context.getString(R.string.discovery_storage_subtitle_usage_only, item.candidateAppsCount)
                 } else {
-                    context.getString(R.string.discovery_storage_subtitle_size_only, item.candidateAppsCount)
+                    context.getString(R.string.discovery_storage_subtitle_permission_needed)
                 }
             } else {
-                context.getString(R.string.discovery_storage_subtitle_empty)
+                if (item.usesUsageSignal) {
+                    context.getString(R.string.discovery_storage_subtitle_empty)
+                } else {
+                    context.getString(R.string.discovery_storage_subtitle_permission_needed)
+                }
             }
             storageMotivation.text = when {
+                item.candidateAppsCount == 0 && !item.usesUsageSignal ->
+                    context.getString(R.string.discovery_storage_motivation_permission_needed)
                 item.candidateAppsCount == 0 -> context.getString(R.string.discovery_storage_motivation_empty)
                 item.impactPercent >= 60 -> context.getString(R.string.discovery_storage_motivation_high)
                 item.impactPercent >= 35 -> context.getString(R.string.discovery_storage_motivation_medium)
