@@ -18,4 +18,12 @@
         <item name="colorOnSurfaceVariant">@color/DarkSecondaryText</item>
         <item name="colorError">#ff6e84</item>
     </style>
+
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <!-- Set the splash screen background, animated icon, and icon background -->
+        <item name="windowSplashScreenBackground">@color/DarkBackground</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>
+        <!-- Set the theme of the Activity that directly follows your splash screen. -->
+        <item name="postSplashScreenTheme">@style/Theme.Decluttr</item>
+    </style>
 </resources>
