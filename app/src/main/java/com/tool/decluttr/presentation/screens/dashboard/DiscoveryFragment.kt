@@ -77,6 +77,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
 
     private lateinit var dashboardAdapter: DiscoveryDashboardAdapter
     private lateinit var specificAdapter: DiscoveryAppsAdapter
+    private var requestedRefreshAfterUsageGrant = false
 
     companion object {
         private const val KEY_USAGE_DISCLOSURE_ACCEPTED = "usage_disclosure_accepted"
@@ -96,8 +97,17 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
 
     override fun onResume() {
         super.onResume()
+        val hadPermission = viewModel.hasUsagePermission.value
         viewModel.checkUsagePermission()
-        viewModel.loadDiscoveryDataIfStale()
+        val hasPermissionNow = viewModel.hasUsagePermission.value
+        if (!hadPermission && hasPermissionNow) {
+            requestedRefreshAfterUsageGrant = true
+            viewModel.loadDiscoveryData()
+        } else if (hasPermissionNow && viewModel.unusedApps.value.isEmpty()) {
+            viewModel.loadDiscoveryData()
+        } else {
+            viewModel.loadDiscoveryDataIfStale()
+        }
     }
 
     private fun initViews(v: View) {
@@ -249,7 +259,19 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
                 launch { viewModel.allInstalledApps.collect { updateUI() } }
                 launch { viewModel.unusedApps.collect { updateUI() } }
                 launch { viewModel.largeApps.collect { updateUI() } }
-                launch { viewModel.hasUsagePermission.collect { updateUI() } }
+                launch {
+                    viewModel.hasUsagePermission.collect { hasPerm ->
+                        if (hasPerm) {
+                            if (!requestedRefreshAfterUsageGrant) {
+                                requestedRefreshAfterUsageGrant = true
+                                viewModel.loadDiscoveryData()
+                            }
+                        } else {
+                            requestedRefreshAfterUsageGrant = false
+                        }
+                        updateUI()
+                    }
+                }
                 launch {
                     viewModel.isLoadingDiscovery.collect { loading ->
                         progressLoading.visibility = if (loading || viewModel.isPreparingAllApps.value) View.VISIBLE else View.GONE
