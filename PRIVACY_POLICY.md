@@ -2,14 +2,14 @@
 
 Last updated: April 5, 2026
 
-Decluttr ("we", "our", "us") helps you review installed apps, archive app context, and uninstall apps more safely. This Privacy Policy explains what data we process, why, and your choices.
+Decluttr helps you review installed apps, archive app context, and uninstall apps more safely. This Privacy Policy explains what data we process, why, and your choices.
 
 By using Decluttr, you agree to this policy.
 
 ## 1) Data Controller and Contact
 
 - App: Decluttr
-- Contact for privacy questions or data requests: bonnypanicker@outlook.com
+- Contact for privacy questions or data requests: bonnyregipanicker@protonmail.me
 
 ## 2) Information We Process
 

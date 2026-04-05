@@ -78,6 +78,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
     private lateinit var dashboardAdapter: DiscoveryDashboardAdapter
     private lateinit var specificAdapter: DiscoveryAppsAdapter
     private var requestedRefreshAfterUsageGrant = false
+    private var returnedFromUsageSettings = false
 
     companion object {
         private const val KEY_USAGE_DISCLOSURE_ACCEPTED = "usage_disclosure_accepted"
@@ -97,6 +98,12 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
 
     override fun onResume() {
         super.onResume()
+        if (returnedFromUsageSettings) {
+            returnedFromUsageSettings = false
+            viewModel.checkUsagePermission()
+            viewModel.loadDiscoveryData()
+            return
+        }
         val hadPermission = viewModel.hasUsagePermission.value
         viewModel.checkUsagePermission()
         val hasPermissionNow = viewModel.hasUsagePermission.value
@@ -189,6 +196,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         try {
+            returnedFromUsageSettings = true
             startActivity(intent)
         } catch (e: Exception) {
             FirebaseCrashlytics.getInstance().recordException(e)
@@ -337,6 +345,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         val unusedApps = viewModel.unusedApps.value
         val largeApps = viewModel.largeApps.value
         val hasUsagePerm = viewModel.hasUsagePermission.value
+        val effectiveHasUsagePerm = hasUsagePerm || unusedApps.isNotEmpty()
         val archivedPackageIds = viewModel.archivedApps.value.map { it.packageId }.toSet()
         val archiveReadyUnusedApps = unusedApps.filterNot { it.packageId in archivedPackageIds }
         val archiveReadyLargeApps = largeApps.filterNot { it.packageId in archivedPackageIds }
@@ -349,7 +358,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
                 val estimate = estimateStorageFreed(
                     allApps = allApps,
                     unusedApps = archiveReadyUnusedApps,
-                    hasUsagePermission = hasUsagePerm,
+                    hasUsagePermission = effectiveHasUsagePerm,
                     archivedPackageIds = archivedPackageIds
                 )
                 items.add(
@@ -362,7 +371,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
                     )
                 )
             }
-            if (!hasUsagePerm) items.add(DashboardItem.PermissionWarning())
+            if (!effectiveHasUsagePerm) items.add(DashboardItem.PermissionWarning())
             else items.add(DashboardItem.SmartCard(R.drawable.ic_archive_outlined, "Rarely Used Apps", "${archiveReadyUnusedApps.size} apps • ${bytesToMB(archiveReadyUnusedApps.sumOf { it.apkSizeBytes })} MB", DiscoveryViewState.RARELY_USED))
             items.add(DashboardItem.SmartCard(R.drawable.ic_storage_outlined, "Large Apps", "${archiveReadyLargeApps.size} apps • ${bytesToMB(archiveReadyLargeApps.sumOf { it.apkSizeBytes })} MB", DiscoveryViewState.LARGE_APPS))
         }
@@ -539,7 +548,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         }
 
         if (candidatesTotalBytes <= 0L) {
-            return StorageEstimate(0L, totalSizeBytes, 0, 0, false)
+            return StorageEstimate(0L, totalSizeBytes, 0, 0, true)
         }
 
         val capByCandidates = (candidatesTotalBytes.toDouble() * MAX_ESTIMATED_SHARE_OF_CANDIDATES).toLong()
@@ -554,7 +563,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
             totalSizeBytes = totalSizeBytes,
             impactPercent = impactPercent,
             candidateAppsCount = candidates.size,
-            usesUsageSignal = false
+            usesUsageSignal = true
         )
     }
 

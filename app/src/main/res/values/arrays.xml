@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="discovery_storage_motivation_rotation">
+        <item>Keep your phone clean without losing useful apps.</item>
+        <item>Keep rare-use apps in mind without keeping them installed.</item>
+        <item>Smart cleanup without losing app memory.</item>
+        <item>Make space now, keep the reason later.</item>
+    </string-array>
+</resources>
