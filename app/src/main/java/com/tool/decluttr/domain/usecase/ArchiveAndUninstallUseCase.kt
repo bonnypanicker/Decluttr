@@ -12,7 +12,10 @@ class ArchiveAndUninstallUseCase @Inject constructor(
     data class ArchiveSourceInfo(
         val isPlayStoreInstalled: Boolean,
         val lastTimeUsed: Long,
-        val archivedSizeBytes: Long?
+        val archivedSizeBytes: Long?,
+        val name: String? = null,
+        val category: String? = null,
+        val iconBytes: ByteArray? = null
     )
 
     suspend operator fun invoke(
@@ -27,9 +30,9 @@ class ArchiveAndUninstallUseCase @Inject constructor(
             val info = appInfoMap[packageId]
             val app = ArchivedApp(
                 packageId = packageId,
-                name = details?.name ?: packageId,
-                iconBytes = details?.iconBytes,
-                category = details?.category,
+                name = details?.name ?: info?.name ?: packageId,
+                iconBytes = details?.iconBytes ?: info?.iconBytes,
+                category = details?.category ?: info?.category,
                 isPlayStoreInstalled = info?.isPlayStoreInstalled ?: true,
                 lastTimeUsed = info?.lastTimeUsed ?: 0L,
                 archivedSizeBytes = details?.archivedSizeBytes ?: info?.archivedSizeBytes

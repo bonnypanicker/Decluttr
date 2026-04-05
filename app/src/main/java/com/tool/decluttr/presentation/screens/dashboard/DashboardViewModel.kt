@@ -9,6 +9,7 @@ import coil.request.ImageRequest
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.tool.decluttr.domain.model.ArchivedApp
 import com.tool.decluttr.domain.repository.AppRepository
+import com.tool.decluttr.domain.usecase.GetAppDetailsUseCase
 import com.tool.decluttr.domain.usecase.GetInstalledAppsUseCase
 import com.tool.decluttr.domain.usecase.GetUnusedAppsUseCase
 import com.tool.decluttr.presentation.util.AppIconModel
@@ -38,6 +39,7 @@ import javax.inject.Inject
 class DashboardViewModel @Inject constructor(
     private val appRepository: AppRepository,
     private val getUnusedAppsUseCase: GetUnusedAppsUseCase,
+    private val getAppDetailsUseCase: GetAppDetailsUseCase,
     private val archiveAndUninstallUseCase: com.tool.decluttr.domain.usecase.ArchiveAndUninstallUseCase,
     private val checkUsagePermissionUseCase: com.tool.decluttr.domain.usecase.CheckUsagePermissionUseCase,
     private val uninstallAppUseCase: com.tool.decluttr.domain.usecase.UninstallAppUseCase,
@@ -278,7 +280,8 @@ class DashboardViewModel @Inject constructor(
             it.packageId to com.tool.decluttr.domain.usecase.ArchiveAndUninstallUseCase.ArchiveSourceInfo(
                 isPlayStoreInstalled = it.isPlayStoreInstalled,
                 lastTimeUsed = it.lastTimeUsed,
-                archivedSizeBytes = it.apkSizeBytes.takeIf { size -> size > 0L }
+                archivedSizeBytes = it.apkSizeBytes.takeIf { size -> size > 0L },
+                name = it.name
             )
         }
         
@@ -288,6 +291,18 @@ class DashboardViewModel @Inject constructor(
             val successfullyArchivedIds = mutableListOf<String>()
 
             for (packageId in packageIds) {
+                val sourceInfo = run {
+                    val baseInfo = appInfoMap[packageId]
+                    val details = runCatching { getAppDetailsUseCase(packageId, fetchIcon = true) }.getOrNull()
+                    com.tool.decluttr.domain.usecase.ArchiveAndUninstallUseCase.ArchiveSourceInfo(
+                        isPlayStoreInstalled = baseInfo?.isPlayStoreInstalled ?: true,
+                        lastTimeUsed = baseInfo?.lastTimeUsed ?: 0L,
+                        archivedSizeBytes = details?.archivedSizeBytes ?: baseInfo?.archivedSizeBytes,
+                        name = details?.name ?: baseInfo?.name,
+                        category = details?.category ?: baseInfo?.category,
+                        iconBytes = details?.iconBytes ?: baseInfo?.iconBytes
+                    )
+                }
                 _uninstallProgress.value = UninstallProgress(uninstalledCount + 1, packageIds.size, true)
                 val success = awaitUninstall(packageId) {
                     uninstallAppUseCase(packageId)
@@ -298,7 +313,7 @@ class DashboardViewModel @Inject constructor(
                         successfullyArchivedIds += packageId
                         archiveAndUninstallUseCase(
                             packageIds = listOf(packageId),
-                            appInfoMap = appInfoMap,
+                            appInfoMap = mapOf(packageId to sourceInfo),
                             performUninstall = false
                         )
                     }

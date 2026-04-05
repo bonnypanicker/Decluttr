@@ -22,10 +22,14 @@ import com.tool.decluttr.domain.repository.AppRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 import javax.inject.Provider
 
@@ -41,16 +45,34 @@ class AppRepositoryImpl(
         private const val FIRESTORE_ICON_MAX_DIM = 128
         private const val FIRESTORE_ICON_MAX_BYTES = 24 * 1024
         private val FIRESTORE_JPEG_QUALITIES = intArrayOf(92, 84, 76, 68)
+        private const val MAX_SYNC_RETRIES = 3
+        private const val SYNC_RETRY_BASE_DELAY_MS = 1500L
     }
     
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val syncMutex = Mutex()
+    private val syncStateLock = Any()
+    private val pendingUpserts = LinkedHashMap<String, ArchivedApp>()
+    private val pendingDeletes = LinkedHashSet<String>()
+    @Volatile
+    private var pendingSyncJob: Job? = null
+    @Volatile
+    private var currentUserId: String? = null
 
     init {
         firebaseAuthOrNull()?.addAuthStateListener { firebaseAuth ->
             scope.launch {
-                if (firebaseAuth.currentUser != null) {
+                val uid = firebaseAuth.currentUser?.uid
+                if (uid != null) {
+                    if (currentUserId != uid) {
+                        clearPendingSyncState()
+                        currentUserId = uid
+                    }
                     syncFromFirestore()
+                    flushPendingSyncs()
                 } else {
+                    clearPendingSyncState()
+                    currentUserId = null
                     dao.deleteAllApps()
                 }
             }
@@ -77,10 +99,10 @@ class AppRepositoryImpl(
                 when {
                     localApp == null -> dao.insertApp(enrichedRemoteApp.toAppEntity())
                     remoteApp.lastModified >= localApp.lastModified -> dao.insertApp(enrichedRemoteApp.toAppEntity())
-                    else -> syncToFirestore(localApp)
+                    else -> enqueueUpsert(localApp)
                 }
                 if (usingRemoteAsSource && shouldHealRemote) {
-                    syncToFirestore(enrichedRemoteApp)
+                    enqueueUpsert(enrichedRemoteApp)
                 }
             }
 
@@ -88,7 +110,7 @@ class AppRepositoryImpl(
                 .map { it.toArchivedApp() }
                 .filter { localApp -> remoteApps.none { it.packageId == localApp.packageId } }
                 .forEach { localOnlyApp ->
-                    syncToFirestore(localOnlyApp)
+                    enqueueUpsert(localOnlyApp)
                 }
         } catch (e: Exception) {
             recordException(e)
@@ -108,7 +130,7 @@ class AppRepositoryImpl(
             packageId = id,
             name = getString("name") ?: id,
             isPlayStoreInstalled = getBoolean("isPlayStoreInstalled") ?: true,
-            category = getString("category"),
+            category = getString("category")?.takeIf { it.isNotBlank() },
             tags = parseTags(get("tags")),
             notes = getString("notes"),
             iconBytes = iconBytes,
@@ -128,35 +150,143 @@ class AppRepositoryImpl(
         }
     }
 
-    private fun syncToFirestore(app: ArchivedApp) {
-        val auth = firebaseAuthOrNull() ?: return
-        val firestore = firestoreOrNull() ?: return
-        val user = auth.currentUser ?: return
-        scope.launch {
-            try {
-                val iconBase64 = compressIconForFirestore(app.iconBytes)
-                val data = mapOf(
-                    "packageId" to app.packageId,
-                    "name" to app.name,
-                    "iconBase64" to iconBase64,
-                    "archivedSizeBytes" to app.archivedSizeBytes,
-                    "category" to app.category,
-                    "tags" to app.tags,
-                    "notes" to app.notes,
-                    "archivedAt" to app.archivedAt,
-                    "isPlayStoreInstalled" to app.isPlayStoreInstalled,
-                    "lastTimeUsed" to app.lastTimeUsed,
-                    "folderName" to app.folderName,
-                    "lastModified" to app.lastModified
-                )
-                firestore.collection("users").document(user.uid).collection("apps")
-                    .document(app.packageId)
-                    .set(data, SetOptions.merge())
-                    .await()
-            } catch (e: Exception) {
-                recordException(e)
+    private fun enqueueUpsert(app: ArchivedApp) {
+        synchronized(syncStateLock) {
+            pendingDeletes.remove(app.packageId)
+            val previous = pendingUpserts[app.packageId]
+            if (previous == null || app.lastModified >= previous.lastModified) {
+                pendingUpserts[app.packageId] = app
             }
         }
+        schedulePendingSync()
+    }
+
+    private fun enqueueDelete(packageId: String) {
+        synchronized(syncStateLock) {
+            pendingUpserts.remove(packageId)
+            pendingDeletes.add(packageId)
+        }
+        schedulePendingSync()
+    }
+
+    private fun schedulePendingSync(delayMs: Long = 0L) {
+        val existing = pendingSyncJob
+        if (existing?.isActive == true) return
+        pendingSyncJob = scope.launch {
+            if (delayMs > 0L) {
+                delay(delayMs)
+            }
+            flushPendingSyncs()
+        }
+    }
+
+    private fun clearPendingSyncState() {
+        synchronized(syncStateLock) {
+            pendingUpserts.clear()
+            pendingDeletes.clear()
+        }
+    }
+
+    private suspend fun flushPendingSyncs() {
+        syncMutex.withLock {
+            while (true) {
+                val nextDelete = synchronized(syncStateLock) { pendingDeletes.firstOrNull() }
+                if (nextDelete != null) {
+                    if (performDeleteWithRetry(nextDelete)) {
+                        synchronized(syncStateLock) { pendingDeletes.remove(nextDelete) }
+                        continue
+                    }
+                    pendingSyncJob = scope.launch {
+                        delay(SYNC_RETRY_BASE_DELAY_MS * (MAX_SYNC_RETRIES + 1))
+                        flushPendingSyncs()
+                    }
+                    return
+                }
+
+                val nextUpsert = synchronized(syncStateLock) {
+                    pendingUpserts.entries.firstOrNull()?.toPair()
+                } ?: return
+
+                val packageId = nextUpsert.first
+                val app = nextUpsert.second
+                if (performUpsertWithRetry(app)) {
+                    synchronized(syncStateLock) {
+                        pendingUpserts.remove(packageId)
+                    }
+                    continue
+                }
+                pendingSyncJob = scope.launch {
+                    delay(SYNC_RETRY_BASE_DELAY_MS * (MAX_SYNC_RETRIES + 1))
+                    flushPendingSyncs()
+                }
+                return
+            }
+        }
+    }
+
+    private suspend fun performUpsertWithRetry(app: ArchivedApp): Boolean {
+        repeat(MAX_SYNC_RETRIES) { attempt ->
+            val ok = runCatching { performUpsert(app) }
+                .onFailure { recordException(it) }
+                .isSuccess
+            if (ok) {
+                return true
+            }
+            if (attempt < MAX_SYNC_RETRIES - 1) {
+                delay(SYNC_RETRY_BASE_DELAY_MS * (attempt + 1))
+            }
+        }
+        return false
+    }
+
+    private suspend fun performDeleteWithRetry(packageId: String): Boolean {
+        repeat(MAX_SYNC_RETRIES) { attempt ->
+            val ok = runCatching { performDelete(packageId) }
+                .onFailure { recordException(it) }
+                .isSuccess
+            if (ok) {
+                return true
+            }
+            if (attempt < MAX_SYNC_RETRIES - 1) {
+                delay(SYNC_RETRY_BASE_DELAY_MS * (attempt + 1))
+            }
+        }
+        return false
+    }
+
+    private suspend fun performUpsert(app: ArchivedApp) {
+        val auth = firebaseAuthOrNull() ?: error("FirebaseAuth unavailable")
+        val firestore = firestoreOrNull() ?: error("Firestore unavailable")
+        val user = auth.currentUser ?: error("No signed-in user")
+        val iconBase64 = compressIconForFirestore(app.iconBytes)
+        val data = mapOf(
+            "packageId" to app.packageId,
+            "name" to app.name,
+            "iconBase64" to iconBase64,
+            "archivedSizeBytes" to app.archivedSizeBytes,
+            "category" to app.category?.takeIf { it.isNotBlank() },
+            "tags" to app.tags,
+            "notes" to app.notes,
+            "archivedAt" to app.archivedAt,
+            "isPlayStoreInstalled" to app.isPlayStoreInstalled,
+            "lastTimeUsed" to app.lastTimeUsed,
+            "folderName" to app.folderName,
+            "lastModified" to app.lastModified
+        )
+        firestore.collection("users").document(user.uid).collection("apps")
+            .document(app.packageId)
+            .set(data, SetOptions.merge())
+            .await()
+    }
+
+    private suspend fun performDelete(packageId: String) {
+        val auth = firebaseAuthOrNull() ?: error("FirebaseAuth unavailable")
+        val firestore = firestoreOrNull() ?: error("Firestore unavailable")
+        val user = auth.currentUser ?: error("No signed-in user")
+        firestore.collection("users").document(user.uid).collection("apps")
+            .document(packageId)
+            .delete()
+            .await()
     }
 
     private fun compressIconForFirestore(iconBytes: ByteArray?): String? {
@@ -211,8 +341,10 @@ class AppRepositoryImpl(
         }
         val resolvedIconBytes = app.iconBytes ?: previous?.iconBytes
         val resolvedSizeBytes = app.archivedSizeBytes ?: previous?.archivedSizeBytes
+        val resolvedCategory = app.category?.takeIf { it.isNotBlank() } ?: previous?.category
         val normalizedApp = app.copy(
             name = resolvedName,
+            category = resolvedCategory,
             iconBytes = resolvedIconBytes,
             archivedSizeBytes = resolvedSizeBytes
         )
@@ -256,8 +388,10 @@ class AppRepositoryImpl(
         }
         val resolvedIconBytes = remoteApp.iconBytes ?: localApp.iconBytes
         val resolvedSizeBytes = remoteApp.archivedSizeBytes ?: localApp.archivedSizeBytes
+        val resolvedCategory = remoteApp.category?.takeIf { it.isNotBlank() } ?: localApp.category
         return remoteApp.copy(
             name = resolvedName,
+            category = resolvedCategory,
             iconBytes = resolvedIconBytes,
             archivedSizeBytes = resolvedSizeBytes
         )
@@ -265,6 +399,7 @@ class AppRepositoryImpl(
 
     private fun requiresRemoteHealing(remoteApp: ArchivedApp, mergedApp: ArchivedApp): Boolean {
         return remoteApp.name != mergedApp.name ||
+            remoteApp.category != mergedApp.category ||
             remoteApp.archivedSizeBytes != mergedApp.archivedSizeBytes ||
             !sameBytes(remoteApp.iconBytes, mergedApp.iconBytes)
     }
@@ -273,6 +408,21 @@ class AppRepositoryImpl(
         if (a == null && b == null) return true
         if (a == null || b == null) return false
         return a.contentEquals(b)
+    }
+
+    private fun resolveCategoryName(categoryNumber: Int): String? {
+        return when (categoryNumber) {
+            android.content.pm.ApplicationInfo.CATEGORY_GAME -> "Games"
+            android.content.pm.ApplicationInfo.CATEGORY_AUDIO -> "Audio"
+            android.content.pm.ApplicationInfo.CATEGORY_VIDEO -> "Video"
+            android.content.pm.ApplicationInfo.CATEGORY_IMAGE -> "Photography"
+            android.content.pm.ApplicationInfo.CATEGORY_SOCIAL -> "Social"
+            android.content.pm.ApplicationInfo.CATEGORY_NEWS -> "News & Magazines"
+            android.content.pm.ApplicationInfo.CATEGORY_MAPS -> "Maps & Navigation"
+            android.content.pm.ApplicationInfo.CATEGORY_PRODUCTIVITY -> "Productivity"
+            android.content.pm.ApplicationInfo.CATEGORY_ACCESSIBILITY -> "Accessibility"
+            else -> null
+        }
     }
 
     private fun enrichArchiveApp(app: ArchivedApp): ArchivedApp {
@@ -288,6 +438,11 @@ class AppRepositoryImpl(
                 val size = runCatching { java.io.File(appInfo.sourceDir).length() }.getOrNull()
                 if (size != null && size > 0L) {
                     result = result.copy(archivedSizeBytes = size)
+                }
+            }
+            if (result.category.isNullOrBlank()) {
+                resolveCategoryName(appInfo.category)?.let { category ->
+                    result = result.copy(category = category)
                 }
             }
             if (result.iconBytes == null) {
@@ -345,22 +500,6 @@ class AppRepositoryImpl(
         }
     }
 
-    private fun deleteFromFirestore(packageId: String) {
-        val auth = firebaseAuthOrNull() ?: return
-        val firestore = firestoreOrNull() ?: return
-        val user = auth.currentUser ?: return
-        scope.launch {
-            try {
-                firestore.collection("users").document(user.uid).collection("apps")
-                    .document(packageId)
-                    .delete()
-                    .await()
-            } catch (e: Exception) {
-                recordException(e)
-            }
-        }
-    }
-
     override fun getAllArchivedApps(): Flow<List<ArchivedApp>> {
         return dao.getAllArchivedApps().map { entities ->
             entities.map { it.toArchivedApp() }
@@ -380,17 +519,17 @@ class AppRepositoryImpl(
             "insertApp pkg=${app.packageId} prevExists=${previous != null} prevFolder=${previous?.folderName} newFolder=${updatedApp.folderName}"
         )
         dao.insertApp(updatedApp.toAppEntity())
-        syncToFirestore(updatedApp)
+        enqueueUpsert(updatedApp)
     }
 
     override suspend fun deleteApp(app: ArchivedApp) {
         dao.deleteApp(app.toAppEntity())
-        deleteFromFirestore(app.packageId)
+        enqueueDelete(app.packageId)
     }
 
     override suspend fun deleteAppById(packageId: String) {
         dao.deleteAppById(packageId)
-        deleteFromFirestore(packageId)
+        enqueueDelete(packageId)
     }
 
     override suspend fun updateApp(app: ArchivedApp) {
@@ -402,7 +541,7 @@ class AppRepositoryImpl(
             "updateApp pkg=${app.packageId} prevExists=${previous != null} prevFolder=${previous?.folderName} newFolder=${updatedApp.folderName}"
         )
         dao.updateApp(updatedApp.toAppEntity())
-        syncToFirestore(updatedApp)
+        enqueueUpsert(updatedApp)
     }
 
     private fun decodeIconBase64(base64: String?): ByteArray? {
