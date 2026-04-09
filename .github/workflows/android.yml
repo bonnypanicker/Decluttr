@@ -65,8 +65,20 @@ jobs:
           KEY_PASS_VALUE="${DEBUG_KEY_PASSWORD:-$STORE_PASS}"
           echo "::warning::RELEASE_* secrets missing. Falling back to DEBUG_* signing secrets."
         else
-          echo "::error::Missing signing secrets. Set RELEASE_* (preferred) or DEBUG_KEYSTORE_BASE64."
-          exit 1
+          STORE_PASS="android"
+          KEY_ALIAS_VALUE="androiddebugkey"
+          KEY_PASS_VALUE="android"
+          SIGNING_DIR="$RUNNER_TEMP/signing"
+          mkdir -p "$SIGNING_DIR"
+          KEYSTORE_PATH="$SIGNING_DIR/release-upload.keystore"
+          keytool -genkey -v -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASS" -alias "$KEY_ALIAS_VALUE" -keypass "$KEY_PASS_VALUE" -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=CI Debug,O=Decluttr,C=IN"
+          echo "::warning::No RELEASE_* or DEBUG_* secrets found. Generated temporary keystore for CI build. This artifact may fail Play upload due to key mismatch."
+          echo "KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+          echo "KEYSTORE_PASSWORD=$STORE_PASS" >> "$GITHUB_ENV"
+          echo "KEY_ALIAS=$KEY_ALIAS_VALUE" >> "$GITHUB_ENV"
+          echo "KEY_PASSWORD=$KEY_PASS_VALUE" >> "$GITHUB_ENV"
+          keytool -list -v -keystore "$KEYSTORE_PATH" -alias "$KEY_ALIAS_VALUE" -storepass "$STORE_PASS" -keypass "$KEY_PASS_VALUE" | grep SHA1
+          exit 0
         fi
         SIGNING_DIR="$RUNNER_TEMP/signing"
         mkdir -p "$SIGNING_DIR"
