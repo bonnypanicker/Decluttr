@@ -67,6 +67,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         val btnManagePremium = view.findViewById<MaterialButton>(R.id.btn_manage_premium)
         val btnPrivacyPolicy = view.findViewById<MaterialButton>(R.id.btn_privacy_policy)
         val btnTerms = view.findViewById<MaterialButton>(R.id.btn_terms)
+        val btnDeleteAccount = view.findViewById<MaterialButton>(R.id.btn_delete_account)
         val btnLicenses = view.findViewById<MaterialButton>(R.id.btn_licenses)
         val tvAppVersion = view.findViewById<TextView>(R.id.tv_app_version)
         val themeToggleGroup = view.findViewById<MaterialButtonToggleGroup>(R.id.theme_toggle_group)
@@ -135,6 +136,9 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         }
         btnTerms.setOnClickListener {
             openUrl(AppLinks.TERMS_URL)
+        }
+        btnDeleteAccount.setOnClickListener {
+            openUrl(AppLinks.DELETE_ACCOUNT_URL)
         }
         btnLicenses.setOnClickListener {
             showLicensesDialog()

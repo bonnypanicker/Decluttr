@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Decluttr Account Deletion</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #121a2d;
+      --text: #e8eefc;
+      --muted: #a7b6d6;
+      --link: #8fc1ff;
+      --border: #253252;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+      line-height: 1.65;
+    }
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      margin-top: 14px;
+    }
+    h1, h2 { margin: 0 0 10px; color: #fff; }
+    h1 { font-size: 30px; }
+    h2 { font-size: 20px; margin-top: 14px; }
+    p { margin: 0 0 10px; }
+    ul { margin: 0 0 10px 20px; }
+    li { margin: 4px 0; }
+    .muted { color: var(--muted); }
+    a { color: var(--link); }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Decluttr Account and Data Deletion</h1>
+  <p class="muted">Last updated: April 9, 2026</p>
+  <p>
+    This page explains how Decluttr users can request account deletion and what happens to associated data.
+  </p>
+
+  <section class="card">
+    <h2>How to Request Deletion</h2>
+    <ul>
+      <li>Email us at <a href="mailto:bonnyregipanicker@proton.me">bonnyregipanicker@proton.me</a> from your registered email address.</li>
+      <li>Use subject: <strong>Decluttr Account Deletion Request</strong>.</li>
+      <li>Include your Firebase account email used in Decluttr.</li>
+    </ul>
+    <p>We will confirm your request and start processing deletion.</p>
+  </section>
+
+  <section class="card">
+    <h2>What Data Is Deleted</h2>
+    <ul>
+      <li>Decluttr account access associated with your Firebase Authentication user.</li>
+      <li>Cloud archive records stored under your user path in Firestore.</li>
+      <li>Folder names, notes, tags, and metadata stored for your cloud archive.</li>
+      <li>Cloud entitlement profile linked to your user document (where applicable).</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>What May Be Retained</h2>
+    <ul>
+      <li>Security, fraud-prevention, and legal-compliance records as required by law.</li>
+      <li>Financial transaction records required for audit, tax, or dispute handling.</li>
+      <li>Aggregated or de-identified analytics that cannot identify you directly.</li>
+    </ul>
+    <p>
+      Typical retention for limited legal/compliance records is up to 180 days unless longer retention is required by law.
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>Processing Time</h2>
+    <p>We target completion within 7 business days, and no later than 30 days from verification of your request.</p>
+  </section>
+
+  <section class="card">
+    <h2>Important Notes</h2>
+    <ul>
+      <li>Deleting your account is permanent and cannot be undone.</li>
+      <li>Deleting local app data on your device can be done anytime from Android app settings.</li>
+      <li>For policy details, see our <a href="/privacy-policy.html">Privacy Policy</a> and <a href="/terms-and-conditions.html">Terms and Conditions</a>.</li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>
