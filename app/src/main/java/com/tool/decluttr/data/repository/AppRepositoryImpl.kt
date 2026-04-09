@@ -18,7 +18,9 @@ import com.tool.decluttr.data.local.dao.AppDao
 import com.tool.decluttr.data.mapper.toAppEntity
 import com.tool.decluttr.data.mapper.toArchivedApp
 import com.tool.decluttr.domain.model.ArchivedApp
+import com.tool.decluttr.domain.model.ArchiveLimitExceededException
 import com.tool.decluttr.domain.repository.AppRepository
+import com.tool.decluttr.domain.repository.BillingRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,10 +39,12 @@ class AppRepositoryImpl(
     @ApplicationContext private val context: Context,
     private val dao: AppDao,
     private val authProvider: Provider<FirebaseAuth>,
-    private val firestoreProvider: Provider<FirebaseFirestore>
+    private val firestoreProvider: Provider<FirebaseFirestore>,
+    private val billingRepository: BillingRepository
 ) : AppRepository {
     companion object {
         private const val TAG = "DecluttrDragDbgRepo"
+        private const val FREE_ARCHIVE_LIMIT = 50
         private const val LOCAL_ICON_DIM = 144
         private const val FIRESTORE_ICON_MAX_DIM = 128
         private const val FIRESTORE_ICON_MAX_BYTES = 24 * 1024
@@ -510,9 +514,27 @@ class AppRepositoryImpl(
         return dao.getAppById(packageId)?.toArchivedApp()
     }
 
+    override suspend fun getArchivedAppCount(): Int {
+        return dao.getArchivedAppCount().coerceAtLeast(0)
+    }
+
     override suspend fun insertApp(app: ArchivedApp) {
-        val enriched = enrichArchiveApp(app)
         val previous = dao.getAppById(app.packageId)?.toArchivedApp()
+        if (previous == null) {
+            val entitlement = billingRepository.currentEntitlement()
+            if (!entitlement.isPremium) {
+                val used = dao.getArchivedAppCount().coerceAtLeast(0)
+                if (used >= FREE_ARCHIVE_LIMIT) {
+                    throw ArchiveLimitExceededException(
+                        used = used,
+                        limit = FREE_ARCHIVE_LIMIT,
+                        requested = 1,
+                        overflow = (used + 1 - FREE_ARCHIVE_LIMIT).coerceAtLeast(1)
+                    )
+                }
+            }
+        }
+        val enriched = enrichArchiveApp(app)
         val updatedApp = normalizeForWrite(previous, enriched)
         android.util.Log.d(
             TAG,

@@ -43,7 +43,56 @@
             android:padding="8dp"
             android:src="@drawable/ic_list"
             android:tint="?attr/colorOnSurfaceVariant" />
+
+        <ImageButton
+            android:id="@+id/btn_premium"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Upgrade to premium"
+            android:padding="8dp"
+            android:src="@drawable/ic_premium"
+            android:tint="?attr/colorPrimary" />
     </LinearLayout>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/archive_credits_card"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="8dp"
+        app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+        app:cardCornerRadius="14dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="0dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="10dp">
+
+            <TextView
+                android:id="@+id/tv_archive_credits"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="0/50 archive credits used"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="?attr/colorOnSurface"
+                android:textStyle="bold" />
+
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/progress_archive_credits"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:layout_marginTop="6dp"
+                app:indicatorColor="?attr/colorPrimary"
+                app:trackColor="?attr/colorSurfaceContainerHighest"
+                app:trackThickness="6dp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
     <LinearLayout
         android:id="@+id/category_bar"

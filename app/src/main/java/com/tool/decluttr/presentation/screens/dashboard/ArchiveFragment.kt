@@ -36,9 +36,12 @@ import androidx.appcompat.widget.PopupMenu
 import coil.load
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.chip.Chip
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.snackbar.Snackbar
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.ArchivedApp
+import com.tool.decluttr.presentation.screens.billing.BillingViewModel
+import com.tool.decluttr.presentation.screens.billing.PaywallBottomSheet
 import com.tool.decluttr.presentation.util.AppIconModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
@@ -54,6 +57,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     }
 
     private val viewModel: DashboardViewModel by activityViewModels()
+    private val billingViewModel: BillingViewModel by activityViewModels()
 
     private var searchQuery = ""
     private var selectedCategory = "All"
@@ -69,6 +73,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private lateinit var btnReinstalledApps: ImageView
     private lateinit var btnSort: ImageView
     private lateinit var btnViewSwitch: ImageView
+    private lateinit var btnPremium: ImageView
+    private lateinit var creditsCard: View
+    private lateinit var tvArchiveCredits: TextView
+    private lateinit var progressArchiveCredits: LinearProgressIndicator
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyStateContainer: View
     private lateinit var tvEmptyMessage: TextView
@@ -114,6 +122,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        billingViewModel.refreshBilling()
         initViews(view)
         setupRecyclerView()
         setupListeners()
@@ -130,6 +139,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         btnReinstalledApps = v.findViewById(R.id.btn_reinstalled_apps)
         btnSort = v.findViewById(R.id.btn_sort)
         btnViewSwitch = v.findViewById(R.id.btn_view_switch)
+        btnPremium = v.findViewById(R.id.btn_premium)
+        creditsCard = v.findViewById(R.id.archive_credits_card)
+        tvArchiveCredits = v.findViewById(R.id.tv_archive_credits)
+        progressArchiveCredits = v.findViewById(R.id.progress_archive_credits)
         recyclerView = v.findViewById(R.id.archive_recycler_view)
         emptyStateContainer = v.findViewById(R.id.empty_state_container)
         tvEmptyMessage = v.findViewById(R.id.tv_empty_message)
@@ -319,6 +332,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
 
         btnSort.setOnClickListener { showSortMenu() }
         btnSort.visibility = if (isListMode) View.VISIBLE else View.GONE
+        btnPremium.setOnClickListener { showPaywall(reason = "archive_icon_tap") }
 
         btnDismissDragInfo.setOnClickListener {
             isDragInfoDismissed = true
@@ -378,8 +392,22 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                             .show()
                     }
                 }
+                launch {
+                    billingViewModel.archiveCreditsUi.collect { credits ->
+                        creditsCard.visibility = View.VISIBLE
+                        tvArchiveCredits.text = credits.label
+                        progressArchiveCredits.setProgressCompat(credits.progress, true)
+                    }
+                }
             }
         }
+    }
+
+    private fun showPaywall(reason: String) {
+        val tag = "PaywallBottomSheet"
+        val fm = parentFragmentManager
+        if (fm.findFragmentByTag(tag) != null) return
+        PaywallBottomSheet.newInstance(reason = reason).show(fm, tag)
     }
 
     private fun renderArchivedApps(apps: List<ArchivedApp>) {

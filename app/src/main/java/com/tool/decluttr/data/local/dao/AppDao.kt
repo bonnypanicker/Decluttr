@@ -19,6 +19,9 @@ interface AppDao {
     @Query("SELECT * FROM archived_apps")
     suspend fun getArchivedAppsSnapshot(): List<AppEntity>
 
+    @Query("SELECT COUNT(*) FROM archived_apps")
+    suspend fun getArchivedAppCount(): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertApp(app: AppEntity)
 

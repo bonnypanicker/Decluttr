@@ -479,18 +479,29 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
             )
         }
 
-        if (sideloadedIds.isNotEmpty()) {
-            MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Sideloaded Apps Detected")
-                .setMessage(
-                    "Some selected apps are sideloaded and cannot be archived. " +
-                        "They will be uninstalled only. Continue?"
+        viewLifecycleOwner.lifecycleScope.launch {
+            val quota = viewModel.checkArchiveQuota((ids - sideloadedIds).size)
+            if (quota is com.tool.decluttr.domain.model.ArchiveQuotaResult.Blocked) {
+                viewModel.requestPaywall(
+                    reason = "archive_limit_reached",
+                    quota = quota
                 )
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("Continue") { _, _ -> continueArchiveFlow() }
-                .show()
-        } else {
-            continueArchiveFlow()
+                return@launch
+            }
+
+            if (sideloadedIds.isNotEmpty()) {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Sideloaded Apps Detected")
+                    .setMessage(
+                        "Some selected apps are sideloaded and cannot be archived. " +
+                            "They will be uninstalled only. Continue?"
+                    )
+                    .setNegativeButton("Cancel", null)
+                    .setPositiveButton("Continue") { _, _ -> continueArchiveFlow() }
+                    .show()
+            } else {
+                continueArchiveFlow()
+            }
         }
     }
 

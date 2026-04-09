@@ -37,3 +37,6 @@ app/release.keystore
 *_trace.md
 erre.md
 errer2.md
+
+# Firebase Functions
+functions/node_modules/

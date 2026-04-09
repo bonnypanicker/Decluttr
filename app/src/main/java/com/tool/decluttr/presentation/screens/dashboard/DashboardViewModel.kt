@@ -7,8 +7,11 @@ import androidx.lifecycle.viewModelScope
 import coil.imageLoader
 import coil.request.ImageRequest
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.tool.decluttr.domain.model.ArchiveLimitExceededException
+import com.tool.decluttr.domain.model.ArchiveQuotaResult
 import com.tool.decluttr.domain.model.ArchivedApp
 import com.tool.decluttr.domain.repository.AppRepository
+import com.tool.decluttr.domain.usecase.ArchiveQuotaService
 import com.tool.decluttr.domain.usecase.GetAppDetailsUseCase
 import com.tool.decluttr.domain.usecase.GetInstalledAppsUseCase
 import com.tool.decluttr.domain.usecase.GetUnusedAppsUseCase
@@ -41,6 +44,7 @@ class DashboardViewModel @Inject constructor(
     private val getUnusedAppsUseCase: GetUnusedAppsUseCase,
     private val getAppDetailsUseCase: GetAppDetailsUseCase,
     private val archiveAndUninstallUseCase: com.tool.decluttr.domain.usecase.ArchiveAndUninstallUseCase,
+    private val archiveQuotaService: ArchiveQuotaService,
     private val checkUsagePermissionUseCase: com.tool.decluttr.domain.usecase.CheckUsagePermissionUseCase,
     private val uninstallAppUseCase: com.tool.decluttr.domain.usecase.UninstallAppUseCase,
     @ApplicationContext private val context: Context
@@ -103,6 +107,14 @@ class DashboardViewModel @Inject constructor(
     private val _undoDeleteEvent = kotlinx.coroutines.flow.MutableSharedFlow<ArchivedApp>()
     val undoDeleteEvent = _undoDeleteEvent.asSharedFlow()
 
+    data class PaywallRequest(
+        val reason: String,
+        val quota: ArchiveQuotaResult.Blocked? = null
+    )
+
+    private val _paywallEvent = kotlinx.coroutines.flow.MutableSharedFlow<PaywallRequest>()
+    val paywallEvent = _paywallEvent.asSharedFlow()
+
     private var discoveryJob: kotlinx.coroutines.Job? = null
     private var lazyWarmIconsJob: kotlinx.coroutines.Job? = null
     private val preloadedIconPackages = ConcurrentHashMap.newKeySet<String>()
@@ -119,6 +131,19 @@ class DashboardViewModel @Inject constructor(
 
     fun checkUsagePermission() {
         _hasUsagePermission.value = checkUsagePermissionUseCase()
+    }
+
+    suspend fun checkArchiveQuota(requestedCount: Int): ArchiveQuotaResult {
+        return archiveQuotaService.checkQuota(requestedCount)
+    }
+
+    fun requestPaywall(
+        reason: String,
+        quota: ArchiveQuotaResult.Blocked? = null
+    ) {
+        viewModelScope.launch {
+            _paywallEvent.emit(PaywallRequest(reason = reason, quota = quota))
+        }
     }
 
     fun loadDiscoveryData() {
@@ -255,7 +280,22 @@ class DashboardViewModel @Inject constructor(
 
     fun restoreArchivedApp(app: ArchivedApp) {
         viewModelScope.launch {
-            appRepository.insertApp(app)
+            try {
+                appRepository.insertApp(app)
+            } catch (limit: ArchiveLimitExceededException) {
+                _paywallEvent.emit(
+                    PaywallRequest(
+                        reason = "archive_limit_restore_blocked",
+                        quota = ArchiveQuotaResult.Blocked(
+                            used = limit.used,
+                            limit = limit.limit,
+                            requested = limit.requested,
+                            overflow = limit.overflow,
+                            isPremium = false
+                        )
+                    )
+                )
+            }
         }
     }
 
@@ -286,6 +326,17 @@ class DashboardViewModel @Inject constructor(
         }
         
         viewModelScope.launch {
+            val quotaResult = archiveQuotaService.checkQuota(archiveEligiblePackageIds.size)
+            if (quotaResult is ArchiveQuotaResult.Blocked) {
+                _paywallEvent.emit(
+                    PaywallRequest(
+                        reason = "archive_limit_reached",
+                        quota = quotaResult
+                    )
+                )
+                return@launch
+            }
+
             _uninstallProgress.value = UninstallProgress(0, packageIds.size, true)
             var uninstalledCount = 0
             val successfullyArchivedIds = mutableListOf<String>()
@@ -310,12 +361,27 @@ class DashboardViewModel @Inject constructor(
                 if (success) {
                     uninstalledCount++
                     if (packageId in archiveEligiblePackageIds) {
-                        successfullyArchivedIds += packageId
-                        archiveAndUninstallUseCase(
-                            packageIds = listOf(packageId),
-                            appInfoMap = mapOf(packageId to sourceInfo),
-                            performUninstall = false
-                        )
+                        try {
+                            archiveAndUninstallUseCase(
+                                packageIds = listOf(packageId),
+                                appInfoMap = mapOf(packageId to sourceInfo),
+                                performUninstall = false
+                            )
+                            successfullyArchivedIds += packageId
+                        } catch (limit: ArchiveLimitExceededException) {
+                            _paywallEvent.emit(
+                                PaywallRequest(
+                                    reason = "archive_limit_reached_runtime",
+                                    quota = ArchiveQuotaResult.Blocked(
+                                        used = limit.used,
+                                        limit = limit.limit,
+                                        requested = limit.requested,
+                                        overflow = limit.overflow,
+                                        isPremium = false
+                                    )
+                                )
+                            )
+                        }
                     }
                 }
             }

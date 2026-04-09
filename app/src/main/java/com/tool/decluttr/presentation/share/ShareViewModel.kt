@@ -2,6 +2,7 @@ package com.tool.decluttr.presentation.share
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tool.decluttr.domain.model.ArchiveLimitExceededException
 import com.tool.decluttr.domain.usecase.CaptureAppUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,12 +26,25 @@ class ShareViewModel @Inject constructor(
 
         _shareStatus.value = ShareStatus.Processing
         viewModelScope.launch {
-            val packageId = captureAppUseCase(text)
-            if (packageId != null) {
-                _shareStatus.value = ShareStatus.Success(packageId)
-            } else {
-                _shareStatus.value = ShareStatus.Error("Could not find a valid Play Store link")
-            }
+            runCatching { captureAppUseCase(text) }
+                .onSuccess { packageId ->
+                    if (packageId != null) {
+                        _shareStatus.value = ShareStatus.Success(packageId)
+                    } else {
+                        _shareStatus.value = ShareStatus.Error("Could not find a valid Play Store link")
+                    }
+                }
+                .onFailure { error ->
+                    if (error is ArchiveLimitExceededException) {
+                        _shareStatus.value = ShareStatus.Error(
+                            "Archive limit reached (${error.used}/${error.limit}). Upgrade to archive more apps."
+                        )
+                    } else {
+                        _shareStatus.value = ShareStatus.Error(
+                            error.message ?: "Could not archive this app right now."
+                        )
+                    }
+                }
         }
     }
     

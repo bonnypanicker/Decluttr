@@ -14,9 +14,12 @@ import javax.inject.Singleton
 import javax.inject.Provider
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.firestore.FirebaseFirestore
 import com.tool.decluttr.data.repository.AuthRepositoryImpl
+import com.tool.decluttr.data.repository.BillingRepositoryImpl
 import com.tool.decluttr.domain.repository.AuthRepository
+import com.tool.decluttr.domain.repository.BillingRepository
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -32,6 +35,12 @@ object AppModule {
     @Singleton
     fun provideFirebaseFirestore(): FirebaseFirestore {
         return FirebaseFirestore.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun provideFirebaseFunctions(): FirebaseFunctions {
+        return FirebaseFunctions.getInstance()
     }
 
     @Provides
@@ -70,8 +79,25 @@ object AppModule {
         app: Application,
         dao: AppDao,
         authProvider: Provider<FirebaseAuth>,
-        firestoreProvider: Provider<FirebaseFirestore>
+        firestoreProvider: Provider<FirebaseFirestore>,
+        billingRepository: BillingRepository
     ): AppRepository {
-        return AppRepositoryImpl(app, dao, authProvider, firestoreProvider)
+        return AppRepositoryImpl(app, dao, authProvider, firestoreProvider, billingRepository)
+    }
+
+    @Provides
+    @Singleton
+    fun provideBillingRepository(
+        app: Application,
+        authProvider: Provider<FirebaseAuth>,
+        firestoreProvider: Provider<FirebaseFirestore>,
+        functionsProvider: Provider<FirebaseFunctions>
+    ): BillingRepository {
+        return BillingRepositoryImpl(
+            app = app,
+            authProvider = authProvider,
+            firestoreProvider = firestoreProvider,
+            functionsProvider = functionsProvider
+        )
     }
 }

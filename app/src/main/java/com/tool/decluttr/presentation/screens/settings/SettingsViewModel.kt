@@ -47,11 +47,18 @@ class SettingsViewModel @Inject constructor(
     fun importData(jsonString: String) {
         viewModelScope.launch {
             _settingsState.value = SettingsState.Processing
-            val success = importArchiveUseCase(jsonString)
-            if (success) {
-                _settingsState.value = SettingsState.ImportSuccess
-            } else {
-                _settingsState.value = SettingsState.Error("Failed to import data. Invalid format.")
+            when (val result = importArchiveUseCase(jsonString)) {
+                is ImportArchiveUseCase.Result.Success -> {
+                    _settingsState.value = SettingsState.ImportSuccess
+                }
+                is ImportArchiveUseCase.Result.LimitReached -> {
+                    _settingsState.value = SettingsState.Error(
+                        "Archive limit reached (${result.used}/${result.limit}). Upgrade to import more."
+                    )
+                }
+                ImportArchiveUseCase.Result.InvalidFormat -> {
+                    _settingsState.value = SettingsState.Error("Failed to import data. Invalid format.")
+                }
             }
         }
     }

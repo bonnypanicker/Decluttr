@@ -14,6 +14,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -23,6 +24,9 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.tool.decluttr.R
+import com.tool.decluttr.presentation.screens.billing.BillingViewModel
+import com.tool.decluttr.presentation.screens.billing.PaywallBottomSheet
+import com.tool.decluttr.presentation.util.AppLinks
 import com.tool.decluttr.presentation.util.ThemePreferences
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -32,6 +36,7 @@ import java.io.InputStreamReader
 class SettingsFragment : Fragment(R.layout.fragment_settings) {
 
     private val viewModel: SettingsViewModel by viewModels()
+    private val billingViewModel: BillingViewModel by activityViewModels()
 
     private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
@@ -51,6 +56,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        billingViewModel.refreshBilling()
 
         val toolbar = view.findViewById<MaterialToolbar>(R.id.toolbar)
         val btnExport = view.findViewById<MaterialButton>(R.id.btn_export)
@@ -58,6 +64,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         val progress = view.findViewById<ProgressBar>(R.id.progress)
         val tvEmail = view.findViewById<TextView>(R.id.tv_email)
         val btnSignout = view.findViewById<MaterialButton>(R.id.btn_signout)
+        val btnManagePremium = view.findViewById<MaterialButton>(R.id.btn_manage_premium)
         val btnPrivacyPolicy = view.findViewById<MaterialButton>(R.id.btn_privacy_policy)
         val btnTerms = view.findViewById<MaterialButton>(R.id.btn_terms)
         val btnLicenses = view.findViewById<MaterialButton>(R.id.btn_licenses)
@@ -120,11 +127,14 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         btnSignout.setOnClickListener {
             viewModel.signOut()
         }
+        btnManagePremium.setOnClickListener {
+            showPaywall()
+        }
         btnPrivacyPolicy.setOnClickListener {
-            openUrl("https://github.com/bonnypanicker/Decluttr/edit/main/PRIVACY_POLICY.md")
+            openUrl(AppLinks.PRIVACY_POLICY_URL)
         }
         btnTerms.setOnClickListener {
-            openUrl("https://github.com/bonnypanicker/Decluttr/blob/main/TERMS_AND_CONDITIONS.md")
+            openUrl(AppLinks.TERMS_URL)
         }
         btnLicenses.setOnClickListener {
             showLicensesDialog()
@@ -171,6 +181,15 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
                     }
                 }
                 launch {
+                    billingViewModel.entitlementState.collect { entitlement ->
+                        btnManagePremium.text = if (entitlement.isPremium) {
+                            "Premium Active"
+                        } else {
+                            "Upgrade to Premium"
+                        }
+                    }
+                }
+                launch {
                     viewModel.settingsState.collect { state ->
                         when(state) {
                             is SettingsState.Processing -> {
@@ -183,6 +202,9 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
                                 btnExport.isEnabled = true
                                 btnImport.isEnabled = true
                                 Toast.makeText(requireContext(), state.message, Toast.LENGTH_LONG).show()
+                                if (state.message.contains("Archive limit reached", ignoreCase = true)) {
+                                    showPaywall()
+                                }
                                 viewModel.resetState()
                             }
                             is SettingsState.ExportSuccess -> {
@@ -240,5 +262,12 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             .setMessage(licensesText)
             .setPositiveButton("OK", null)
             .show()
+    }
+
+    private fun showPaywall() {
+        val tag = "PaywallBottomSheet"
+        if (parentFragmentManager.findFragmentByTag(tag) != null) return
+        PaywallBottomSheet.newInstance(reason = "settings_manage_premium")
+            .show(parentFragmentManager, tag)
     }
 }

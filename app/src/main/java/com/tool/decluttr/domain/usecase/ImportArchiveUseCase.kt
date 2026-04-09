@@ -1,6 +1,7 @@
 package com.tool.decluttr.domain.usecase
 
 import com.tool.decluttr.domain.model.ArchivedApp
+import com.tool.decluttr.domain.model.ArchiveLimitExceededException
 import com.tool.decluttr.domain.repository.AppRepository
 import org.json.JSONObject
 import javax.inject.Inject
@@ -8,10 +9,20 @@ import javax.inject.Inject
 class ImportArchiveUseCase @Inject constructor(
     private val repository: AppRepository
 ) {
-    suspend operator fun invoke(jsonString: String): Boolean {
+    sealed interface Result {
+        data class Success(val importedCount: Int) : Result
+        data class LimitReached(
+            val used: Int,
+            val limit: Int
+        ) : Result
+        data object InvalidFormat : Result
+    }
+
+    suspend operator fun invoke(jsonString: String): Result {
         return try {
             val rootObject = JSONObject(jsonString)
             val jsonArray = rootObject.getJSONArray("apps")
+            var importedCount = 0
 
             for (i in 0 until jsonArray.length()) {
                 val obj = jsonArray.getJSONObject(i)
@@ -30,10 +41,16 @@ class ImportArchiveUseCase @Inject constructor(
                     iconBytes = null // Icons will be downloaded or re-fetched if installed, or left null
                 )
                 repository.insertApp(app)
+                importedCount++
             }
-            true
+            Result.Success(importedCount)
+        } catch (limit: ArchiveLimitExceededException) {
+            Result.LimitReached(
+                used = limit.used,
+                limit = limit.limit
+            )
         } catch (e: Exception) {
-            false
+            Result.InvalidFormat
         }
     }
 }

@@ -18,6 +18,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.tool.decluttr.R
+import com.tool.decluttr.presentation.screens.billing.PaywallBottomSheet
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -113,6 +114,18 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
                 }
             }
         }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.paywallEvent.collect { request ->
+                    showPaywall(
+                        reason = request.reason,
+                        used = request.quota?.used,
+                        limit = request.quota?.limit
+                    )
+                }
+            }
+        }
     }
 
     private fun switchTab(index: Int) {
@@ -151,6 +164,20 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
                 view?.findViewById<BottomNavigationView>(R.id.bottom_nav)?.selectedItemId = R.id.nav_archive
             }
         ).show()
+    }
+
+    private fun showPaywall(
+        reason: String,
+        used: Int?,
+        limit: Int?
+    ) {
+        val tag = "PaywallBottomSheet"
+        if (childFragmentManager.findFragmentByTag(tag) != null) return
+        PaywallBottomSheet.newInstance(
+            reason = reason,
+            used = used,
+            limit = limit
+        ).show(childFragmentManager, tag)
     }
 
 }

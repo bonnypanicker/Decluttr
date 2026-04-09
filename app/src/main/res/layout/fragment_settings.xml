@@ -93,11 +93,19 @@
                     </LinearLayout>
 
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_signout"
+                        android:id="@+id/btn_manage_premium"
                         style="?attr/materialButtonOutlinedStyle"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
+                        android:text="Manage Premium" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_signout"
+                        style="?attr/materialButtonOutlinedStyle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
                         android:text="Sign Out" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

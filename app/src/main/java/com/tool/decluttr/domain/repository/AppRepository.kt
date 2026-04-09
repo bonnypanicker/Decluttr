@@ -5,6 +5,8 @@ import kotlinx.coroutines.flow.Flow
 
 interface AppRepository {
     fun getAllArchivedApps(): Flow<List<ArchivedApp>>
+
+    suspend fun getArchivedAppCount(): Int
     
     suspend fun getAppById(packageId: String): ArchivedApp?
     
