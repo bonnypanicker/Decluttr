@@ -35,24 +35,6 @@
         android:translationX="-50dp"
         android:translationY="50dp" />
 
-    <!-- TopAppBar equivalent (Skip Button on Top Right) -->
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="24dp">
-        <ImageView
-            android:id="@+id/btn_skip"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_gravity="end"
-            android:src="@android:drawable/ic_menu_close_clear_cancel"
-            app:tint="?attr/colorOnSurfaceVariant"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/auth_skip" />
-    </FrameLayout>
-
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"

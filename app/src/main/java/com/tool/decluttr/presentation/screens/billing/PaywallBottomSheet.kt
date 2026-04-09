@@ -11,8 +11,12 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.NavHostFragment
+import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.PurchaseState
 import com.tool.decluttr.presentation.util.AppLinks
@@ -75,24 +79,16 @@ class PaywallBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_paywa
         tvPrivacy.setOnClickListener { openUrl(AppLinks.PRIVACY_POLICY_URL) }
 
         btnBuy.setOnClickListener {
-            if (!billingViewModel.isLoggedIn.value) {
-                Toast.makeText(
-                    requireContext(),
-                    "Sign in required before purchase. Open Settings > Account.",
-                    Toast.LENGTH_LONG
-                ).show()
+            if (!isCurrentlySignedIn()) {
+                promptSignInForBilling("Sign in is required before purchase.")
                 return@setOnClickListener
             }
             billingViewModel.startPremiumPurchase(requireActivity())
         }
 
         btnRestore.setOnClickListener {
-            if (!billingViewModel.isLoggedIn.value) {
-                Toast.makeText(
-                    requireContext(),
-                    "Sign in required to restore purchases.",
-                    Toast.LENGTH_LONG
-                ).show()
+            if (!isCurrentlySignedIn()) {
+                promptSignInForBilling("Sign in is required to restore purchases.")
                 return@setOnClickListener
             }
             billingViewModel.restorePurchases()
@@ -171,6 +167,31 @@ class PaywallBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_paywa
         }.onFailure {
             Toast.makeText(requireContext(), "Unable to open link", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun isCurrentlySignedIn(): Boolean {
+        if (FirebaseApp.getApps(requireContext()).isEmpty()) return false
+        return runCatching { FirebaseAuth.getInstance().currentUser != null }.getOrDefault(false)
+    }
+
+    private fun promptSignInForBilling(message: String) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Sign In Required")
+            .setMessage("$message\n\nPremium is linked to your account so it can be restored across devices.")
+            .setNegativeButton("Not now", null)
+            .setPositiveButton("Sign In") { _, _ ->
+                navigateToAuth()
+            }
+            .show()
+    }
+
+    private fun navigateToAuth() {
+        val navHost = requireActivity().supportFragmentManager
+            .findFragmentById(R.id.nav_host_fragment) as? NavHostFragment ?: return
+        val navController = navHost.navController
+        if (navController.currentDestination?.id == R.id.authFragment) return
+        dismissAllowingStateLoss()
+        navController.navigate(R.id.authFragment)
     }
 
     override fun getTheme(): Int {

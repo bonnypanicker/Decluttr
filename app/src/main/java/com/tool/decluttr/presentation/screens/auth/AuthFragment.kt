@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.view.View
 import android.view.animation.DecelerateInterpolator
 import android.widget.EditText
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -32,7 +31,6 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val btnSkip = view.findViewById<ImageView>(R.id.btn_skip)
         val etEmail = view.findViewById<EditText>(R.id.et_email)
         val etPassword = view.findViewById<EditText>(R.id.et_password)
         val tvError = view.findViewById<TextView>(R.id.tv_error)
@@ -42,10 +40,6 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
         val btnGoogle = view.findViewById<LinearLayout>(R.id.btn_google_signin)
         val tvModeToggle = view.findViewById<TextView>(R.id.tv_mode_toggle)
         val tvForgotPassword = view.findViewById<TextView>(R.id.tv_forgot_password)
-        btnSkip.post {
-            btnSkip.bringToFront()
-            btnSkip.translationZ = 24f * resources.displayMetrics.density
-        }
 
         // Edge-to-edge insets
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
@@ -57,7 +51,6 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
         }
 
         // Click handlers
-        btnSkip.setOnClickListener { navigateToDashboard() }
         btnPrimary.setOnClickListener { viewModel.authenticate() }
         btnGoogle.setOnClickListener { /* TODO: Google Sign-In */ }
         tvModeToggle.setOnClickListener { viewModel.toggleMode() }
