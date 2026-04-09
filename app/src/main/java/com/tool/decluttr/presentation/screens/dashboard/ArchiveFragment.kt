@@ -16,11 +16,8 @@ import android.view.animation.LayoutAnimationController
 import android.view.animation.OvershootInterpolator
 import android.widget.Button
 import android.widget.EditText
-import android.widget.HorizontalScrollView
-import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.core.content.ContextCompat
@@ -42,10 +39,7 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.snackbar.Snackbar
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.ArchivedApp
-
-import com.tool.decluttr.presentation.screens.paywall.PaywallBottomSheet
 import com.tool.decluttr.presentation.util.AppIconModel
-
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -68,23 +62,17 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
 
     private lateinit var searchBar: View
     private lateinit var searchInput: EditText
-    private lateinit var searchClear: ImageButton
+    private lateinit var searchClear: ImageView
     private lateinit var categoryBar: View
-    private lateinit var chipContainerScrollView: HorizontalScrollView
+    private lateinit var chipContainerScrollView: View
     private lateinit var chipContainer: LinearLayout
-    private lateinit var btnReinstalledApps: ImageButton
-    private lateinit var btnSort: ImageButton
-    private lateinit var btnViewSwitch: ImageButton
-    private lateinit var btnPremium: ImageButton
+    private lateinit var btnReinstalledApps: ImageView
+    private lateinit var btnSort: ImageView
+    private lateinit var btnViewSwitch: ImageView
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyStateContainer: View
     private lateinit var tvEmptyMessage: TextView
     private lateinit var btnFindApps: Button
-    
-    // Credits views
-    private lateinit var creditsContainer: View
-    private lateinit var tvCreditsCount: TextView
-    private lateinit var progressCredits: ProgressBar
     private lateinit var reinstalledPageContainer: View
     private lateinit var btnReinstalledBack: ImageView
     private lateinit var reinstalledRecyclerView: RecyclerView
@@ -142,12 +130,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         btnReinstalledApps = v.findViewById(R.id.btn_reinstalled_apps)
         btnSort = v.findViewById(R.id.btn_sort)
         btnViewSwitch = v.findViewById(R.id.btn_view_switch)
-        btnPremium = v.findViewById(R.id.btn_premium)
         recyclerView = v.findViewById(R.id.archive_recycler_view)
-
-        creditsContainer = v.findViewById(R.id.credits_container)
-        tvCreditsCount = v.findViewById(R.id.tv_credits_count)
-        progressCredits = v.findViewById(R.id.progress_credits)
         emptyStateContainer = v.findViewById(R.id.empty_state_container)
         tvEmptyMessage = v.findViewById(R.id.tv_empty_message)
         btnFindApps = v.findViewById(R.id.btn_find_apps)
@@ -319,10 +302,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         })
         searchClear.setOnClickListener { searchInput.setText("") }
 
-        btnPremium.setOnClickListener {
-            PaywallBottomSheet.newInstance().show(childFragmentManager, PaywallBottomSheet.TAG)
-        }
-
         btnViewSwitch.setOnClickListener {
             isListMode = !isListMode
             adapter.setListMode(isListMode)
@@ -397,23 +376,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                                 viewModel.restoreArchivedApp(deletedApp)
                             }
                             .show()
-                    }
-                }
-                launch {
-                    viewModel.isPremium.collect { isPremium ->
-                        creditsContainer.visibility = if (isPremium) View.GONE else View.VISIBLE
-                        btnPremium.visibility = if (isPremium) View.GONE else View.VISIBLE
-                    }
-                }
-                launch {
-                    viewModel.archivedAppCount.collect { count ->
-                        tvCreditsCount.text = "$count/50"
-                        progressCredits.progress = count.coerceAtMost(50)
-                    }
-                }
-                launch {
-                    viewModel.paymentRequiredEvent.collect {
-                        PaywallBottomSheet.newInstance().show(childFragmentManager, PaywallBottomSheet.TAG)
                     }
                 }
             }
