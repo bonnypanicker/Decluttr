@@ -42,3 +42,4 @@
 - Verify paywall opens on limit hit and from archive/settings.
 - Verify legal links open from settings and paywall.
 - Confirm GitHub Actions release signing secrets (`RELEASE_*`) are configured before shipping AABs.
+- Keep the release upload keystore backed up securely (password manager + offline copy).
