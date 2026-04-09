@@ -47,21 +47,36 @@ jobs:
         RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
         RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
         RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+        DEBUG_KEYSTORE_PASSWORD: ${{ secrets.DEBUG_KEYSTORE_PASSWORD }}
+        DEBUG_KEY_ALIAS: ${{ secrets.DEBUG_KEY_ALIAS }}
+        DEBUG_KEY_PASSWORD: ${{ secrets.DEBUG_KEY_PASSWORD }}
       run: |
-        if [ -z "$RELEASE_KEYSTORE_BASE64" ] || [ -z "$RELEASE_KEYSTORE_PASSWORD" ] || [ -z "$RELEASE_KEY_ALIAS" ]; then
-          echo "::error::Missing release signing secrets. Set RELEASE_KEYSTORE_BASE64, RELEASE_KEYSTORE_PASSWORD and RELEASE_KEY_ALIAS."
+        if [ -n "$RELEASE_KEYSTORE_BASE64" ] && [ -n "$RELEASE_KEYSTORE_PASSWORD" ] && [ -n "$RELEASE_KEY_ALIAS" ]; then
+          KEYSTORE_B64="$RELEASE_KEYSTORE_BASE64"
+          STORE_PASS="$RELEASE_KEYSTORE_PASSWORD"
+          KEY_ALIAS_VALUE="$RELEASE_KEY_ALIAS"
+          KEY_PASS_VALUE="${RELEASE_KEY_PASSWORD:-$RELEASE_KEYSTORE_PASSWORD}"
+          echo "Using RELEASE_* signing secrets"
+        elif [ -n "$DEBUG_KEYSTORE_BASE64" ]; then
+          KEYSTORE_B64="$DEBUG_KEYSTORE_BASE64"
+          STORE_PASS="${DEBUG_KEYSTORE_PASSWORD:-android}"
+          KEY_ALIAS_VALUE="${DEBUG_KEY_ALIAS:-androiddebugkey}"
+          KEY_PASS_VALUE="${DEBUG_KEY_PASSWORD:-$STORE_PASS}"
+          echo "::warning::RELEASE_* secrets missing. Falling back to DEBUG_* signing secrets."
+        else
+          echo "::error::Missing signing secrets. Set RELEASE_* (preferred) or DEBUG_KEYSTORE_BASE64."
           exit 1
         fi
-        KEY_PASS="${RELEASE_KEY_PASSWORD:-$RELEASE_KEYSTORE_PASSWORD}"
         SIGNING_DIR="$RUNNER_TEMP/signing"
         mkdir -p "$SIGNING_DIR"
         KEYSTORE_PATH="$SIGNING_DIR/release-upload.keystore"
-        printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+        printf '%s' "$KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
         echo "KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
-        echo "KEYSTORE_PASSWORD=$RELEASE_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
-        echo "KEY_ALIAS=$RELEASE_KEY_ALIAS" >> "$GITHUB_ENV"
-        echo "KEY_PASSWORD=$KEY_PASS" >> "$GITHUB_ENV"
-        keytool -list -v -keystore "$KEYSTORE_PATH" -alias "$RELEASE_KEY_ALIAS" -storepass "$RELEASE_KEYSTORE_PASSWORD" -keypass "$KEY_PASS" | grep SHA1
+        echo "KEYSTORE_PASSWORD=$STORE_PASS" >> "$GITHUB_ENV"
+        echo "KEY_ALIAS=$KEY_ALIAS_VALUE" >> "$GITHUB_ENV"
+        echo "KEY_PASSWORD=$KEY_PASS_VALUE" >> "$GITHUB_ENV"
+        keytool -list -v -keystore "$KEYSTORE_PATH" -alias "$KEY_ALIAS_VALUE" -storepass "$STORE_PASS" -keypass "$KEY_PASS_VALUE" | grep SHA1
 
     - name: Build Release AAB
       run: |
