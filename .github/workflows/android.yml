@@ -42,44 +42,23 @@ jobs:
         fi
 
     - name: Restore release upload keystore and export signing env
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       env:
         RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
         RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
         RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
         RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
-        DEBUG_KEYSTORE_PASSWORD: ${{ secrets.DEBUG_KEYSTORE_PASSWORD }}
-        DEBUG_KEY_ALIAS: ${{ secrets.DEBUG_KEY_ALIAS }}
-        DEBUG_KEY_PASSWORD: ${{ secrets.DEBUG_KEY_PASSWORD }}
+        EXPECTED_UPLOAD_SHA1: E6:43:10:B4:4F:49:0F:71:2C:4C:CC:0A:4D:AA:6A:55:92:67:52:15
       run: |
-        if [ -n "$RELEASE_KEYSTORE_BASE64" ] && [ -n "$RELEASE_KEYSTORE_PASSWORD" ] && [ -n "$RELEASE_KEY_ALIAS" ]; then
-          KEYSTORE_B64="$RELEASE_KEYSTORE_BASE64"
-          STORE_PASS="$RELEASE_KEYSTORE_PASSWORD"
-          KEY_ALIAS_VALUE="$RELEASE_KEY_ALIAS"
-          KEY_PASS_VALUE="${RELEASE_KEY_PASSWORD:-$RELEASE_KEYSTORE_PASSWORD}"
-          echo "Using RELEASE_* signing secrets"
-        elif [ -n "$DEBUG_KEYSTORE_BASE64" ]; then
-          KEYSTORE_B64="$DEBUG_KEYSTORE_BASE64"
-          STORE_PASS="${DEBUG_KEYSTORE_PASSWORD:-android}"
-          KEY_ALIAS_VALUE="${DEBUG_KEY_ALIAS:-androiddebugkey}"
-          KEY_PASS_VALUE="${DEBUG_KEY_PASSWORD:-$STORE_PASS}"
-          echo "::warning::RELEASE_* secrets missing. Falling back to DEBUG_* signing secrets."
-        else
-          STORE_PASS="android"
-          KEY_ALIAS_VALUE="androiddebugkey"
-          KEY_PASS_VALUE="android"
-          SIGNING_DIR="$RUNNER_TEMP/signing"
-          mkdir -p "$SIGNING_DIR"
-          KEYSTORE_PATH="$SIGNING_DIR/release-upload.keystore"
-          keytool -genkey -v -keystore "$KEYSTORE_PATH" -storepass "$STORE_PASS" -alias "$KEY_ALIAS_VALUE" -keypass "$KEY_PASS_VALUE" -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=CI Debug,O=Decluttr,C=IN"
-          echo "::warning::No RELEASE_* or DEBUG_* secrets found. Generated temporary keystore for CI build. This artifact may fail Play upload due to key mismatch."
-          echo "KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
-          echo "KEYSTORE_PASSWORD=$STORE_PASS" >> "$GITHUB_ENV"
-          echo "KEY_ALIAS=$KEY_ALIAS_VALUE" >> "$GITHUB_ENV"
-          echo "KEY_PASSWORD=$KEY_PASS_VALUE" >> "$GITHUB_ENV"
-          keytool -list -v -keystore "$KEYSTORE_PATH" -alias "$KEY_ALIAS_VALUE" -storepass "$STORE_PASS" -keypass "$KEY_PASS_VALUE" | grep SHA1
-          exit 0
+        if [ -z "$RELEASE_KEYSTORE_BASE64" ] || [ -z "$RELEASE_KEYSTORE_PASSWORD" ] || [ -z "$RELEASE_KEY_ALIAS" ]; then
+          echo "::error::Missing required RELEASE_* signing secrets. Refusing to build release AAB with fallback keys."
+          exit 1
         fi
+        KEYSTORE_B64="$RELEASE_KEYSTORE_BASE64"
+        STORE_PASS="$RELEASE_KEYSTORE_PASSWORD"
+        KEY_ALIAS_VALUE="$RELEASE_KEY_ALIAS"
+        KEY_PASS_VALUE="${RELEASE_KEY_PASSWORD:-$RELEASE_KEYSTORE_PASSWORD}"
+
         SIGNING_DIR="$RUNNER_TEMP/signing"
         mkdir -p "$SIGNING_DIR"
         KEYSTORE_PATH="$SIGNING_DIR/release-upload.keystore"
@@ -88,9 +67,24 @@ jobs:
         echo "KEYSTORE_PASSWORD=$STORE_PASS" >> "$GITHUB_ENV"
         echo "KEY_ALIAS=$KEY_ALIAS_VALUE" >> "$GITHUB_ENV"
         echo "KEY_PASSWORD=$KEY_PASS_VALUE" >> "$GITHUB_ENV"
-        keytool -list -v -keystore "$KEYSTORE_PATH" -alias "$KEY_ALIAS_VALUE" -storepass "$STORE_PASS" -keypass "$KEY_PASS_VALUE" | grep SHA1
+        ACTUAL_SHA1="$(keytool -list -v -keystore "$KEYSTORE_PATH" -alias "$KEY_ALIAS_VALUE" -storepass "$STORE_PASS" -keypass "$KEY_PASS_VALUE" | awk -F': ' '/SHA1/{print $2; exit}')"
+        echo "Using upload key SHA1: $ACTUAL_SHA1"
+        if [ "$(echo "$ACTUAL_SHA1" | tr '[:lower:]' '[:upper:]')" != "$(echo "$EXPECTED_UPLOAD_SHA1" | tr '[:lower:]' '[:upper:]')" ]; then
+          echo "::error::Upload keystore SHA1 mismatch. Expected $EXPECTED_UPLOAD_SHA1 but found $ACTUAL_SHA1."
+          exit 1
+        fi
+
+    - name: Build Debug APK (PR validation)
+      if: github.event_name == 'pull_request'
+      run: |
+        if [ ! -f gradlew ]; then
+          gradle wrapper
+        fi
+        chmod +x gradlew
+        ./gradlew :app:assembleDebug
 
     - name: Build Release AAB
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
         if [ ! -f gradlew ]; then
           gradle wrapper
@@ -99,6 +93,7 @@ jobs:
         ./gradlew :app:bundleRelease
 
     - name: Upload AAB
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: actions/upload-artifact@v4
       with:
         name: decluttr-release-aab
