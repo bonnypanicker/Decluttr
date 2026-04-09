@@ -23,6 +23,17 @@
             android:layout_weight="1" />
 
         <ImageButton
+            android:id="@+id/btn_premium"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Premium"
+            android:padding="8dp"
+            android:src="@drawable/ic_crown"
+            android:tint="#FFD700" />
+
+        <ImageButton
             android:id="@+id/btn_sort"
             android:layout_width="40dp"
             android:layout_height="40dp"
@@ -176,6 +187,51 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/credits_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="8dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Free Tier Archiving Limit"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <TextView
+                android:id="@+id/tv_credits_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0/50"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+
+        <ProgressBar
+            android:id="@+id/progress_credits"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="8dp"
+            android:max="50"
+            android:progress="0"
+            android:progressDrawable="@drawable/bg_bottom_sheet" />
     </LinearLayout>
 
     <FrameLayout

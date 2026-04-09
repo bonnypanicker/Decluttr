@@ -2,21 +2,23 @@ package com.tool.decluttr.di
 
 import android.app.Application
 import androidx.room.Room
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.functions.FirebaseFunctions
 import com.tool.decluttr.data.local.DecluttrDatabase
 import com.tool.decluttr.data.local.dao.AppDao
 import com.tool.decluttr.data.repository.AppRepositoryImpl
+import com.tool.decluttr.data.repository.AuthRepositoryImpl
+import com.tool.decluttr.data.repository.BillingRepositoryImpl
 import com.tool.decluttr.domain.repository.AppRepository
+import com.tool.decluttr.domain.repository.AuthRepository
+import com.tool.decluttr.domain.repository.BillingRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
 import javax.inject.Provider
-
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.tool.decluttr.data.repository.AuthRepositoryImpl
-import com.tool.decluttr.domain.repository.AuthRepository
+import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -32,6 +34,20 @@ object AppModule {
     @Singleton
     fun provideFirebaseFirestore(): FirebaseFirestore {
         return FirebaseFirestore.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun provideFirebaseFunctions(): FirebaseFunctions {
+        return FirebaseFunctions.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun provideBillingRepository(
+        impl: BillingRepositoryImpl
+    ): BillingRepository {
+        return impl
     }
 
     @Provides

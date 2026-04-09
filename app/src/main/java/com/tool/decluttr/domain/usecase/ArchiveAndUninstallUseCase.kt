@@ -2,12 +2,17 @@ package com.tool.decluttr.domain.usecase
 
 import com.tool.decluttr.domain.model.ArchivedApp
 import com.tool.decluttr.domain.repository.AppRepository
+import com.tool.decluttr.domain.repository.BillingRepository
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
+
+class ArchiveLimitExceededException(message: String) : Exception(message)
 
 class ArchiveAndUninstallUseCase @Inject constructor(
     private val getAppDetailsUseCase: GetAppDetailsUseCase,
     private val uninstallAppUseCase: UninstallAppUseCase,
-    private val repository: AppRepository
+    private val repository: AppRepository,
+    private val billingRepository: BillingRepository
 ) {
     data class ArchiveSourceInfo(
         val isPlayStoreInstalled: Boolean,
@@ -23,6 +28,14 @@ class ArchiveAndUninstallUseCase @Inject constructor(
         appInfoMap: Map<String, ArchiveSourceInfo> = emptyMap(),
         performUninstall: Boolean = true
     ) {
+        val isPremium = billingRepository.isPremium.value
+        if (!isPremium) {
+            val currentAppsCount = repository.getAllArchivedApps().first().size
+            if (currentAppsCount + packageIds.size > 50) {
+                throw ArchiveLimitExceededException("Free tier limit of 50 archived apps exceeded.")
+            }
+        }
+
         for (packageId in packageIds) {
             // Capture metadata only when we know we want to archive this package.
             val details = getAppDetailsUseCase(packageId, fetchIcon = true)

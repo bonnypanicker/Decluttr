@@ -9,6 +9,7 @@ import coil.request.ImageRequest
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.tool.decluttr.domain.model.ArchivedApp
 import com.tool.decluttr.domain.repository.AppRepository
+import com.tool.decluttr.domain.repository.BillingRepository
 import com.tool.decluttr.domain.usecase.GetAppDetailsUseCase
 import com.tool.decluttr.domain.usecase.GetInstalledAppsUseCase
 import com.tool.decluttr.domain.usecase.GetUnusedAppsUseCase
@@ -25,6 +26,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -43,6 +45,7 @@ class DashboardViewModel @Inject constructor(
     private val archiveAndUninstallUseCase: com.tool.decluttr.domain.usecase.ArchiveAndUninstallUseCase,
     private val checkUsagePermissionUseCase: com.tool.decluttr.domain.usecase.CheckUsagePermissionUseCase,
     private val uninstallAppUseCase: com.tool.decluttr.domain.usecase.UninstallAppUseCase,
+    val billingRepository: BillingRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     companion object {
@@ -54,6 +57,21 @@ class DashboardViewModel @Inject constructor(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
+        )
+
+    val archivedAppCount: StateFlow<Int> = appRepository.getAllArchivedApps()
+        .map { it.size }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = 0
+        )
+
+    val isPremium: StateFlow<Boolean> = billingRepository.isPremium
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
         )
 
     private val _unusedApps = MutableStateFlow<List<GetInstalledAppsUseCase.InstalledAppInfo>>(emptyList())
@@ -102,6 +120,9 @@ class DashboardViewModel @Inject constructor(
 
     private val _undoDeleteEvent = kotlinx.coroutines.flow.MutableSharedFlow<ArchivedApp>()
     val undoDeleteEvent = _undoDeleteEvent.asSharedFlow()
+
+    private val _paymentRequiredEvent = kotlinx.coroutines.flow.MutableSharedFlow<Unit>()
+    val paymentRequiredEvent = _paymentRequiredEvent.asSharedFlow()
 
     private var discoveryJob: kotlinx.coroutines.Job? = null
     private var lazyWarmIconsJob: kotlinx.coroutines.Job? = null
@@ -310,12 +331,19 @@ class DashboardViewModel @Inject constructor(
                 if (success) {
                     uninstalledCount++
                     if (packageId in archiveEligiblePackageIds) {
-                        successfullyArchivedIds += packageId
-                        archiveAndUninstallUseCase(
-                            packageIds = listOf(packageId),
-                            appInfoMap = mapOf(packageId to sourceInfo),
-                            performUninstall = false
-                        )
+                        try {
+                            archiveAndUninstallUseCase(
+                                packageIds = listOf(packageId),
+                                appInfoMap = mapOf(packageId to sourceInfo),
+                                performUninstall = false
+                            )
+                            successfullyArchivedIds += packageId
+                        } catch (e: com.tool.decluttr.domain.usecase.ArchiveLimitExceededException) {
+                            // Hit limit, trigger paywall event
+                            _paymentRequiredEvent.emit(Unit)
+                            // Stop further processing for this batch
+                            break
+                        }
                     }
                 }
             }
