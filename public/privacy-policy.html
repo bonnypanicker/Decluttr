@@ -5,28 +5,170 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Decluttr Privacy Policy</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #0b1220; color: #e8eefc; }
-    main { max-width: 900px; margin: 0 auto; padding: 24px 16px 40px; line-height: 1.6; }
-    h1, h2 { color: #ffffff; }
-    a { color: #8fc1ff; }
-    .muted { color: #a7b6d6; }
+    :root {
+      --bg: #0b1220;
+      --panel: #121a2d;
+      --text: #e8eefc;
+      --muted: #a7b6d6;
+      --link: #8fc1ff;
+      --border: #253252;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+      line-height: 1.65;
+    }
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      margin-top: 14px;
+    }
+    h1, h2, h3 { margin: 0 0 10px; color: #fff; }
+    h1 { font-size: 30px; }
+    h2 { font-size: 20px; margin-top: 14px; }
+    h3 { font-size: 16px; margin-top: 12px; }
+    p { margin: 0 0 10px; }
+    ul { margin: 0 0 10px 20px; }
+    li { margin: 4px 0; }
+    .muted { color: var(--muted); }
+    a { color: var(--link); }
+    code {
+      background: #0f1628;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1px 6px;
+      color: #cfe3ff;
+    }
   </style>
 </head>
 <body>
 <main>
-  <h1>Decluttr Privacy Policy</h1>
+  <h1>Privacy Policy for Decluttr</h1>
   <p class="muted">Last updated: April 9, 2026</p>
-  <p>Decluttr helps you archive app context before uninstalling apps. We process account, archive, and diagnostics data to operate this feature safely.</p>
-  <h2>What We Collect</h2>
-  <p>Email (if signed in), archive metadata (package ID, app name, notes, tags, folder names, archived timestamp), and diagnostics logs for reliability.</p>
-  <h2>Why We Collect It</h2>
-  <p>To sync your archive across devices, show archive history, and improve reliability.</p>
-  <h2>Billing Data</h2>
-  <p>Premium verification uses Google Play Billing and server-side token verification. We store entitlement metadata, not raw payment card details.</p>
-  <h2>Your Controls</h2>
-  <p>You can sign out, delete archived items, export/import archive data, and revoke permissions in Android Settings.</p>
-  <h2>Contact</h2>
-  <p>Email: bonnyregipanicker@protonmail.me</p>
+  <p>
+    Decluttr helps you review installed apps, archive app context, and uninstall apps more safely.
+    This policy explains what data we process, why we process it, and your choices.
+  </p>
+
+  <section class="card">
+    <h2>1) Data Controller and Contact</h2>
+    <ul>
+      <li>App: Decluttr</li>
+      <li>Contact: bonnyregipanicker@proton.me</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>2) Information We Process</h2>
+
+    <h3>A) Account and authentication data (if signed in)</h3>
+    <ul>
+      <li>Email address</li>
+      <li>Authentication state (signed in/signed out)</li>
+      <li>Authentication credential processing by Firebase Authentication</li>
+    </ul>
+
+    <h3>B) Device app metadata</h3>
+    <ul>
+      <li>Package name (app ID), app display name</li>
+      <li>Install source signal (Play Store installed vs sideloaded)</li>
+      <li>APK/source size, category, icon snapshot, and last used timestamp (if usage access is granted)</li>
+    </ul>
+
+    <h3>C) Archive content</h3>
+    <ul>
+      <li>Notes, tags, folder names</li>
+      <li>Archive timestamps and size snapshot</li>
+    </ul>
+
+    <h3>D) Shared text input</h3>
+    <ul>
+      <li>Shared text payload and extracted package ID from Play Store links</li>
+    </ul>
+
+    <h3>E) Diagnostics and analytics</h3>
+    <ul>
+      <li>Crash and exception data (Firebase Crashlytics)</li>
+      <li>Product analytics/measurement data (Firebase Analytics)</li>
+    </ul>
+
+    <h3>F) Premium purchase and entitlement data</h3>
+    <ul>
+      <li>Google Play purchase status for <code>premium_unlimited_archiving</code></li>
+      <li>Purchase token for server verification, and token hash for storage</li>
+      <li>Product ID, entitlement status, plan type, and verification timestamp</li>
+      <li>Billing result/error states used to complete purchase and restore flows</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>3) Permissions We Use</h2>
+    <ul>
+      <li><code>android.permission.QUERY_ALL_PACKAGES</code> for installed app inventory and archive workflow.</li>
+      <li><code>android.permission.PACKAGE_USAGE_STATS</code> (optional) for rarely-used app recommendations.</li>
+      <li><code>android.permission.REQUEST_DELETE_PACKAGES</code> for user-initiated uninstall flow.</li>
+      <li><code>android.permission.INTERNET</code> for Firebase, Play Billing verification, and links.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>4) Where Data Is Stored</h2>
+    <h3>Local on-device storage</h3>
+    <p>Room database and local app storage for archive items and app preferences.</p>
+
+    <h3>Cloud archive storage (signed-in users)</h3>
+    <p>Archive records may sync to Firestore under your account.</p>
+
+    <h3>Premium entitlement storage (signed-in users)</h3>
+    <p>Entitlement metadata may be stored at <code>users/{uid}/entitlements/archive</code>.</p>
+  </section>
+
+  <section class="card">
+    <h2>5) Third-Party Services</h2>
+    <ul>
+      <li>Google Firebase Authentication</li>
+      <li>Google Firebase Firestore</li>
+      <li>Google Firebase Functions</li>
+      <li>Google Firebase Crashlytics</li>
+      <li>Google Firebase Analytics</li>
+      <li>Google Play Billing and Google Play Developer APIs</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>6) Retention, Controls, and Security</h2>
+    <ul>
+      <li>Archive data is retained until removed by you or app data is cleared.</li>
+      <li>Sign out clears local archived data according to app behavior.</li>
+      <li>Entitlement metadata may be retained for fraud prevention and purchase restoration.</li>
+      <li>You can edit/delete archive entries, export/import data, sign out, revoke permissions, and restore purchases when signed in.</li>
+      <li>We use reasonable safeguards (TLS/HTTPS, Android/Firebase platform controls), but no system is fully risk-free.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>7) Additional Notes</h2>
+    <p>
+      Decluttr is not directed to children under 13. If you believe a child has provided personal data,
+      contact us for review and removal.
+    </p>
+    <p>
+      If cloud features are used, data may be processed in countries where Google/Firebase infrastructure operates.
+    </p>
+    <p>
+      We may update this policy over time and will update the date above when changes are made.
+    </p>
+  </section>
 </main>
 </body>
 </html>

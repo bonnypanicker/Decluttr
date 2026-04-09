@@ -1,6 +1,6 @@
 # Privacy Policy for Decluttr
 
-Last updated: April 5, 2026
+Last updated: April 9, 2026
 
 Decluttr helps you review installed apps, archive app context, and uninstall apps more safely. This Privacy Policy explains what data we process, why, and your choices.
 
@@ -9,7 +9,7 @@ By using Decluttr, you agree to this policy.
 ## 1) Data Controller and Contact
 
 - App: Decluttr
-- Contact for privacy questions or data requests: bonnyregipanicker@protonmail.me
+- Contact for privacy questions or data requests: bonnyregipanicker@proton.me
 
 ## 2) Information We Process
 
@@ -74,6 +74,19 @@ Decluttr includes Firebase Analytics SDK. Depending on your Firebase/Google sett
 Purpose:
 - Product measurement and quality improvements.
 
+### G) Premium purchase and entitlement data
+
+If you use Premium, we process billing and entitlement metadata to unlock and restore paid features:
+
+- Google Play purchase status for product `premium_unlimited_archiving`
+- Purchase token (used for server-side verification)
+- Purchase token hash (stored; not the raw token)
+- Product ID, entitlement status, plan type, and verification timestamp
+- Billing result/error status needed to complete purchase/restore actions
+
+Purpose:
+- Verify one-time purchase, unlock unlimited archive credits, and restore premium access across signed-in devices.
+
 ## 3) Permissions We Use
 
 Decluttr requests the following Android permissions/features:
@@ -91,7 +104,7 @@ Decluttr requests the following Android permissions/features:
   - Optional: Used only when you explicitly trigger uninstall actions.
 
 - `android.permission.INTERNET`
-  - Why: Firebase Authentication, Firestore sync, Crashlytics, Analytics, and external links.
+  - Why: Firebase Authentication, Firestore sync, Cloud Functions purchase verification, Crashlytics, Analytics, and external links.
 
 ## 4) Where Data Is Stored
 
@@ -118,6 +131,22 @@ If you sign in, archive records are synced to Firebase Firestore under your acco
 
 If you are not signed in, cloud sync is not used.
 
+### Premium entitlement storage (only when signed in)
+
+For premium verification and restore, Decluttr may store entitlement data under your account in:
+
+- `users/{uid}/entitlements/archive`
+
+Fields may include:
+
+- isPremium
+- planType (for example `ONE_TIME`)
+- productId
+- source (for example `PLAY_BILLING`)
+- purchaseTokenHash
+- verifiedAt
+- updatedAt
+
 ## 5) Backups and Device Transfer
 
 Decluttr is configured to allow Android backup/device-transfer of app data (shared preferences, database, and app files), subject to your Android/Google backup settings.
@@ -128,6 +157,7 @@ We use data only for legitimate app operations, including:
 
 - Core app functionality (discover, archive, uninstall flows)
 - Cloud sync across sessions/devices for signed-in users
+- Premium entitlement verification and restore across signed-in devices
 - User experience features (folders, notes, archive restoration context)
 - Safety, diagnostics, and reliability improvements
 - Product analytics/measurement
@@ -140,8 +170,10 @@ We share/process data with service providers only as needed to operate Decluttr:
 
 - Google Firebase Authentication
 - Google Firebase Firestore
+- Google Firebase Functions (purchase verification workflow)
 - Google Firebase Crashlytics
 - Google Firebase Analytics
+- Google Play Billing / Google Play Developer APIs (purchase processing and validation)
 
 We may also share data when required by law, legal process, or to protect rights/safety.
 
@@ -150,6 +182,7 @@ We may also share data when required by law, legal process, or to protect rights
 - Local archive data is retained until you delete archive entries, uninstall app data, or otherwise clear app storage.
 - On sign-out, local archived data is cleared from device storage by app logic.
 - Cloud archive data remains in your signed-in account space unless removed (for example by deleting archived entries while signed in) or via an account/data deletion request.
+- Premium entitlement metadata may remain in your account space for fraud prevention, purchase restoration, legal compliance, and dispute handling.
 - Crash/analytics retention is governed by Firebase service retention policies.
 
 ## 9) Your Choices and Controls
@@ -162,8 +195,9 @@ You can:
 - Export/import archive data
 - Sign out of your account
 - Revoke permissions in Android Settings
+- Restore previously purchased premium through Google Play (when signed in)
 
-For data deletion/access requests, contact: bonnypanicker@outlook.com
+For data deletion/access requests, contact: bonnyregipanicker@proton.me
 
 ## 10) Security
 
@@ -175,7 +209,7 @@ We use reasonable safeguards, including:
 
 No method of storage or transmission is 100% secure.
 
-## 11) Children’s Privacy
+## 11) Children's Privacy
 
 Decluttr is not directed to children under 13, and we do not knowingly collect personal data from children under 13. If you believe a child has provided personal data, contact us for removal.
 
@@ -193,6 +227,7 @@ Depending on feature usage, Decluttr may process:
 
 - Personal info: email address (if signed in)
 - App activity/app info: installed app metadata, package IDs, usage-derived timestamps (if granted), archive notes/tags/folders
+- Purchase info: non-financial premium entitlement metadata and purchase verification status (if premium is used)
 - Diagnostics: crash reports
 - Optional analytics/measurement data via Firebase Analytics
 

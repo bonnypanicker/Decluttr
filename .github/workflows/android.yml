@@ -73,16 +73,17 @@ jobs:
         fi
         keytool -list -v -keystore ~/.android/debug.keystore -alias "$ALIAS" -storepass "$STOREPASS" -keypass "$KEYPASS" | grep SHA1
 
-    - name: Build Debug APK
+    - name: Build Release AAB
       run: |
         if [ ! -f gradlew ]; then
           gradle wrapper
         fi
         chmod +x gradlew
-        ./gradlew :app:assembleDebug
+        ./gradlew :app:bundleRelease
 
-    - name: Upload APK
+    - name: Upload AAB
       uses: actions/upload-artifact@v4
       with:
-        name: decluttr-debug-apk
-        path: app/build/outputs/apk/debug/app-debug.apk
+        name: decluttr-release-aab
+        path: app/build/outputs/bundle/release/app-release.aab
+        if-no-files-found: error

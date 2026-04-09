@@ -32,8 +32,8 @@
 2. Deploy:
    - `firebase deploy --only hosting`
 3. Confirm:
-   - `https://decluttr.web.app/privacy-policy.html`
-   - `https://decluttr.web.app/terms-and-conditions.html`
+   - `https://decluttr-3c299.web.app/privacy-policy.html`
+   - `https://decluttr-3c299.web.app/terms-and-conditions.html`
 
 ## 5) Release checklist
 
