@@ -44,16 +44,25 @@ jobs:
     - name: Restore release upload keystore and export signing env
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       env:
-        RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
-        RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-        RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-        RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 || vars.RELEASE_KEYSTORE_BASE64 }}
+        RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD || vars.RELEASE_KEYSTORE_PASSWORD }}
+        RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS || vars.RELEASE_KEY_ALIAS }}
+        RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD || vars.RELEASE_KEY_PASSWORD }}
         EXPECTED_UPLOAD_SHA1: E6:43:10:B4:4F:49:0F:71:2C:4C:CC:0A:4D:AA:6A:55:92:67:52:15
       run: |
-        if [ -z "$RELEASE_KEYSTORE_BASE64" ] || [ -z "$RELEASE_KEYSTORE_PASSWORD" ] || [ -z "$RELEASE_KEY_ALIAS" ]; then
-          echo "::error::Missing required RELEASE_* signing secrets. Refusing to build release AAB with fallback keys."
+        MISSING=()
+        [ -z "$RELEASE_KEYSTORE_BASE64" ] && MISSING+=("RELEASE_KEYSTORE_BASE64")
+        [ -z "$RELEASE_KEYSTORE_PASSWORD" ] && MISSING+=("RELEASE_KEYSTORE_PASSWORD")
+        [ -z "$RELEASE_KEY_ALIAS" ] && MISSING+=("RELEASE_KEY_ALIAS")
+        if [ "${#MISSING[@]}" -gt 0 ]; then
+          echo "::error::Missing required release signing values: ${MISSING[*]}"
+          echo "::notice::Define them in Settings > Secrets and variables > Actions (Repository secrets preferred)."
           exit 1
         fi
+        echo "RELEASE_KEYSTORE_BASE64 length: ${#RELEASE_KEYSTORE_BASE64}"
+        echo "RELEASE_KEYSTORE_PASSWORD length: ${#RELEASE_KEYSTORE_PASSWORD}"
+        echo "RELEASE_KEY_ALIAS length: ${#RELEASE_KEY_ALIAS}"
+
         KEYSTORE_B64="$RELEASE_KEYSTORE_BASE64"
         STORE_PASS="$RELEASE_KEYSTORE_PASSWORD"
         KEY_ALIAS_VALUE="$RELEASE_KEY_ALIAS"
