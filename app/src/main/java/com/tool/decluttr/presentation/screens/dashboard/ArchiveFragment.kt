@@ -45,7 +45,7 @@ import com.tool.decluttr.domain.model.ArchivedApp
 
 import com.tool.decluttr.presentation.screens.paywall.PaywallBottomSheet
 import com.tool.decluttr.presentation.util.AppIconModel
-import com.tool.decluttr.presentation.widget.FolderOverlayWindow
+
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
