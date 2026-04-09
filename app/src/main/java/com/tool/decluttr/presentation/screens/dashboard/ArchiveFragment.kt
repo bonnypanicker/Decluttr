@@ -42,7 +42,7 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.snackbar.Snackbar
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.ArchivedApp
-import com.tool.decluttr.presentation.adapter.ReinstalledAppsAdapter
+
 import com.tool.decluttr.presentation.screens.paywall.PaywallBottomSheet
 import com.tool.decluttr.presentation.util.AppIconModel
 import com.tool.decluttr.presentation.widget.FolderOverlayWindow
