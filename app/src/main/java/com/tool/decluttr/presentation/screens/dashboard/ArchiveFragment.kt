@@ -16,8 +16,11 @@ import android.view.animation.LayoutAnimationController
 import android.view.animation.OvershootInterpolator
 import android.widget.Button
 import android.widget.EditText
+import android.widget.HorizontalScrollView
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.core.content.ContextCompat
@@ -42,7 +45,7 @@ import com.tool.decluttr.domain.model.ArchivedApp
 import com.tool.decluttr.presentation.adapter.ReinstalledAppsAdapter
 import com.tool.decluttr.presentation.screens.paywall.PaywallBottomSheet
 import com.tool.decluttr.presentation.util.AppIconModel
-import com.tool.decluttr.presentation.widget.FolderOverlayWindowEntryPoint
+import com.tool.decluttr.presentation.widget.FolderOverlayWindow
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
