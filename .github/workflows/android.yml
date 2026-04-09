@@ -9,6 +9,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      VERSION_CODE: ${{ github.run_number }}
+      VERSION_NAME: 1.0.${{ github.run_number }}
 
     steps:
     - uses: actions/checkout@v4
@@ -38,40 +41,27 @@ jobs:
           exit 1
         fi
 
-    - name: Restore stable debug keystore and print SHA-1
+    - name: Restore release upload keystore and export signing env
       env:
-        DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
-        DEBUG_KEYSTORE_PASSWORD: ${{ secrets.DEBUG_KEYSTORE_PASSWORD }}
-        DEBUG_KEY_ALIAS: ${{ secrets.DEBUG_KEY_ALIAS }}
-        DEBUG_KEY_PASSWORD: ${{ secrets.DEBUG_KEY_PASSWORD }}
+        RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+        RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+        RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
       run: |
-        mkdir -p ~/.android
-        if [ -n "$DEBUG_KEYSTORE_BASE64" ]; then
-          printf '%s' "$DEBUG_KEYSTORE_BASE64" | base64 --decode > ~/.android/debug.keystore
-          STOREPASS="${DEBUG_KEYSTORE_PASSWORD:-android}"
-          ALIAS="${DEBUG_KEY_ALIAS:-androiddebugkey}"
-          KEYPASS="${DEBUG_KEY_PASSWORD:-android}"
-          echo "Using persistent debug keystore from GitHub Secrets"
-        elif [ -f ".keystore/debug.keystore" ]; then
-          cp .keystore/debug.keystore ~/.android/debug.keystore
-          STOREPASS="android"
-          ALIAS="androiddebugkey"
-          KEYPASS="android"
-          echo "Using repository .keystore/debug.keystore"
-        elif [ -f "app/debug.keystore" ]; then
-          cp app/debug.keystore ~/.android/debug.keystore
-          STOREPASS="android"
-          ALIAS="androiddebugkey"
-          KEYPASS="android"
-          echo "Using repository debug keystore"
-        else
-          STOREPASS="android"
-          ALIAS="androiddebugkey"
-          KEYPASS="android"
-          keytool -genkey -v -keystore ~/.android/debug.keystore -storepass "$STOREPASS" -alias "$ALIAS" -keypass "$KEYPASS" -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-          echo "::warning::Using generated debug keystore. This will not match your permanent Firebase SHA-1."
+        if [ -z "$RELEASE_KEYSTORE_BASE64" ] || [ -z "$RELEASE_KEYSTORE_PASSWORD" ] || [ -z "$RELEASE_KEY_ALIAS" ]; then
+          echo "::error::Missing release signing secrets. Set RELEASE_KEYSTORE_BASE64, RELEASE_KEYSTORE_PASSWORD and RELEASE_KEY_ALIAS."
+          exit 1
         fi
-        keytool -list -v -keystore ~/.android/debug.keystore -alias "$ALIAS" -storepass "$STOREPASS" -keypass "$KEYPASS" | grep SHA1
+        KEY_PASS="${RELEASE_KEY_PASSWORD:-$RELEASE_KEYSTORE_PASSWORD}"
+        SIGNING_DIR="$RUNNER_TEMP/signing"
+        mkdir -p "$SIGNING_DIR"
+        KEYSTORE_PATH="$SIGNING_DIR/release-upload.keystore"
+        printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+        echo "KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
+        echo "KEYSTORE_PASSWORD=$RELEASE_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+        echo "KEY_ALIAS=$RELEASE_KEY_ALIAS" >> "$GITHUB_ENV"
+        echo "KEY_PASSWORD=$KEY_PASS" >> "$GITHUB_ENV"
+        keytool -list -v -keystore "$KEYSTORE_PATH" -alias "$RELEASE_KEY_ALIAS" -storepass "$RELEASE_KEYSTORE_PASSWORD" -keypass "$KEY_PASS" | grep SHA1
 
     - name: Build Release AAB
       run: |
