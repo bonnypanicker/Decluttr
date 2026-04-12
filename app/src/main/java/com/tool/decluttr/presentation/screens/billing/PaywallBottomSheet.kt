@@ -24,6 +24,12 @@ import kotlinx.coroutines.launch
 
 class PaywallBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_paywall) {
 
+    private enum class BillingAction {
+        NONE,
+        BUY,
+        RESTORE
+    }
+
     companion object {
         private const val TAG = "PaywallBottomSheet"
         private const val ARG_REASON = "reason"
@@ -46,6 +52,10 @@ class PaywallBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_paywa
     }
 
     private val billingViewModel: BillingViewModel by activityViewModels()
+    private var pendingAction: BillingAction = BillingAction.NONE
+    private var latestUsedCredits: Int = 0
+    private var latestCreditLimit: Int = 50
+    private var latestIsPremium: Boolean = false
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -62,6 +72,8 @@ class PaywallBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_paywa
         val reason = arguments?.getString(ARG_REASON).orEmpty()
         val blockedUsed = arguments?.getInt(ARG_USED, -1) ?: -1
         val blockedLimit = arguments?.getInt(ARG_LIMIT, -1) ?: -1
+        latestUsedCredits = blockedUsed.coerceAtLeast(0)
+        latestCreditLimit = if (blockedLimit > 0) blockedLimit else 50
         if (reason.contains("limit", ignoreCase = true)) {
             tvTitle.text = "Free Limit Reached"
             val subtitle = if (blockedUsed >= 0 && blockedLimit > 0) {
@@ -83,6 +95,7 @@ class PaywallBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_paywa
                 promptSignInForBilling("Sign in is required before purchase.")
                 return@setOnClickListener
             }
+            pendingAction = BillingAction.BUY
             billingViewModel.startPremiumPurchase(requireActivity())
         }
 
@@ -91,7 +104,23 @@ class PaywallBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_paywa
                 promptSignInForBilling("Sign in is required to restore purchases.")
                 return@setOnClickListener
             }
-            billingViewModel.restorePurchases()
+            if (shouldWarnCapLossBeforeRestore(reason)) {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Restore Premium?")
+                    .setMessage(
+                        "You currently have $latestUsedCredits archived apps, above the free cap of $latestCreditLimit.\n\n" +
+                            "If premium is not restored, apps above $latestCreditLimit may be removed to enforce the free limit."
+                    )
+                    .setNegativeButton("Cancel", null)
+                    .setPositiveButton("Restore") { _, _ ->
+                        pendingAction = BillingAction.RESTORE
+                        billingViewModel.restorePurchases()
+                    }
+                    .show()
+            } else {
+                pendingAction = BillingAction.RESTORE
+                billingViewModel.restorePurchases()
+            }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -114,6 +143,9 @@ class PaywallBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_paywa
 
                 launch {
                     billingViewModel.archiveCreditsUi.collect { credits ->
+                        latestIsPremium = credits.isPremium
+                        latestUsedCredits = credits.used
+                        latestCreditLimit = credits.limit
                         tvStatus.text = if (credits.isPremium) {
                             "Premium active: Unlimited archive credits"
                         } else {
@@ -126,29 +158,44 @@ class PaywallBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_paywa
                     billingViewModel.purchaseState.collect { state ->
                         when (state) {
                             is PurchaseState.Loading -> {
-                                btnBuy.isEnabled = false
-                                btnRestore.isEnabled = false
-                                tvMessage.text = "Connecting to Google Play..."
+                                if (pendingAction != BillingAction.NONE) {
+                                    btnBuy.isEnabled = false
+                                    btnRestore.isEnabled = false
+                                    tvMessage.text = "Connecting to Google Play..."
+                                } else {
+                                    btnBuy.isEnabled = true
+                                    btnRestore.isEnabled = true
+                                }
                             }
                             is PurchaseState.Success -> {
                                 btnBuy.isEnabled = true
                                 btnRestore.isEnabled = true
-                                tvMessage.text = state.message
-                                dismissAllowingStateLoss()
+                                if (pendingAction != BillingAction.NONE) {
+                                    tvMessage.text = state.message
+                                    pendingAction = BillingAction.NONE
+                                    dismissAllowingStateLoss()
+                                }
                             }
                             is PurchaseState.Error -> {
                                 btnBuy.isEnabled = true
                                 btnRestore.isEnabled = true
-                                tvMessage.text = state.message
+                                if (pendingAction != BillingAction.NONE) {
+                                    tvMessage.text = state.message
+                                    pendingAction = BillingAction.NONE
+                                }
                             }
                             is PurchaseState.Canceled -> {
                                 btnBuy.isEnabled = true
                                 btnRestore.isEnabled = true
-                                tvMessage.text = "Purchase canceled."
+                                if (pendingAction != BillingAction.NONE) {
+                                    tvMessage.text = "Purchase canceled."
+                                    pendingAction = BillingAction.NONE
+                                }
                             }
                             PurchaseState.Idle -> {
                                 btnBuy.isEnabled = true
                                 btnRestore.isEnabled = true
+                                pendingAction = BillingAction.NONE
                                 tvMessage.text =
                                     "Purchases are handled by Google Play. Refunds follow Play policies."
                             }
@@ -196,5 +243,12 @@ class PaywallBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_paywa
 
     override fun getTheme(): Int {
         return com.google.android.material.R.style.ThemeOverlay_Material3_BottomSheetDialog
+    }
+
+    private fun shouldWarnCapLossBeforeRestore(reason: String): Boolean {
+        return reason == "settings_manage_premium" &&
+            !latestIsPremium &&
+            latestCreditLimit > 0 &&
+            latestUsedCredits > latestCreditLimit
     }
 }

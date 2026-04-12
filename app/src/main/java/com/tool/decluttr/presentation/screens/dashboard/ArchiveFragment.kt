@@ -419,20 +419,16 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private fun updatePremiumIndicator(isPremium: Boolean) {
         if (isPremium) {
             creditsCard.visibility = View.GONE
+            btnPremium.visibility = View.GONE
             btnPremium.contentDescription = "Premium active"
-            val bg = MaterialColors.getColor(
-                btnPremium,
-                com.google.android.material.R.attr.colorPrimaryContainer
-            )
-            val fg = MaterialColors.getColor(
-                btnPremium,
-                com.google.android.material.R.attr.colorOnPrimaryContainer
-            )
-            btnPremium.backgroundTintList = ColorStateList.valueOf(bg)
-            btnPremium.imageTintList = ColorStateList.valueOf(fg)
-            btnPremium.animate().scaleX(1.08f).scaleY(1.08f).setDuration(180L).start()
+            btnPremium.animate().cancel()
+            btnPremium.scaleX = 1f
+            btnPremium.scaleY = 1f
+            btnPremium.backgroundTintList = null
+            btnPremium.imageTintList = null
         } else {
             creditsCard.visibility = View.VISIBLE
+            btnPremium.visibility = View.VISIBLE
             btnPremium.contentDescription = "Upgrade to premium"
             btnPremium.backgroundTintList = null
             val tint = MaterialColors.getColor(
@@ -440,7 +436,9 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 com.google.android.material.R.attr.colorPrimary
             )
             btnPremium.imageTintList = ColorStateList.valueOf(tint)
-            btnPremium.animate().scaleX(1f).scaleY(1f).setDuration(140L).start()
+            btnPremium.animate().cancel()
+            btnPremium.scaleX = 1f
+            btnPremium.scaleY = 1f
         }
     }
 

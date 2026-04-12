@@ -271,7 +271,14 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
     private fun showPaywall() {
         val tag = "PaywallBottomSheet"
         if (parentFragmentManager.findFragmentByTag(tag) != null) return
-        PaywallBottomSheet.newInstance(reason = "settings_manage_premium")
+        val credits = billingViewModel.archiveCreditsUi.value
+        val usedArg = credits.used.takeIf { it >= 0 }
+        val limitArg = if (credits.isPremium) null else credits.limit
+        PaywallBottomSheet.newInstance(
+            reason = "settings_manage_premium",
+            used = usedArg,
+            limit = limitArg
+        )
             .show(parentFragmentManager, tag)
     }
 }
