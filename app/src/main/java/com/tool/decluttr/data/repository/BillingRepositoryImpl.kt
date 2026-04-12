@@ -52,9 +52,11 @@ class BillingRepositoryImpl(
         private const val PRODUCT_ID = "decluttr_premium_upgrade"
         private const val LEGACY_PRODUCT_ID = "premium_unlimited_archiving"
         private const val ENTITLEMENT_SOURCE = "PLAY_BILLING"
+        private const val ENTITLEMENT_SOURCE_DEVICE_FALLBACK = "PLAY_BILLING_DEVICE_FALLBACK"
         private const val PLAN_TYPE = "ONE_TIME"
         private const val VERIFY_FUNCTION_NAME = "verifyPremiumPurchase"
         private const val ENTITLEMENT_GRACE_MS = 24L * 60L * 60L * 1000L
+        private const val ENTITLEMENT_FALLBACK_GRACE_MS = 30L * 24L * 60L * 60L * 1000L
 
         private const val PREFS_NAME = "decluttr_billing"
         private const val KEY_IS_PREMIUM = "isPremium"
@@ -72,6 +74,7 @@ class BillingRepositoryImpl(
     private val prefs = app.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val isBillingReady = AtomicBoolean(false)
+    private val isServerVerifyUnavailable = AtomicBoolean(false)
 
     private val entitlementState = MutableStateFlow(loadCachedEntitlement())
     private val productState = MutableStateFlow(
@@ -301,7 +304,15 @@ class BillingRepositoryImpl(
         val functions = functionsOrNull()
             ?: return Result.failure(IllegalStateException("Firebase Functions unavailable"))
 
-        return runCatching {
+        if (isServerVerifyUnavailable.get()) {
+            val fallbackState = applyDeviceFallbackEntitlement(
+                purchaseToken = purchaseToken,
+                productId = productId
+            )
+            return Result.success(fallbackState)
+        }
+
+        return try {
             recordBreadcrumb("sync_entitlement_start")
             val payload = mapOf(
                 "purchaseToken" to purchaseToken,
@@ -329,10 +340,21 @@ class BillingRepositoryImpl(
             entitlementState.value = state
             persistCachedEntitlement(state)
             recordBreadcrumb("sync_entitlement_verified")
-            state
-        }.onFailure { error ->
+            Result.success(state)
+        } catch (error: Throwable) {
             recordException(error)
-            recordBreadcrumb("sync_entitlement_failed")
+            if (isFunctionsNotFound(error)) {
+                isServerVerifyUnavailable.set(true)
+                recordBreadcrumb("sync_entitlement_function_not_found_using_device_fallback")
+                val fallbackState = applyDeviceFallbackEntitlement(
+                    purchaseToken = purchaseToken,
+                    productId = productId
+                )
+                Result.success(fallbackState)
+            } else {
+                recordBreadcrumb("sync_entitlement_failed")
+                Result.failure(error)
+            }
         }
     }
 
@@ -463,6 +485,24 @@ class BillingRepositoryImpl(
         entitlementState.value = state
         persistCachedEntitlement(state)
         recordBreadcrumb("local_entitlement_applied")
+    }
+
+    private fun applyDeviceFallbackEntitlement(
+        purchaseToken: String,
+        productId: String?
+    ): EntitlementState {
+        val now = System.currentTimeMillis()
+        val state = EntitlementState(
+            isPremium = true,
+            source = ENTITLEMENT_SOURCE_DEVICE_FALLBACK,
+            lastVerifiedAt = now,
+            productId = productId ?: PRODUCT_ID,
+            purchaseTokenHash = hashPurchaseToken(purchaseToken)
+        )
+        entitlementState.value = state
+        persistCachedEntitlement(state)
+        recordBreadcrumb("device_fallback_entitlement_applied")
+        return state
     }
 
     private suspend fun acknowledgePurchase(purchaseToken: String) {
@@ -614,7 +654,12 @@ class BillingRepositoryImpl(
         val hash = prefs.getString(KEY_PURCHASE_HASH, null)
 
         val now = System.currentTimeMillis()
-        val premiumWithGrace = isPremium && (now - verifiedAt <= ENTITLEMENT_GRACE_MS)
+        val graceWindow = if (source == ENTITLEMENT_SOURCE_DEVICE_FALLBACK) {
+            ENTITLEMENT_FALLBACK_GRACE_MS
+        } else {
+            ENTITLEMENT_GRACE_MS
+        }
+        val premiumWithGrace = isPremium && (now - verifiedAt <= graceWindow)
         return EntitlementState(
             isPremium = premiumWithGrace,
             source = source,
