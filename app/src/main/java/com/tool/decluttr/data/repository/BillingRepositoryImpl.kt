@@ -50,6 +50,7 @@ class BillingRepositoryImpl(
     companion object {
         private const val TAG = "DecluttrBilling"
         private const val PRODUCT_ID = "decluttr_premium_upgrade"
+        private const val LEGACY_PRODUCT_ID = "premium_unlimited_archiving"
         private const val ENTITLEMENT_SOURCE = "PLAY_BILLING"
         private const val PLAN_TYPE = "ONE_TIME"
         private const val VERIFY_FUNCTION_NAME = "verifyPremiumPurchase"
@@ -65,6 +66,7 @@ class BillingRepositoryImpl(
         private const val BILLING_ERROR_SIGN_IN_REQUIRED = 1001
         private const val BILLING_ERROR_PRODUCT_UNAVAILABLE = 1002
         private const val BILLING_ERROR_DISCONNECTED = 1003
+        private const val BILLING_ERROR_NOT_OWNED = 1004
     }
 
     private val prefs = app.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -182,21 +184,58 @@ class BillingRepositoryImpl(
 
     override suspend fun restorePurchases(): Result<Unit> {
         recordBreadcrumb("restore_purchases_requested")
+        purchaseState.value = PurchaseState.Loading
         val ready = ensureBillingReady()
         if (!ready) {
+            purchaseState.value = PurchaseState.Error(
+                code = BILLING_ERROR_DISCONNECTED,
+                message = "Unable to connect to Google Play Billing."
+            )
             return Result.failure(IllegalStateException("Billing is not connected"))
         }
+
         return runCatching {
             val purchases = queryOwnedInAppPurchases()
-            purchases
-                .filter { purchase ->
-                    purchase.purchaseState == Purchase.PurchaseState.PURCHASED &&
-                        purchase.products.contains(PRODUCT_ID)
+            val purchasedItems = purchases.filter {
+                it.purchaseState == Purchase.PurchaseState.PURCHASED
+            }
+            val matchingItems = purchasedItems.filter { purchase ->
+                purchase.products.any { productId ->
+                    productId == PRODUCT_ID || productId == LEGACY_PRODUCT_ID
                 }
-                .forEach { purchase ->
-                    processPurchase(purchase)
+            }
+
+            Log.d(
+                TAG,
+                "restorePurchases: purchased=${purchasedItems.size}, matching=${matchingItems.size}, " +
+                    "products=${purchasedItems.flatMap { it.products }.distinct()}"
+            )
+
+            if (matchingItems.isEmpty()) {
+                refreshEntitlement()
+                if (entitlementState.value.isPremium) {
+                    purchaseState.value = PurchaseState.Success(
+                        "Premium restored from your cloud account."
+                    )
+                    return@runCatching
                 }
-        }.onFailure { recordException(it) }
+                purchaseState.value = PurchaseState.Error(
+                    code = BILLING_ERROR_NOT_OWNED,
+                    message = "No active premium purchase found for this Play account."
+                )
+                return@runCatching
+            }
+
+            matchingItems.forEach { purchase ->
+                processPurchase(purchase)
+            }
+        }.onFailure {
+            recordException(it)
+            purchaseState.value = PurchaseState.Error(
+                code = BillingClient.BillingResponseCode.ERROR,
+                message = "Restore failed. Please try again."
+            )
+        }
     }
 
     override suspend fun refreshEntitlement() {
@@ -331,7 +370,9 @@ class BillingRepositoryImpl(
     }
 
     private suspend fun processPurchase(purchase: Purchase) {
-        if (!purchase.products.contains(PRODUCT_ID)) return
+        val matchedProductId = purchase.products.firstOrNull { productId ->
+            productId == PRODUCT_ID || productId == LEGACY_PRODUCT_ID
+        } ?: return
         if (purchase.purchaseState != Purchase.PurchaseState.PURCHASED) return
         recordBreadcrumb("process_purchase_purchased")
 
@@ -344,12 +385,12 @@ class BillingRepositoryImpl(
         // Unlock locally from trusted Play purchase so premium UX/cap updates immediately.
         applyLocalPremiumEntitlement(
             purchaseToken = token,
-            productId = purchase.products.firstOrNull()
+            productId = matchedProductId
         )
 
         val syncResult = syncEntitlementWithServer(
             purchaseToken = token,
-            productId = purchase.products.firstOrNull()
+            productId = matchedProductId
         )
 
         if (syncResult.isFailure) {
