@@ -43,7 +43,7 @@ class BillingViewModel @Inject constructor(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
             ProductUi(
-                productId = "premium_unlimited_archiving",
+                productId = "decluttr_premium_upgrade",
                 title = "Decluttr Premium",
                 description = "Unlock unlimited cloud archive",
                 formattedPrice = "INR 99",

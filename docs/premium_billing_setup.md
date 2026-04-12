@@ -4,7 +4,7 @@
 
 1. Open **Monetize > Products > In-app products**.
 2. Create one-time product:
-   - Product ID: `premium_unlimited_archiving`
+   - Product ID: `decluttr_premium_upgrade`
    - Price: `INR 99`
    - Type: non-consumable (one-time unlock)
 3. Add test accounts in **License testing**.

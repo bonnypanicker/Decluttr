@@ -88,7 +88,7 @@ private class FakeBillingRepository(
     )
     override fun observeProduct(): Flow<ProductUi> = flowOf(
         ProductUi(
-            productId = "premium_unlimited_archiving",
+            productId = "decluttr_premium_upgrade",
             title = "Decluttr Premium",
             description = "Unlock unlimited",
             formattedPrice = "INR 99",

@@ -48,7 +48,7 @@ class BillingRepositoryImpl(
 
     companion object {
         private const val TAG = "DecluttrBilling"
-        private const val PRODUCT_ID = "premium_unlimited_archiving"
+        private const val PRODUCT_ID = "decluttr_premium_upgrade"
         private const val ENTITLEMENT_SOURCE = "PLAY_BILLING"
         private const val PLAN_TYPE = "ONE_TIME"
         private const val VERIFY_FUNCTION_NAME = "verifyPremiumPurchase"
