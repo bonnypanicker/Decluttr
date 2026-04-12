@@ -40,7 +40,8 @@ object AppModule {
     @Provides
     @Singleton
     fun provideFirebaseFunctions(): FirebaseFunctions {
-        return FirebaseFunctions.getInstance()
+        // Must match callable function region in functions/index.js (asia-south1).
+        return FirebaseFunctions.getInstance("asia-south1")
     }
 
     @Provides

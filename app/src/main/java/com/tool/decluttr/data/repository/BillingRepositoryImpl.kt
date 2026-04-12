@@ -2,6 +2,7 @@ package com.tool.decluttr.data.repository
 
 import android.app.Activity
 import android.content.Context
+import android.util.Log
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
@@ -136,6 +137,7 @@ class BillingRepositoryImpl(
 
         val details = premiumProductDetails ?: queryProductDetails()
         if (details == null) {
+            Log.w(TAG, "startPurchase: product details unavailable for productId=$PRODUCT_ID")
             val error = PurchaseState.Error(
                 code = BILLING_ERROR_PRODUCT_UNAVAILABLE,
                 message = "Premium product is currently unavailable."
@@ -155,6 +157,10 @@ class BillingRepositoryImpl(
             .build()
 
         val result = billingClient.launchBillingFlow(activity, params)
+        Log.d(
+            TAG,
+            "launchBillingFlow result: code=${result.responseCode}, msg=${result.debugMessage}"
+        )
         return when (result.responseCode) {
             BillingClient.BillingResponseCode.OK -> {
                 recordBreadcrumb("launch_billing_flow_ok")
@@ -300,6 +306,10 @@ class BillingRepositoryImpl(
         billingResult: BillingResult,
         purchases: MutableList<Purchase>?
     ) {
+        Log.d(
+            TAG,
+            "onPurchasesUpdated: code=${billingResult.responseCode}, msg=${billingResult.debugMessage}, purchases=${purchases?.size ?: 0}"
+        )
         when (billingResult.responseCode) {
             BillingClient.BillingResponseCode.OK -> {
                 if (purchases.isNullOrEmpty()) {
@@ -410,6 +420,10 @@ class BillingRepositoryImpl(
                 .build()
 
             billingClient.queryProductDetailsAsync(params) { result, details ->
+                Log.d(
+                    TAG,
+                    "queryProductDetailsAsync: code=${result.responseCode}, msg=${result.debugMessage}, count=${details?.size ?: 0}"
+                )
                 if (result.responseCode == BillingClient.BillingResponseCode.OK && !details.isNullOrEmpty()) {
                     val product = details.first()
                     premiumProductDetails = product
@@ -423,6 +437,10 @@ class BillingRepositoryImpl(
                     )
                     if (continuation.isActive) continuation.resume(product)
                 } else {
+                    Log.w(
+                        TAG,
+                        "Product lookup failed/unavailable for productId=$PRODUCT_ID; code=${result.responseCode}"
+                    )
                     productState.value = productState.value.copy(isAvailable = false)
                     if (continuation.isActive) continuation.resume(null)
                 }
@@ -436,6 +454,10 @@ class BillingRepositoryImpl(
                 .setProductType(BillingClient.ProductType.INAPP)
                 .build()
             billingClient.queryPurchasesAsync(params) { result, purchases ->
+                Log.d(
+                    TAG,
+                    "queryPurchasesAsync: code=${result.responseCode}, msg=${result.debugMessage}, count=${purchases?.size ?: 0}"
+                )
                 if (result.responseCode == BillingClient.BillingResponseCode.OK) {
                     if (continuation.isActive) {
                         continuation.resume(purchases.orEmpty())
