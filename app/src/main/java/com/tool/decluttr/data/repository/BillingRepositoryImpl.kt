@@ -18,6 +18,7 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.functions.FirebaseFunctionsException
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.tool.decluttr.domain.model.EntitlementState
 import com.tool.decluttr.domain.model.ProductUi
@@ -64,7 +65,6 @@ class BillingRepositoryImpl(
         private const val BILLING_ERROR_SIGN_IN_REQUIRED = 1001
         private const val BILLING_ERROR_PRODUCT_UNAVAILABLE = 1002
         private const val BILLING_ERROR_DISCONNECTED = 1003
-        private const val BILLING_ERROR_FUNCTION_VERIFY = 1004
     }
 
     private val prefs = app.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -270,11 +270,10 @@ class BillingRepositoryImpl(
                 "packageName" to app.packageName,
                 "uid" to currentUser.uid
             )
-            val result = functions
-                .getHttpsCallable(VERIFY_FUNCTION_NAME)
-                .call(payload)
-                .await()
-            val data = result.data as? Map<*, *> ?: emptyMap<String, Any?>()
+            val data = invokeVerifyCallableWithFallback(
+                primaryFunctions = functions,
+                payload = payload
+            )
             val verified = data["verified"] as? Boolean ?: false
             if (!verified) {
                 throw IllegalStateException(data["message"]?.toString() ?: "Purchase verification failed")
@@ -295,10 +294,6 @@ class BillingRepositoryImpl(
         }.onFailure { error ->
             recordException(error)
             recordBreadcrumb("sync_entitlement_failed")
-            purchaseState.value = PurchaseState.Error(
-                code = BILLING_ERROR_FUNCTION_VERIFY,
-                message = error.message ?: "Unable to verify purchase right now."
-            )
         }
     }
 
@@ -341,17 +336,92 @@ class BillingRepositoryImpl(
         recordBreadcrumb("process_purchase_purchased")
 
         val token = purchase.purchaseToken
-        val syncResult = syncEntitlementWithServer(
-            purchaseToken = token,
-            productId = purchase.products.firstOrNull()
-        )
-        if (syncResult.isFailure) return
-
         if (!purchase.isAcknowledged) {
             acknowledgePurchase(token)
             recordBreadcrumb("purchase_acknowledged")
         }
+
+        // Unlock locally from trusted Play purchase so premium UX/cap updates immediately.
+        applyLocalPremiumEntitlement(
+            purchaseToken = token,
+            productId = purchase.products.firstOrNull()
+        )
+
+        val syncResult = syncEntitlementWithServer(
+            purchaseToken = token,
+            productId = purchase.products.firstOrNull()
+        )
+
+        if (syncResult.isFailure) {
+            val errorMessage = syncResult.exceptionOrNull()?.message.orEmpty()
+            Log.w(
+                TAG,
+                "processPurchase: cloud verify failed; keeping local premium active. error=$errorMessage"
+            )
+            purchaseState.value = PurchaseState.Success(
+                "Premium active on this device. Cloud sync will retry automatically."
+            )
+            return
+        }
+
         purchaseState.value = PurchaseState.Success("Premium unlocked successfully.")
+    }
+
+    private suspend fun invokeVerifyCallableWithFallback(
+        primaryFunctions: FirebaseFunctions,
+        payload: Map<String, Any?>
+    ): Map<*, *> {
+        val clients = linkedMapOf<String, FirebaseFunctions>()
+        clients["primary"] = primaryFunctions
+        runCatching { clients["asia-south1"] = FirebaseFunctions.getInstance("asia-south1") }
+        runCatching { clients["us-central1"] = FirebaseFunctions.getInstance("us-central1") }
+        runCatching { clients["default"] = FirebaseFunctions.getInstance() }
+
+        var lastError: Throwable? = null
+        for ((label, client) in clients) {
+            try {
+                recordBreadcrumb("verify_callable_attempt_$label")
+                val result = client
+                    .getHttpsCallable(VERIFY_FUNCTION_NAME)
+                    .call(payload)
+                    .await()
+                val data = result.data as? Map<*, *> ?: emptyMap<String, Any?>()
+                recordBreadcrumb("verify_callable_success_$label")
+                return data
+            } catch (error: Throwable) {
+                lastError = error
+                val notFound = isFunctionsNotFound(error)
+                Log.w(
+                    TAG,
+                    "verify callable failed via $label notFound=$notFound message=${error.message}"
+                )
+                if (!notFound) throw error
+            }
+        }
+        throw lastError ?: IllegalStateException("Purchase verification callable unavailable.")
+    }
+
+    private fun isFunctionsNotFound(error: Throwable): Boolean {
+        val code = (error as? FirebaseFunctionsException)?.code
+        if (code == FirebaseFunctionsException.Code.NOT_FOUND) return true
+        return error.message?.contains("NOT_FOUND", ignoreCase = true) == true
+    }
+
+    private fun applyLocalPremiumEntitlement(
+        purchaseToken: String,
+        productId: String?
+    ) {
+        val now = System.currentTimeMillis()
+        val state = EntitlementState(
+            isPremium = true,
+            source = ENTITLEMENT_SOURCE,
+            lastVerifiedAt = now,
+            productId = productId ?: PRODUCT_ID,
+            purchaseTokenHash = hashPurchaseToken(purchaseToken)
+        )
+        entitlementState.value = state
+        persistCachedEntitlement(state)
+        recordBreadcrumb("local_entitlement_applied")
     }
 
     private suspend fun acknowledgePurchase(purchaseToken: String) {

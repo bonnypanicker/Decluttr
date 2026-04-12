@@ -20,7 +20,6 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.addCallback
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
@@ -36,6 +35,7 @@ import androidx.appcompat.widget.PopupMenu
 import coil.load
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.chip.Chip
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.snackbar.Snackbar
 import com.tool.decluttr.R
@@ -112,6 +112,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private val singletonCollapseInFlight = mutableSetOf<String>()
     private val pendingFolderCreations = mutableMapOf<String, Long>()
     private val pendingFolderCreationWindowMs = 3_000L
+    private var lastPremiumState: Boolean? = null
 
     private enum class ArchiveSortOption(val label: String) {
         UNINSTALLED_DATE("Uninstalled Date"),
@@ -394,12 +395,52 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 }
                 launch {
                     billingViewModel.archiveCreditsUi.collect { credits ->
-                        creditsCard.visibility = View.VISIBLE
-                        tvArchiveCredits.text = credits.label
-                        progressArchiveCredits.setProgressCompat(credits.progress, true)
+                        updatePremiumIndicator(credits.isPremium)
+                        if (!credits.isPremium) {
+                            tvArchiveCredits.text = credits.label
+                            progressArchiveCredits.setProgressCompat(credits.progress, true)
+                        }
+
+                        val changed = lastPremiumState != credits.isPremium
+                        if (changed && credits.isPremium) {
+                            Snackbar.make(
+                                requireView(),
+                                "Premium active. Unlimited archive unlocked.",
+                                Snackbar.LENGTH_LONG
+                            ).show()
+                        }
+                        lastPremiumState = credits.isPremium
                     }
                 }
             }
+        }
+    }
+
+    private fun updatePremiumIndicator(isPremium: Boolean) {
+        if (isPremium) {
+            creditsCard.visibility = View.GONE
+            btnPremium.contentDescription = "Premium active"
+            val bg = MaterialColors.getColor(
+                btnPremium,
+                com.google.android.material.R.attr.colorPrimaryContainer
+            )
+            val fg = MaterialColors.getColor(
+                btnPremium,
+                com.google.android.material.R.attr.colorOnPrimaryContainer
+            )
+            btnPremium.backgroundTintList = ColorStateList.valueOf(bg)
+            btnPremium.imageTintList = ColorStateList.valueOf(fg)
+            btnPremium.animate().scaleX(1.08f).scaleY(1.08f).setDuration(180L).start()
+        } else {
+            creditsCard.visibility = View.VISIBLE
+            btnPremium.contentDescription = "Upgrade to premium"
+            btnPremium.backgroundTintList = null
+            val tint = MaterialColors.getColor(
+                btnPremium,
+                com.google.android.material.R.attr.colorPrimary
+            )
+            btnPremium.imageTintList = ColorStateList.valueOf(tint)
+            btnPremium.animate().scaleX(1f).scaleY(1f).setDuration(140L).start()
         }
     }
 
