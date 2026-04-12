@@ -12,7 +12,20 @@
           "package_name": "com.tool.decluttr"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "991083542214-f3hucb451iebi2gta2criv58vuq4r4j1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tool.decluttr",
+            "certificate_hash": "99425833951fa33d6d2905618877e52817eb66c2"
+          }
+        },
+        {
+          "client_id": "991083542214-19t3p31a6rqnn0hun142gcetufeneh12.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAKkPeAX5wyCKlusR0W2AVvHnAv8xoRorI"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "991083542214-19t3p31a6rqnn0hun142gcetufeneh12.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

@@ -10,12 +10,19 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.tool.decluttr.R
 import com.tool.decluttr.presentation.screens.settings.SettingsViewModel
 import com.tool.decluttr.presentation.util.SimpleTextWatcher
@@ -40,6 +47,7 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
         val btnGoogle = view.findViewById<LinearLayout>(R.id.btn_google_signin)
         val tvModeToggle = view.findViewById<TextView>(R.id.tv_mode_toggle)
         val tvForgotPassword = view.findViewById<TextView>(R.id.tv_forgot_password)
+        val credentialManager = CredentialManager.create(requireContext())
 
         // Edge-to-edge insets
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
@@ -52,7 +60,7 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
 
         // Click handlers
         btnPrimary.setOnClickListener { viewModel.authenticate() }
-        btnGoogle.setOnClickListener { /* TODO: Google Sign-In */ }
+        btnGoogle.setOnClickListener { startGoogleSignIn(credentialManager) }
         tvModeToggle.setOnClickListener { viewModel.toggleMode() }
         tvForgotPassword.setOnClickListener { viewModel.sendPasswordReset() }
 
@@ -101,6 +109,8 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
                 launch {
                     viewModel.isLoading.collect { loading ->
                         btnPrimary.isEnabled = !loading
+                        btnGoogle.isEnabled = !loading
+                        btnGoogle.alpha = if (loading) 0.6f else 1f
                         if (loading) {
                             btnPrimary.text = ""
                             progressLoading.visibility = View.VISIBLE
@@ -132,5 +142,68 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
 
     private fun navigateToDashboard() {
         findNavController().navigate(R.id.action_auth_to_dashboard)
+    }
+
+    private fun startGoogleSignIn(credentialManager: CredentialManager) {
+        val serverClientId = runCatching { getString(R.string.default_web_client_id) }.getOrNull()
+        if (serverClientId.isNullOrBlank()) {
+            Toast.makeText(
+                requireContext(),
+                "Google Sign-In is not configured for this build.",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val googleIdOption = GetGoogleIdOption.Builder()
+                    .setServerClientId(serverClientId)
+                    .setFilterByAuthorizedAccounts(false)
+                    .setAutoSelectEnabled(false)
+                    .build()
+
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(googleIdOption)
+                    .build()
+
+                val result = credentialManager.getCredential(
+                    context = requireActivity(),
+                    request = request
+                )
+
+                val credential = result.credential
+                if (credential is CustomCredential &&
+                    credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                ) {
+                    val googleCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                    viewModel.authenticateWithGoogleIdToken(googleCredential.idToken)
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        "Unable to read Google credential.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            } catch (_: GetCredentialException) {
+                Toast.makeText(
+                    requireContext(),
+                    "Google sign-in was canceled or unavailable.",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } catch (_: GoogleIdTokenParsingException) {
+                Toast.makeText(
+                    requireContext(),
+                    "Google token parsing failed.",
+                    Toast.LENGTH_LONG
+                ).show()
+            } catch (e: Exception) {
+                Toast.makeText(
+                    requireContext(),
+                    e.localizedMessage ?: "Google sign-in failed.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
     }
 }

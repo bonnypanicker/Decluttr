@@ -3,6 +3,7 @@ package com.tool.decluttr.data.repository
 import android.content.Context
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.GoogleAuthProvider
 import com.tool.decluttr.domain.repository.AuthRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
@@ -54,6 +55,18 @@ class AuthRepositoryImpl @Inject constructor(
             val auth = firebaseAuthOrNull()
                 ?: return Result.failure(IllegalStateException("Firebase Auth is not configured"))
             auth.signInWithEmailAndPassword(email, password).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun signInWithGoogleIdToken(idToken: String): Result<Unit> {
+        return try {
+            val auth = firebaseAuthOrNull()
+                ?: return Result.failure(IllegalStateException("Firebase Auth is not configured"))
+            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            auth.signInWithCredential(credential).await()
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

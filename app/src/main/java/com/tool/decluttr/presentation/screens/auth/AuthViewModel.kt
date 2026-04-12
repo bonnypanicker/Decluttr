@@ -76,6 +76,20 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun authenticateWithGoogleIdToken(idToken: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+
+            authRepository.signInWithGoogleIdToken(idToken)
+                .onFailure {
+                    _errorMessage.value = it.localizedMessage ?: "Google sign-in failed"
+                }
+
+            _isLoading.value = false
+        }
+    }
+
     fun sendPasswordReset() {
         viewModelScope.launch {
             val currentEmail = email.value.trim()
