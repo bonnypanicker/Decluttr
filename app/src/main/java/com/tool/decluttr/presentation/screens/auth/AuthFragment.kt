@@ -21,6 +21,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import java.security.MessageDigest
+import java.util.UUID
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.tool.decluttr.R
@@ -157,10 +159,17 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
+                val rawNonce = UUID.randomUUID().toString()
+                val bytes = rawNonce.toByteArray()
+                val md = MessageDigest.getInstance("SHA-256")
+                val digest = md.digest(bytes)
+                val hashedNonce = digest.fold("") { str, it -> str + "%02x".format(it) }
+
                 val googleIdOption = GetGoogleIdOption.Builder()
                     .setServerClientId(serverClientId)
                     .setFilterByAuthorizedAccounts(false)
                     .setAutoSelectEnabled(false)
+                    .setNonce(hashedNonce)
                     .build()
 
                 val request = GetCredentialRequest.Builder()
@@ -177,7 +186,7 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
                     credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
                 ) {
                     val googleCredential = GoogleIdTokenCredential.createFrom(credential.data)
-                    viewModel.authenticateWithGoogleIdToken(googleCredential.idToken)
+                    viewModel.authenticateWithGoogleIdToken(googleCredential.idToken, rawNonce)
                 } else {
                     Toast.makeText(
                         requireContext(),

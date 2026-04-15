@@ -1,0 +1,373 @@
+﻿
+04-15 07:39:55.107  3669 18629 W FA-SVC  : Gms url request failed, app: com.tool.decluttr, GOOGLE_ANALYTICS, m1.ms: 
+Exception in CronetUrlRequest: net::ERR_CONNECTION_REFUSED, ErrorCode=7, InternalErrorCode=-102, Retryable=false
+04-15 07:39:58.159  2064  3154 I ActivityTaskManager: START u0 {act=android.intent.action.MAIN 
+cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.tool.decluttr/.MainActivity bnds=[20,1336][228,1728]} 
+from uid 10233
+04-15 07:39:58.274  2064  4994 D CoreBackPreview: Window{540e5a2 u0 Splash Screen com.tool.decluttr}: Setting back 
+callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@9ed708, mPriority=0}
+04-15 07:39:58.293  2064  2192 I ActivityManager: Start proc 18938:com.tool.decluttr/u0a1451 for next-top-activity 
+{com.tool.decluttr/com.tool.decluttr.MainActivity}
+04-15 07:39:58.333 18938 18938 I m.tool.decluttr: Using CollectorTypeCC GC.
+04-15 07:39:58.446  5168  5221 W DynamicVolume: DynamicVolumeService: onForegroundActivitiesChanged, record latest 
+volume: AppStartVolume(packageUid=11451, packageName=com.tool.decluttr, timeInMillis=1776218998446, date=Wed Apr 15 
+07:39:58 GMT+05:30 2026, startVolume=13, deviceType=2)
+04-15 07:39:58.488 18938 18938 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:39:58.505 18938 18938 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:39:58.506 18938 18938 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:39:58.507 18938 18938 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:39:58.509 18938 18938 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:39:58.511 18938 18938 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:39:58.514 18938 18938 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:39:58.515 18938 18938 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:39:58.516 18938 18938 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:39:58.517 18938 18938 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:39:58.521 18938 18938 D nativeloader: Configuring clns-4 for other apk /data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/co
+m.tool.decluttr--JvuIF1SileqO4eMNqRS0Q==/base.apk:/data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/com.tool.decluttr--JvuIF1SileqO4
+eMNqRS0Q==/split_config.arm64_v8a.apk:/data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/com.tool.decluttr--JvuIF1SileqO4eMNqRS0Q==/s
+plit_config.bn.apk:/data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/com.tool.decluttr--JvuIF1SileqO4eMNqRS0Q==/split_config.en.apk:
+/data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/com.tool.decluttr--JvuIF1SileqO4eMNqRS0Q==/split_config.gu.apk:/data/app/~~6TuPA9g
+GYMKAo42YfiBLpQ==/com.tool.decluttr--JvuIF1SileqO4eMNqRS0Q==/split_config.hi.apk:/data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/c
+om.tool.decluttr--JvuIF1SileqO4eMNqRS0Q==/split_config.kn.apk:/data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/com.tool.decluttr--J
+vuIF1SileqO4eMNqRS0Q==/split_config.mr.apk:/data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/com.tool.decluttr--JvuIF1SileqO4eMNqRS0
+Q==/split_config.ta.apk:/data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/com.tool.decluttr--JvuIF1SileqO4eMNqRS0Q==/split_config.t
+04-15 07:39:58.537 18938 18938 V GraphicsEnvironment: ANGLE Developer option for 'com.tool.decluttr' set to: 'default'
+04-15 07:39:58.537 18938 18938 V GraphicsEnvironment: ANGLE GameManagerService for com.tool.decluttr: false
+04-15 07:39:58.559 18938 18938 D nativeloader: Load /data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/com.tool.decluttr--JvuIF1Sileq
+O4eMNqRS0Q==/split_config.arm64_v8a.apk!/lib/arm64-v8a/libdatastore_shared_counter.so using class loader ns clns-4 
+(caller=/data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/com.tool.decluttr--JvuIF1SileqO4eMNqRS0Q==/base.apk): ok
+04-15 07:39:58.565 18938 18938 I FirebaseCrashlytics: Initializing Firebase Crashlytics 20.0.4 for com.tool.decluttr
+04-15 07:39:58.593 18938 18956 W m.tool.decluttr: ClassLoaderContext classpath size mismatch. expected=1, found=0 (DLC[
+];PCL[base.apk*4112395956]{PCL[/system/framework/org.apache.http.legacy.jar*3352508509]#PCL[/system/framework/com.andro
+id.location.provider.jar*3868789109]#PCL[/system/framework/com.android.media.remotedisplay.jar*3886290638]} | 
+DLC[];PCL[])
+04-15 07:39:58.633 18938 18938 D DecluttrStartup: Application onCreate start
+04-15 07:39:58.669 18938 18969 I FA      :   adb shell setprop debug.firebase.analytics.app com.tool.decluttr
+04-15 07:39:58.789 18938 18938 D DecluttrStartup: Application onCreate complete
+04-15 07:39:58.812 18938 18938 D DecluttrStartup: MainActivity onCreate start
+04-15 07:39:58.813  2064  4996 D ConnectivityService: requestNetwork for uid/pid:11451/18938 activeRequest: null 
+callbackRequest: 49580 [NetworkRequest [ REQUEST id=49581, [ Capabilities: 
+INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 11451 RequestorUid: 11451 RequestorPkg: com.tool.decluttr 
+UnderlyingNetworks: Null] ]] callback flags: 0 order: 2147483647 isUidTracked: false declaredMethods: AVAIL|LOST
+04-15 07:39:58.820  2064  2565 D WifiNetworkFactory: got request NetworkRequest [ REQUEST id=49581, [ Capabilities: 
+INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 11451 RequestorUid: 11451 RequestorPkg: com.tool.decluttr 
+UnderlyingNetworks: Null] ]
+04-15 07:39:58.822  2064  2565 D UntrustedWifiNetworkFactory: got request NetworkRequest [ REQUEST id=49581, [ 
+Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 11451 RequestorUid: 11451 RequestorPkg: 
+com.tool.decluttr UnderlyingNetworks: Null] ]
+04-15 07:39:58.824  2064  2565 D OemPaidWifiNetworkFactory: got request NetworkRequest [ REQUEST id=49581, [ 
+Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 11451 RequestorUid: 11451 RequestorPkg: 
+com.tool.decluttr UnderlyingNetworks: Null] ]
+04-15 07:39:58.824  2064  2565 D MultiInternetWifiNetworkFactory: got request NetworkRequest [ REQUEST id=49581, [ 
+Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 11451 RequestorUid: 11451 RequestorPkg: 
+com.tool.decluttr UnderlyingNetworks: Null] ]
+04-15 07:39:58.841 18938 18938 D DecluttrStartup: Splash screen installed
+04-15 07:39:58.849 18938 18938 D DecluttrStartup: super.onCreate complete
+04-15 07:39:58.863 18938 18938 D DecluttrStartup: Content view set
+04-15 07:39:58.865 18938 18938 D DecluttrStartup: Navigation graph ready with startDestination=2131296455
+04-15 07:39:59.094 18938 18938 D FirebaseSessions: App foregrounded on com.tool.decluttr
+04-15 07:39:59.101 18938 18958 D FirebaseSessions: Process com.tool.decluttr is stale
+04-15 07:39:59.176  2064  4994 D CoreBackPreview: Window{abc164 u0 com.tool.decluttr/com.tool.decluttr.MainActivity}: 
+Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@7158fd0, 
+mPriority=0}
+04-15 07:39:59.207  3127 22483 I PhenotypeResourceReader: unable to find any Phenotype resource metadata for 
+com.tool.decluttr
+04-15 07:39:59.343 18938 19007 W FlagRegistrar: Failed to register 
+com.google.android.gms.providerinstaller#com.tool.decluttr
+04-15 07:39:59.340 18938 18938 W DefaultDispatch: type=1400 audit(0.0:4423): avc: denied { read } for 
+name="u:object_r:incremental_prop:s0" dev="tmpfs" ino=3268 scontext=u:r:untrusted_app:s0:c171,c261,c512,c768 
+tcontext=u:object_r:incremental_prop:s0 tclass=file permissive=0 app=com.tool.decluttr
+04-15 07:39:59.340 18938 18938 W DefaultDispatch: type=1400 audit(0.0:4424): avc: denied { read } for 
+name="filesystems" dev="proc" ino=4026532123 scontext=u:r:untrusted_app:s0:c171,c261,c512,c768 
+tcontext=u:object_r:proc_filesystems:s0 tclass=file permissive=0 app=com.tool.decluttr
+04-15 07:39:59.340 18938 18938 W DefaultDispatch: type=1400 audit(0.0:4425): avc: denied { ioctl } for 
+path="/data/app/~~hTIXjz8nyaaV8UHBMkCkDA==/cx.indianoil.in-sWGBcO-AiEUoQ5-UmJizJg==/base.apk" dev="incremental-fs" 
+ino=2313060 ioctlcmd=0x6722 scontext=u:r:untrusted_app:s0:c171,c261,c512,c768 tcontext=u:object_r:apk_data_file:s0 
+tclass=file permissive=0 app=com.tool.decluttr
+04-15 07:39:59.343 18938 18938 W DefaultDispatch: type=1400 audit(0.0:4426): avc: denied { ioctl } for 
+path="/data/app/~~hTIXjz8nyaaV8UHBMkCkDA==/cx.indianoil.in-sWGBcO-AiEUoQ5-UmJizJg==/split_config.en.apk" 
+dev="incremental-fs" ino=2313090 ioctlcmd=0x6722 scontext=u:r:untrusted_app:s0:c171,c261,c512,c768 
+tcontext=u:object_r:apk_data_file:s0 tclass=file permissive=0 app=com.tool.decluttr
+04-15 07:39:59.347 18938 18938 W DefaultDispatch: type=1400 audit(0.0:4427): avc: denied { ioctl } for 
+path="/data/app/~~hTIXjz8nyaaV8UHBMkCkDA==/cx.indianoil.in-sWGBcO-AiEUoQ5-UmJizJg==/split_config.xxhdpi.apk" 
+dev="incremental-fs" ino=2313092 ioctlcmd=0x6722 scontext=u:r:untrusted_app:s0:c171,c261,c512,c768 
+tcontext=u:object_r:apk_data_file:s0 tclass=file permissive=0 app=com.tool.decluttr
+04-15 07:39:59.416  2064  2778 D ConnectivityService: requestNetwork for uid/pid:11451/18938 activeRequest: null 
+callbackRequest: 49582 [NetworkRequest [ REQUEST id=49583, [ Capabilities: 
+INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 11451 RequestorUid: 11451 RequestorPkg: com.tool.decluttr 
+UnderlyingNetworks: Null] ]] callback flags: 0 order: 2147483647 isUidTracked: false declaredMethods: AVAIL|BLK
+04-15 07:39:59.426  2064  2565 D WifiNetworkFactory: got request NetworkRequest [ REQUEST id=49583, [ Capabilities: 
+INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 11451 RequestorUid: 11451 RequestorPkg: com.tool.decluttr 
+UnderlyingNetworks: Null] ]
+04-15 07:39:59.427  2064  2565 D UntrustedWifiNetworkFactory: got request NetworkRequest [ REQUEST id=49583, [ 
+Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 11451 RequestorUid: 11451 RequestorPkg: 
+com.tool.decluttr UnderlyingNetworks: Null] ]
+04-15 07:39:59.427  2064  2565 D OemPaidWifiNetworkFactory: got request NetworkRequest [ REQUEST id=49583, [ 
+Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 11451 RequestorUid: 11451 RequestorPkg: 
+com.tool.decluttr UnderlyingNetworks: Null] ]
+04-15 07:39:59.428  2064  2565 D MultiInternetWifiNetworkFactory: got request NetworkRequest [ REQUEST id=49583, [ 
+Capabilities: INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 11451 RequestorUid: 11451 RequestorPkg: 
+com.tool.decluttr UnderlyingNetworks: Null] ]
+04-15 07:39:59.962 18938 19026 D DecluttrStartup: newImageLoader invoked
+04-15 07:40:00.250 18938 18938 W DefaultDispatch: type=1400 audit(0.0:4428): avc: denied { ioctl } for 
+path="/data/app/~~hTIXjz8nyaaV8UHBMkCkDA==/cx.indianoil.in-sWGBcO-AiEUoQ5-UmJizJg==/base.apk" dev="incremental-fs" 
+ino=2313060 ioctlcmd=0x6722 scontext=u:r:untrusted_app:s0:c171,c261,c512,c768 tcontext=u:object_r:apk_data_file:s0 
+tclass=file permissive=0 app=com.tool.decluttr
+04-15 07:40:00.920  2064  2176 I LaunchCheckinHandler: MotoDisplayed com.tool.decluttr/.MainActivity,cp,ca,2676
+04-15 07:40:00.944  2661  2902 D BufferQueueProducer: [VRI[decluttr]#147(BLAST 
+Consumer)147](id:a6500000093,api:1,p:2661,c:2661) disconnect: api 1
+04-15 07:40:00.989  2064  4994 D CoreBackPreview: Window{540e5a2 u0 Splash Screen com.tool.decluttr EXITING}: Setting 
+back callback null
+04-15 07:40:01.009  3416  3416 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1384 
+onStartInput(EditorInfo{EditorInfo{packageName=com.tool.decluttr, inputType=0, inputTypeString=NULL, 
+enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, 
+actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, 
+fieldId=-1, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, false)
+04-15 07:40:01.020  2064  2757 W InputManager-JNI: Input channel object '540e5a2 Splash Screen com.tool.decluttr 
+(client)' was disposed without first being removed with the input manager!
+04-15 07:40:01.100  2064  2172 I ActivityTaskManager: Displayed com.tool.decluttr/.MainActivity: +2s756ms
+04-15 07:40:01.925 17903 18001 I Finsky  : [261] com.tool.decluttr: Account determined from installer data - 
+[YZ4o6nb7g1nvhjaRCYfumzdgaHmkQfj2g2sVcB5_v0k]
+04-15 07:40:01.941 17903 18001 I Finsky  : [261] Billing preferred account via installer for com.tool.decluttr: 
+[YZ4o6nb7g1nvhjaRCYfumzdgaHmkQfj2g2sVcB5_v0k]
+04-15 07:40:02.037 17903 18001 I Finsky  : [261] com.tool.decluttr: Account determined from installer data - 
+[YZ4o6nb7g1nvhjaRCYfumzdgaHmkQfj2g2sVcB5_v0k]
+04-15 07:40:02.037 17903 18001 I Finsky  : [261] Billing preferred account via installer for com.tool.decluttr: 
+[YZ4o6nb7g1nvhjaRCYfumzdgaHmkQfj2g2sVcB5_v0k]
+04-15 07:40:02.735 18938 19151 D DecluttrBilling: queryProductDetailsAsync: code=0, msg=, count=1
+04-15 07:40:02.783 18938 19183 D DecluttrBilling: queryPurchasesAsync: code=0, msg=, count=1
+04-15 07:40:02.783 18938 18938 D DecluttrBilling: restorePurchases: purchased=1, matching=1, 
+products=[decluttr_premium_upgrade]
+04-15 07:40:03.104 17903 18001 I Finsky  : [261] A library licensing entry already exists for com.tool.decluttr.
+04-15 07:40:03.576 18938 18938 W DecluttrBilling: verify callable failed via primary notFound=true message=NOT_FOUND
+04-15 07:40:03.829 18938 18938 W DecluttrBilling: verify callable failed via asia-south1 notFound=true 
+message=NOT_FOUND
+04-15 07:40:04.843 18938 19298 D ProfileInstaller: Skipping profile installation for com.tool.decluttr
+04-15 07:40:05.161  3669 18629 W FA-SVC  : Gms url request failed, app: com.tool.decluttr, GOOGLE_ANALYTICS, m1.ms: 
+Exception in CronetUrlRequest: net::ERR_CONNECTION_REFUSED, ErrorCode=7, InternalErrorCode=-102, Retryable=false
+04-15 07:40:05.523 18938 18938 W DecluttrBilling: verify callable failed via us-central1 notFound=true 
+message=NOT_FOUND
+04-15 07:40:06.109 18938 18938 W DecluttrBilling: verify callable failed via default notFound=true message=NOT_FOUND
+04-15 07:40:06.444 17903 18003 I Finsky  : [263] UCtl: Capture account null for next update of com.tool.decluttr
+04-15 07:40:06.445 17903 17903 W Finsky  : [2] No everExternallyHosted provided for com.tool.decluttr
+04-15 07:40:07.773  4889 31062 I MediaProvider: Open with lower FS for 
+/storage/emulated/0/Download/decluttr-release-aab.zip. Uid: 10199
+04-15 07:40:07.808  4889 31062 I MediaProvider: Open with lower FS for 
+/storage/emulated/0/Download/decluttr-debug-apk.zip. Uid: 10199
+04-15 07:40:07.852  4889 31062 I MediaProvider: Open with lower FS for /storage/emulated/0/Download/decluttr-debug-apk 
+(2).zip. Uid: 10199
+04-15 07:40:07.901  4889 31062 I MediaProvider: Open with lower FS for /storage/emulated/0/Download/decluttr-debug-apk 
+(1).zip. Uid: 10199
+04-15 07:40:08.063  4889 31062 I MediaProvider: Open with lower FS for 
+/storage/emulated/0/Download/decluttr-release-aab (1).zip. Uid: 10199
+04-15 07:40:08.760 18938 18942 W m.tool.decluttr: Cleared Reference was only reachable from finalizer (only reported 
+once)
+04-15 07:40:11.255  2064  4990 I InputDispatcher: Channel [Gesture Monitor] sysui_input_dispatcher (server) is 
+stealing touch from [abc164 com.tool.decluttr/com.tool.decluttr.MainActivity (server), [Gesture Monitor] swipe-up 
+(server), [Gesture Monitor] three-finger (server)]
+04-15 07:40:11.262  2064  5584 D CoreBackPreview: startBackNavigation currentTask=Task{9fece75 #3226 type=standard 
+A=11451:com.tool.decluttr}, topRunningActivity=ActivityRecord{bfaf400 u0 com.tool.decluttr/.MainActivity} t3226}, 
+callbackInfo=OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@7158fd0, 
+mPriority=0}, currentFocus=Window{abc164 u0 com.tool.decluttr/com.tool.decluttr.MainActivity}
+04-15 07:40:12.271  2064  2691 I InputDispatcher: Channel [Gesture Monitor] swipe-up (server) is stealing touch from 
+[abc164 com.tool.decluttr/com.tool.decluttr.MainActivity (server), [Gesture Monitor] three-finger (server), [Gesture 
+Monitor] sysui_input_dispatcher (server)]
+04-15 07:40:12.589  5168  5197 W DynamicVolume: DynamicVolumeService: onForegroundActivitiesChanged, record latest 
+volume: AppStartVolume(packageUid=11451, packageName=com.tool.decluttr, timeInMillis=1776219012581, date=Wed Apr 15 
+07:40:12 GMT+05:30 2026, startVolume=13, deviceType=2)
+04-15 07:40:12.594  3416  3416 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1384 
+onStartInput(EditorInfo{EditorInfo{packageName=com.tool.decluttr, inputType=0, inputTypeString=NULL, 
+enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, 
+actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, 
+fieldId=-1, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, false)
+04-15 07:40:13.663  2064  4985 I InputDispatcher: Channel [Gesture Monitor] swipe-up (server) is stealing touch from 
+[abc164 com.tool.decluttr/com.tool.decluttr.MainActivity (server), [Gesture Monitor] three-finger (server), [Gesture 
+Monitor] sysui_input_dispatcher (server)]
+04-15 07:40:13.921  3416  3416 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1384 
+onStartInput(EditorInfo{EditorInfo{packageName=com.tool.decluttr, inputType=0, inputTypeString=NULL, 
+enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, 
+actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, 
+fieldId=-1, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, false)
+04-15 07:40:14.795  2064  5584 I InputDispatcher: Channel [Gesture Monitor] swipe-up (server) is stealing touch from 
+[abc164 com.tool.decluttr/com.tool.decluttr.MainActivity (server), [Gesture Monitor] three-finger (server), [Gesture 
+Monitor] sysui_input_dispatcher (server)]
+04-15 07:40:15.056  3416  3416 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1384 
+onStartInput(EditorInfo{EditorInfo{packageName=com.tool.decluttr, inputType=0, inputTypeString=NULL, 
+enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, 
+actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, 
+fieldId=-1, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, false)
+04-15 07:40:16.013  2064  2127 I InputDispatcher: Channel [Gesture Monitor] swipe-up (server) is stealing touch from 
+[abc164 com.tool.decluttr/com.tool.decluttr.MainActivity (server), [Gesture Monitor] three-finger (server), [Gesture 
+Monitor] sysui_input_dispatcher (server)]
+04-15 07:40:16.452 18938 18938 D FirebaseSessions: App backgrounded on com.tool.decluttr
+04-15 07:40:17.259  3669 18629 W FA-SVC  : Gms url request failed, app: com.tool.decluttr, GOOGLE_ANALYTICS, m1.ms: 
+Exception in CronetUrlRequest: net::ERR_CONNECTION_REFUSED, ErrorCode=7, InternalErrorCode=-102, Retryable=false
+04-15 07:40:18.356  2064  2175 I ActivityManager: Killing 18938:com.tool.decluttr/u0a1451 (adj 920, setSvc -10000): 
+remove task
+04-15 07:40:18.493  2064  3154 I WindowManager: WIN DEATH: Window{abc164 u0 
+com.tool.decluttr/com.tool.decluttr.MainActivity}
+04-15 07:40:18.494  2064  3154 W InputManager-JNI: Input channel object 'abc164 
+com.tool.decluttr/com.tool.decluttr.MainActivity (client)' was disposed without first being removed with the input 
+manager!
+04-15 07:40:18.494  2064  4984 I ActivityManager: appDiedLocked: app=ProcessRecord{721f8bc 
+18938:com.tool.decluttr/u0a1451} thread=android.os.BinderProxy@da24735 fromBinderDied=true isKilledByAm=true 
+reason=null
+04-15 07:40:18.495  2064  2577 D ConnectivityService: releasing NetworkRequest [ REQUEST id=49583, [ Capabilities: 
+INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 11451 RequestorUid: 11451 RequestorPkg: com.tool.decluttr 
+UnderlyingNetworks: Null] ] (release request)
+04-15 07:40:18.495  2064  2577 D ConnectivityService: releasing NetworkRequest [ REQUEST id=49581, [ Capabilities: 
+INTERNET&NOT_RESTRICTED&TRUSTED&NOT_VCN_MANAGED Uid: 11451 RequestorUid: 11451 RequestorPkg: com.tool.decluttr 
+UnderlyingNetworks: Null] ] (release request)
+04-15 07:40:18.499  2064  4984 D RestartModeController: markWaitRestartAppIsSuicided null processName=com.tool.decluttr
+04-15 07:40:18.508  2064  2189 W UsageStatsService: Unexpected activity event reported! 
+(com.tool.decluttr/com.tool.decluttr.MainActivity event : 23 instanceId : 12093154)
+04-15 07:40:18.967  2064  4948 I ActivityTaskManager: START u0 {act=android.intent.action.MAIN 
+cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.tool.decluttr/.MainActivity bnds=[20,1336][228,1728]} 
+from uid 10233
+04-15 07:40:19.009  2064  2192 I ActivityManager: Start proc 19681:com.tool.decluttr/u0a1451 for next-top-activity 
+{com.tool.decluttr/com.tool.decluttr.MainActivity}
+04-15 07:40:19.023 19681 19681 I m.tool.decluttr: Using CollectorTypeCC GC.
+04-15 07:40:19.049  2064  2779 D CoreBackPreview: Window{6cc7d0f u0 Splash Screen com.tool.decluttr}: Setting back 
+callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@27467a5, mPriority=0}
+04-15 07:40:19.106  5168  5197 W DynamicVolume: DynamicVolumeService: onForegroundActivitiesChanged, record latest 
+volume: AppStartVolume(packageUid=11451, packageName=com.tool.decluttr, timeInMillis=1776219019105, date=Wed Apr 15 
+07:40:19 GMT+05:30 2026, startVolume=13, deviceType=2)
+04-15 07:40:19.118 19681 19681 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:40:19.119 19681 19681 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:40:19.120 19681 19681 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:40:19.120 19681 19681 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:40:19.120 19681 19681 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:40:19.121 19681 19681 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:40:19.121 19681 19681 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:40:19.122 19681 19681 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:40:19.122 19681 19681 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:40:19.122 19681 19681 W m.tool.decluttr: Failed to find entry 'classes.dex': Entry not found
+04-15 07:40:19.124 19681 19681 D nativeloader: Configuring clns-4 for other apk /data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/co
+m.tool.decluttr--JvuIF1SileqO4eMNqRS0Q==/base.apk:/data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/com.tool.decluttr--JvuIF1SileqO4
+eMNqRS0Q==/split_config.arm64_v8a.apk:/data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/com.tool.decluttr--JvuIF1SileqO4eMNqRS0Q==/s
+plit_config.bn.apk:/data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/com.tool.decluttr--JvuIF1SileqO4eMNqRS0Q==/split_config.en.apk:
+/data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/com.tool.decluttr--JvuIF1SileqO4eMNqRS0Q==/split_config.gu.apk:/data/app/~~6TuPA9g
+GYMKAo42YfiBLpQ==/com.tool.decluttr--JvuIF1SileqO4eMNqRS0Q==/split_config.hi.apk:/data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/c
+om.tool.decluttr--JvuIF1SileqO4eMNqRS0Q==/split_config.kn.apk:/data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/com.tool.decluttr--J
+vuIF1SileqO4eMNqRS0Q==/split_config.mr.apk:/data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/com.tool.decluttr--JvuIF1SileqO4eMNqRS0
+Q==/split_config.ta.apk:/data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/com.tool.decluttr--JvuIF1SileqO4eMNqRS0Q==/split_config.t
+04-15 07:40:19.136 19681 19681 V GraphicsEnvironment: ANGLE Developer option for 'com.tool.decluttr' set to: 'default'
+04-15 07:40:19.136 19681 19681 V GraphicsEnvironment: ANGLE GameManagerService for com.tool.decluttr: false
+04-15 07:40:19.153 19681 19681 D nativeloader: Load /data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/com.tool.decluttr--JvuIF1Sileq
+O4eMNqRS0Q==/split_config.arm64_v8a.apk!/lib/arm64-v8a/libdatastore_shared_counter.so using class loader ns clns-4 
+(caller=/data/app/~~6TuPA9gGYMKAo42YfiBLpQ==/com.tool.decluttr--JvuIF1SileqO4eMNqRS0Q==/base.apk): ok
+04-15 07:40:19.156 19681 19681 I FirebaseCrashlytics: Initializing Firebase Crashlytics 20.0.4 for com.tool.decluttr
+04-15 07:40:19.160 19681 19696 W m.tool.decluttr: ClassLoaderContext classpath size mismatch. expected=1, found=0 (DLC[
+];PCL[base.apk*4112395956]{PCL[/system/framework/org.apache.http.legacy.jar*3352508509]#PCL[/system/framework/com.andro
+id.location.provider.jar*3868789109]#PCL[/system/framework/com.android.media.remotedisplay.jar*3886290638]} | 
+DLC[];PCL[])
+04-15 07:40:19.177 19681 19681 D DecluttrStartup: Application onCreate start
+04-15 07:40:19.193 19681 19681 D DecluttrStartup: Application onCreate complete
+04-15 07:40:19.195 19681 19708 I FA      :   adb shell setprop debug.firebase.analytics.app com.tool.decluttr
+04-15 07:40:19.207 19681 19681 D DecluttrStartup: MainActivity onCreate start
+04-15 07:40:19.218 19681 19681 D DecluttrStartup: Splash screen installed
+04-15 07:40:19.223 19681 19681 D DecluttrStartup: super.onCreate complete
+04-15 07:40:19.227 19681 19681 D DecluttrStartup: Content view set
+04-15 07:40:19.227 19681 19681 D DecluttrStartup: Navigation graph ready with startDestination=2131296354
+04-15 07:40:19.258 19681 19681 D FirebaseSessions: App foregrounded on com.tool.decluttr
+04-15 07:40:19.259 19681 19681 D FirebaseSessions: Process com.tool.decluttr is stale
+04-15 07:40:19.260 19681 19699 D FirebaseSessions: Process com.tool.decluttr is stale
+04-15 07:40:19.274  2064  2779 D CoreBackPreview: Window{440087e u0 com.tool.decluttr/com.tool.decluttr.MainActivity}: 
+Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@2f75e2c, 
+mPriority=0}
+04-15 07:40:19.279  3127 22483 I PhenotypeResourceReader: unable to find any Phenotype resource metadata for 
+com.tool.decluttr
+04-15 07:40:19.333 17903 18000 I Finsky  : [260] com.tool.decluttr: Account determined from installer data - 
+[YZ4o6nb7g1nvhjaRCYfumzdgaHmkQfj2g2sVcB5_v0k]
+04-15 07:40:19.333 17903 18000 I Finsky  : [260] Billing preferred account via installer for com.tool.decluttr: 
+[YZ4o6nb7g1nvhjaRCYfumzdgaHmkQfj2g2sVcB5_v0k]
+04-15 07:40:19.348 17903 18003 I Finsky  : [263] com.tool.decluttr: Account determined from installer data - 
+[YZ4o6nb7g1nvhjaRCYfumzdgaHmkQfj2g2sVcB5_v0k]
+04-15 07:40:19.348 17903 18003 I Finsky  : [263] Billing preferred account via installer for com.tool.decluttr: 
+[YZ4o6nb7g1nvhjaRCYfumzdgaHmkQfj2g2sVcB5_v0k]
+04-15 07:40:19.354  2064  2691 D ContentCapturePerUserService: Notified activity assist data for activity: 
+Token{7866622 ActivityRecord{4e7f604 u0 com.tool.decluttr/.MainActivity} t3227}} without a session Id
+04-15 07:40:19.365 19681 19741 D DecluttrBilling: queryProductDetailsAsync: code=0, msg=, count=1
+04-15 07:40:19.500 19681 19681 W DefaultDispatch: type=1400 audit(0.0:4625): avc: denied { read } for 
+name="u:object_r:incremental_prop:s0" dev="tmpfs" ino=3268 scontext=u:r:untrusted_app:s0:c171,c261,c512,c768 
+tcontext=u:object_r:incremental_prop:s0 tclass=file permissive=0 app=com.tool.decluttr
+04-15 07:40:19.500 19681 19681 W DefaultDispatch: type=1400 audit(0.0:4626): avc: denied { read } for 
+name="filesystems" dev="proc" ino=4026532123 scontext=u:r:untrusted_app:s0:c171,c261,c512,c768 
+tcontext=u:object_r:proc_filesystems:s0 tclass=file permissive=0 app=com.tool.decluttr
+04-15 07:40:19.500 19681 19681 W DefaultDispatch: type=1400 audit(0.0:4627): avc: denied { ioctl } for 
+path="/data/app/~~hTIXjz8nyaaV8UHBMkCkDA==/cx.indianoil.in-sWGBcO-AiEUoQ5-UmJizJg==/base.apk" dev="incremental-fs" 
+ino=2313060 ioctlcmd=0x6722 scontext=u:r:untrusted_app:s0:c171,c261,c512,c768 tcontext=u:object_r:apk_data_file:s0 
+tclass=file permissive=0 app=com.tool.decluttr
+04-15 07:40:19.513 19681 19681 W DefaultDispatch: type=1400 audit(0.0:4628): avc: denied { ioctl } for 
+path="/data/app/~~hTIXjz8nyaaV8UHBMkCkDA==/cx.indianoil.in-sWGBcO-AiEUoQ5-UmJizJg==/split_config.en.apk" 
+dev="incremental-fs" ino=2313090 ioctlcmd=0x6722 scontext=u:r:untrusted_app:s0:c171,c261,c512,c768 
+tcontext=u:object_r:apk_data_file:s0 tclass=file permissive=0 app=com.tool.decluttr
+04-15 07:40:19.517 19681 19681 W DefaultDispatch: type=1400 audit(0.0:4629): avc: denied { ioctl } for 
+path="/data/app/~~hTIXjz8nyaaV8UHBMkCkDA==/cx.indianoil.in-sWGBcO-AiEUoQ5-UmJizJg==/split_config.xxhdpi.apk" 
+dev="incremental-fs" ino=2313092 ioctlcmd=0x6722 scontext=u:r:untrusted_app:s0:c171,c261,c512,c768 
+tcontext=u:object_r:apk_data_file:s0 tclass=file permissive=0 app=com.tool.decluttr
+04-15 07:40:19.607 19681 19728 D DecluttrStartup: newImageLoader invoked
+04-15 07:40:19.750 19681 19681 W DefaultDispatch: type=1400 audit(0.0:4630): avc: denied { ioctl } for 
+path="/data/app/~~hTIXjz8nyaaV8UHBMkCkDA==/cx.indianoil.in-sWGBcO-AiEUoQ5-UmJizJg==/base.apk" dev="incremental-fs" 
+ino=2313060 ioctlcmd=0x6722 scontext=u:r:untrusted_app:s0:c171,c261,c512,c768 tcontext=u:object_r:apk_data_file:s0 
+tclass=file permissive=0 app=com.tool.decluttr
+04-15 07:40:19.750 19681 19681 W DefaultDispatch: type=1400 audit(0.0:4631): avc: denied { ioctl } for 
+path="/data/app/~~hTIXjz8nyaaV8UHBMkCkDA==/cx.indianoil.in-sWGBcO-AiEUoQ5-UmJizJg==/base.apk" dev="incremental-fs" 
+ino=2313060 ioctlcmd=0x6722 scontext=u:r:untrusted_app:s0:c171,c261,c512,c768 tcontext=u:object_r:apk_data_file:s0 
+tclass=file permissive=0 app=com.tool.decluttr
+04-15 07:40:19.989  2064  2176 I LaunchCheckinHandler: MotoDisplayed com.tool.decluttr/.MainActivity,cp,ca,993
+04-15 07:40:20.006  2064  2172 I ActivityTaskManager: Displayed com.tool.decluttr/.MainActivity: +1s28ms
+04-15 07:40:20.010  2661  2902 D BufferQueueProducer: [VRI[decluttr]#150(BLAST 
+Consumer)150](id:a6500000096,api:1,p:2661,c:2661) disconnect: api 1
+04-15 07:40:20.026  2064  5588 W InputManager-JNI: Input channel object '6cc7d0f Splash Screen com.tool.decluttr 
+(client)' was disposed without first being removed with the input manager!
+04-15 07:40:20.145  3416  3416 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1384 
+onStartInput(EditorInfo{EditorInfo{packageName=com.tool.decluttr, inputType=0, inputTypeString=NULL, 
+enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, 
+actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, 
+fieldId=-1, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, false)
+04-15 07:40:24.390 19681 19958 D ProfileInstaller: Skipping profile installation for com.tool.decluttr
+04-15 07:40:29.442  3669 18512 W FA-SVC  : Gms url request failed, app: com.tool.decluttr, GOOGLE_ANALYTICS, 
+java.io.IOException: cuzd.a(:com.google.android.gms@261133029@26.11.33 (190400-887465546):73)
+04-15 07:40:34.575  2064  2775 I ActivityTaskManager: START u0 {flg=0x10000 
+cmp=com.tool.decluttr/androidx.credentials.playservices.HiddenActivity (has extras)} from uid 11451
+04-15 07:40:34.587 19681 19681 D FirebaseSessions: App backgrounded on com.tool.decluttr
+04-15 07:40:34.590  2064  2778 I ActivityTaskManager: The Process com.tool.decluttr Already Exists in BG. So sending 
+its PID: 19681
+04-15 07:40:34.608 19681 19681 D FirebaseSessions: App foregrounded on com.tool.decluttr
+04-15 07:40:34.619  2064  2775 D CoreBackPreview: Window{6d120d3 u0 
+com.tool.decluttr/androidx.credentials.playservices.HiddenActivity}: Setting back callback 
+OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@8e77b09, mPriority=0}
+04-15 07:40:34.628 19681 19685 W m.tool.decluttr: Cleared Reference was only reachable from finalizer (only reported 
+once)
+04-15 07:40:34.659  2064  2176 I LaunchCheckinHandler: MotoDisplayed 
+com.tool.decluttr/androidx.credentials.playservices.HiddenActivity,wp,ca,62
+04-15 07:40:34.660  2064  2172 I ActivityTaskManager: Displayed 
+com.tool.decluttr/androidx.credentials.playservices.HiddenActivity: +78ms
+04-15 07:40:34.681  3416  3416 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1384 
+onStartInput(EditorInfo{EditorInfo{packageName=com.tool.decluttr, inputType=0, inputTypeString=NULL, 
+enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, 
+actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, 
+fieldId=-1, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, false)
+04-15 07:40:34.802  3127 11381 E AuthPII : [RequestTokenManager] getToken() -> NETWORK_ERROR. App: com.tool.decluttr, 
+Service: oauth2:openid
+04-15 07:40:39.490  3669 18512 W FA-SVC  : Gms url request failed, app: com.tool.decluttr, GOOGLE_ANALYTICS, 
+java.io.IOException: cuzd.a(:com.google.android.gms@261133029@26.11.33 (190400-887465546):73)
+04-15 07:40:43.218  2064  2691 D RestartModeController: determineRescueAppAfterAppFinishItself@1 null 
+pkgName=com.tool.decluttr
+04-15 07:40:43.286 19681 19681 D FirebaseSessions: App backgrounded on com.tool.decluttr
+04-15 07:40:43.310 19681 19681 D FirebaseSessions: App foregrounded on com.tool.decluttr
+04-15 07:40:43.331  2064  2691 D CoreBackPreview: Window{6d120d3 u0 
+com.tool.decluttr/androidx.credentials.playservices.HiddenActivity}: Setting back callback null
+04-15 07:40:43.332  2064  2691 W InputManager-JNI: Input channel object '6d120d3 
+com.tool.decluttr/androidx.credentials.playservices.HiddenActivity (client)' was disposed without first being removed 
+with the input manager!
+04-15 07:40:43.354  3416  3416 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1384 
+onStartInput(EditorInfo{EditorInfo{packageName=com.tool.decluttr, inputType=0, inputTypeString=NULL, 
+enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=0, privateImeOptions=null, 
+actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, 
+fieldId=-1, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, false)
+04-15 07:40:45.643  2064  5583 W NotificationService: Toast already killed. pkg=com.tool.decluttr 
+token=android.os.BinderProxy@f826ddf
+04-15 07:40:46.734  2064  4990 W JobScheduler: Job didn't exist in JobStore: f6f491d #u0a1451/-1738395758 
+com.tool.decluttr/com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService

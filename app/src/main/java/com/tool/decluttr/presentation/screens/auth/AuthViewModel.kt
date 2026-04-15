@@ -76,12 +76,12 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun authenticateWithGoogleIdToken(idToken: String) {
+    fun authenticateWithGoogleIdToken(idToken: String, rawNonce: String? = null) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
 
-            authRepository.signInWithGoogleIdToken(idToken)
+            authRepository.signInWithGoogleIdToken(idToken, rawNonce)
                 .onFailure {
                     _errorMessage.value = it.localizedMessage ?: "Google sign-in failed"
                 }

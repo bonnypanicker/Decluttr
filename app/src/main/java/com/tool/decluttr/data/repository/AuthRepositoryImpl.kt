@@ -61,11 +61,11 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun signInWithGoogleIdToken(idToken: String): Result<Unit> {
+    override suspend fun signInWithGoogleIdToken(idToken: String, rawNonce: String?): Result<Unit> {
         return try {
             val auth = firebaseAuthOrNull()
                 ?: return Result.failure(IllegalStateException("Firebase Auth is not configured"))
-            val credential = GoogleAuthProvider.getCredential(idToken, null)
+            val credential = GoogleAuthProvider.getCredential(idToken, rawNonce)
             auth.signInWithCredential(credential).await()
             Result.success(Unit)
         } catch (e: Exception) {
