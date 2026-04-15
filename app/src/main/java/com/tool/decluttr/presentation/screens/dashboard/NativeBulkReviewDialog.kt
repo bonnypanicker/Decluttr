@@ -33,7 +33,8 @@ class NativeBulkReviewDialog(
         contentLayoutRes = R.layout.dialog_bulk_review,
         dismissOnOutside = false,
         maxWidthDp = 680,
-        horizontalMarginDp = 12
+        horizontalMarginDp = 12,
+        fixedHeightFraction = 0.92f
     ).build()
     private val notesMap = mutableMapOf<String, String>()
 

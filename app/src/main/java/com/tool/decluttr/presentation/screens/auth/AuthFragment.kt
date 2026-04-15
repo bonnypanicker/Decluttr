@@ -3,8 +3,6 @@ package com.tool.decluttr.presentation.screens.auth
 import android.os.Bundle
 import android.view.View
 import android.view.animation.DecelerateInterpolator
-import android.widget.EditText
-import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -19,6 +17,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.button.MaterialButton
 import androidx.navigation.fragment.findNavController
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import java.security.MessageDigest
@@ -27,7 +26,6 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.tool.decluttr.R
 import com.tool.decluttr.presentation.screens.settings.SettingsViewModel
-import com.tool.decluttr.presentation.util.SimpleTextWatcher
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -40,15 +38,9 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val etEmail = view.findViewById<EditText>(R.id.et_email)
-        val etPassword = view.findViewById<EditText>(R.id.et_password)
         val tvError = view.findViewById<TextView>(R.id.tv_error)
-        val btnPrimary = view.findViewById<TextView>(R.id.btn_primary_action)
+        val btnGoogle = view.findViewById<MaterialButton>(R.id.btn_google_signin)
         val progressLoading = view.findViewById<ProgressBar>(R.id.progress_loading)
-        val dividerOr = view.findViewById<LinearLayout>(R.id.divider_or)
-        val btnGoogle = view.findViewById<LinearLayout>(R.id.btn_google_signin)
-        val tvModeToggle = view.findViewById<TextView>(R.id.tv_mode_toggle)
-        val tvForgotPassword = view.findViewById<TextView>(R.id.tv_forgot_password)
         val credentialManager = CredentialManager.create(requireContext())
 
         // Edge-to-edge insets
@@ -61,17 +53,10 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
         }
 
         // Click handlers
-        btnPrimary.setOnClickListener { viewModel.authenticate() }
         btnGoogle.setOnClickListener { startGoogleSignIn(credentialManager) }
-        tvModeToggle.setOnClickListener { viewModel.toggleMode() }
-        tvForgotPassword.setOnClickListener { viewModel.sendPasswordReset() }
-
-        // Text watchers
-        etEmail.addTextChangedListener(SimpleTextWatcher { viewModel.onEmailChange(it) })
-        etPassword.addTextChangedListener(SimpleTextWatcher { viewModel.onPasswordChange(it) })
 
         // Staggered entrance animation
-        val animatableViews = listOf(etEmail, etPassword, btnPrimary, dividerOr, btnGoogle, tvModeToggle)
+        val animatableViews = listOf(btnGoogle)
         animatableViews.forEachIndexed { index, v ->
             v.alpha = 0f
             v.translationY = 40f * resources.displayMetrics.density
@@ -87,37 +72,16 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    viewModel.email.collect { email ->
-                        if (etEmail.text.toString() != email) {
-                            etEmail.setText(email)
-                            etEmail.setSelection(email.length)
-                        }
-                    }
-                }
-                launch {
-                    viewModel.password.collect { password ->
-                        if (etPassword.text.toString() != password) {
-                            etPassword.setText(password)
-                            etPassword.setSelection(password.length)
-                        }
-                    }
-                }
-                launch {
-                    viewModel.isLoginMode.collect { isLogin ->
-                        btnPrimary.text = if (isLogin) getString(R.string.auth_sign_in) else getString(R.string.auth_sign_up)
-                        tvModeToggle.text = if (isLogin) getString(R.string.auth_toggle_to_signup) else getString(R.string.auth_toggle_to_signin)
-                    }
-                }
-                launch {
                     viewModel.isLoading.collect { loading ->
-                        btnPrimary.isEnabled = !loading
                         btnGoogle.isEnabled = !loading
-                        btnGoogle.alpha = if (loading) 0.6f else 1f
+                        btnGoogle.alpha = if (loading) 0.85f else 1f
                         if (loading) {
-                            btnPrimary.text = ""
+                            btnGoogle.text = ""
+                            btnGoogle.icon = null
                             progressLoading.visibility = View.VISIBLE
                         } else {
-                            btnPrimary.text = if (viewModel.isLoginMode.value) getString(R.string.auth_sign_in) else getString(R.string.auth_sign_up)
+                            btnGoogle.text = getString(R.string.auth_google_signin)
+                            btnGoogle.setIconResource(R.drawable.ic_google_logo)
                             progressLoading.visibility = View.GONE
                         }
                     }

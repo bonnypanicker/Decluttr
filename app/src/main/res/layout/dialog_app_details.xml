@@ -108,11 +108,11 @@
             android:text="@string/archive_popup_reinstall"
             android:textAllCaps="false"
             android:textStyle="bold"
-            android:textColor="?attr/colorOnPrimaryContainer"
-            app:backgroundTint="?attr/colorPrimaryContainer"
+            android:textColor="?attr/colorOnPrimary"
+            app:backgroundTint="?attr/colorPrimary"
             app:icon="@drawable/ic_google_play"
             app:iconGravity="textStart"
-            app:iconTint="?attr/colorOnPrimaryContainer"
+            app:iconTint="@color/GooglePlayGreen"
             app:iconPadding="10dp" />
 
         <include

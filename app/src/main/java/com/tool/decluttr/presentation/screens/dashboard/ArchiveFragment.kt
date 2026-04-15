@@ -39,6 +39,7 @@ import com.google.android.material.color.MaterialColors
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.snackbar.Snackbar
 import com.tool.decluttr.R
+import com.tool.decluttr.domain.model.EntitlementState
 import com.tool.decluttr.domain.model.ArchivedApp
 import com.tool.decluttr.presentation.screens.billing.BillingViewModel
 import com.tool.decluttr.presentation.screens.billing.PaywallBottomSheet
@@ -54,6 +55,7 @@ import java.text.DecimalFormat
 class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     companion object {
         private const val TAG = "DecluttrDragDbg"
+        private const val PREF_KEY_PREMIUM_NOTICE_FINGERPRINT = "premium_notice_fingerprint"
     }
 
     private val viewModel: DashboardViewModel by activityViewModels()
@@ -112,7 +114,9 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private val singletonCollapseInFlight = mutableSetOf<String>()
     private val pendingFolderCreations = mutableMapOf<String, Long>()
     private val pendingFolderCreationWindowMs = 3_000L
-    private var lastPremiumState: Boolean? = null
+    private val premiumNoticePrefs by lazy {
+        requireContext().getSharedPreferences("billing_notice_prefs", android.content.Context.MODE_PRIVATE)
+    }
 
     private enum class ArchiveSortOption(val label: String) {
         UNINSTALLED_DATE("Uninstalled Date"),
@@ -400,20 +404,44 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                             tvArchiveCredits.text = credits.label
                             progressArchiveCredits.setProgressCompat(credits.progress, true)
                         }
-
-                        val changed = lastPremiumState != credits.isPremium
-                        if (changed && credits.isPremium) {
+                    }
+                }
+                launch {
+                    billingViewModel.entitlementState.collect { entitlement ->
+                        if (shouldShowPremiumNotice(entitlement)) {
                             Snackbar.make(
                                 requireView(),
                                 "Premium active. Unlimited archive unlocked.",
                                 Snackbar.LENGTH_LONG
                             ).show()
+                            markPremiumNoticeShown(entitlement)
                         }
-                        lastPremiumState = credits.isPremium
                     }
                 }
             }
         }
+    }
+
+    private fun shouldShowPremiumNotice(entitlement: EntitlementState): Boolean {
+        if (!entitlement.isPremium) return false
+        val fingerprint = entitlementFingerprint(entitlement)
+        val shown = premiumNoticePrefs.getString(PREF_KEY_PREMIUM_NOTICE_FINGERPRINT, null)
+        return shown != fingerprint
+    }
+
+    private fun markPremiumNoticeShown(entitlement: EntitlementState) {
+        premiumNoticePrefs.edit()
+            .putString(PREF_KEY_PREMIUM_NOTICE_FINGERPRINT, entitlementFingerprint(entitlement))
+            .apply()
+    }
+
+    private fun entitlementFingerprint(entitlement: EntitlementState): String {
+        return listOf(
+            entitlement.source,
+            entitlement.lastVerifiedAt.toString(),
+            entitlement.productId.orEmpty(),
+            entitlement.purchaseTokenHash.orEmpty()
+        ).joinToString("|")
     }
 
     private fun updatePremiumIndicator(isPremium: Boolean) {

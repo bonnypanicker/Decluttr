@@ -9,6 +9,7 @@
     <string name="auth_skip">Skip</string>
     <string name="auth_or_divider">OR</string>
     <string name="auth_google_signin">Continue with Google</string>
+    <string name="auth_google_only_subtitle">Sign in to continue with your Google account.</string>
     <string name="auth_toggle_to_signup">Don\'t have an account? Sign Up</string>
     <string name="auth_toggle_to_signin">Already have an account? Sign In</string>
     <string name="auth_empty_fields_error">Email and password cannot be empty</string>

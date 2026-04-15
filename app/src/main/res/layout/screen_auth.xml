@@ -66,8 +66,7 @@
                         android:layout_width="32dp"
                         android:layout_height="32dp"
                         android:layout_gravity="center"
-                        android:src="@android:drawable/ic_menu_gallery"
-                        app:tint="?attr/colorTertiary" />
+                        android:src="@mipmap/ic_launcher_round" />
                 </FrameLayout>
 
                 <TextView
@@ -90,7 +89,7 @@
                     android:maxWidth="280dp" />
             </LinearLayout>
 
-            <!-- Form Card (liquid-glass) -->
+            <!-- Auth Card -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -102,96 +101,36 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="EMAIL ADDRESS"
+                    android:text="@string/auth_google_only_subtitle"
                     android:textColor="?attr/colorOnSurfaceVariant"
-                    android:textAppearance="?attr/textAppearanceLabelSmall"
-                    android:textStyle="bold"
-                    android:layout_marginStart="4dp"
-                    android:layout_marginBottom="8dp" />
-
-                <EditText
-                    android:id="@+id/et_email"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/bg_surface_container_low"
-                    android:paddingHorizontal="20dp"
-                    android:paddingVertical="16dp"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textColorHint="?attr/colorOnSurfaceVariant"
                     android:textAppearance="?attr/textAppearanceBodyLarge"
-                    android:hint="name@example.com"
-                    android:inputType="textEmailAddress"
-                    android:maxLines="1" />
-
-                <Space
-                    android:layout_width="match_parent"
-                    android:layout_height="24dp" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="4dp"
-                    android:layout_marginBottom="8dp">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="PASSWORD"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:textAppearance="?attr/textAppearanceLabelSmall"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/tv_forgot_password"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="FORGOT PASSWORD?"
-                        android:textColor="?attr/colorTertiary"
-                        android:textAppearance="?attr/textAppearanceLabelSmall"
-                        android:textStyle="bold"
-                        android:clickable="true"
-                        android:focusable="true" />
-                </LinearLayout>
-
-                <EditText
-                    android:id="@+id/et_password"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/bg_surface_container_low"
-                    android:paddingHorizontal="20dp"
-                    android:paddingVertical="16dp"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textColorHint="?attr/colorOnSurfaceVariant"
-                    android:textAppearance="?attr/textAppearanceBodyLarge"
-                    android:hint="••••••••"
-                    android:inputType="textPassword"
-                    android:maxLines="1" />
+                    android:layout_marginBottom="20dp" />
 
                 <TextView
                     android:id="@+id/tv_error"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="12dp"
                     android:textColor="?attr/colorError"
                     android:textAppearance="?attr/textAppearanceBodySmall"
                     android:visibility="gone" />
-
-                <Space
-                    android:layout_width="match_parent"
-                    android:layout_height="24dp" />
 
                 <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">
 
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_primary_action"
+                        android:id="@+id/btn_google_signin"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
                         android:paddingVertical="16dp"
-                        android:text="Sign In" />
+                        android:text="@string/auth_google_signin"
+                        app:icon="@drawable/ic_google_logo"
+                        app:iconTint="@null"
+                        app:iconPadding="12dp"
+                        app:iconGravity="textStart" />
 
                     <ProgressBar
                         android:id="@+id/progress_loading"
@@ -200,90 +139,6 @@
                         android:layout_gravity="center"
                         android:visibility="gone" />
                 </FrameLayout>
-
-                <LinearLayout
-                    android:id="@+id/divider_or"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingVertical="16dp">
-
-                    <View
-                        android:layout_width="0dp"
-                        android:layout_height="1dp"
-                        android:layout_weight="1"
-                        android:background="?attr/colorOutlineVariant" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:paddingHorizontal="16dp"
-                        android:text="OR CONTINUE WITH"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:textAppearance="?attr/textAppearanceLabelSmall"
-                        android:textStyle="bold" />
-
-                    <View
-                        android:layout_width="0dp"
-                        android:layout_height="1dp"
-                        android:layout_weight="1"
-                        android:background="?attr/colorOutlineVariant" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/btn_google_signin"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center"
-                    android:background="@drawable/bg_google_button"
-                    android:paddingVertical="16dp"
-                    android:clickable="true"
-                    android:focusable="true">
-
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:src="@drawable/ic_google_logo" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:text="Sign in with Google"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textAppearance="?attr/textAppearanceBodyMedium"
-                        android:textStyle="bold" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- Footer Link -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:paddingTop="40dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Don't have an account?"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:textAppearance="?attr/textAppearanceBodyMedium" />
-
-                <TextView
-                    android:id="@+id/tv_mode_toggle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="4dp"
-                    android:text="Create Account"
-                    android:textColor="?attr/colorTertiary"
-                    android:textAppearance="?attr/textAppearanceLabelLarge"
-                    android:textStyle="bold"
-                    android:clickable="true"
-                    android:focusable="true" />
             </LinearLayout>
 
         </LinearLayout>
