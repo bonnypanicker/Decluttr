@@ -5,6 +5,16 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "Bundle type"
+        required: true
+        default: "release"
+        type: choice
+        options:
+          - release
+          - debug
 
 jobs:
   build:
@@ -24,8 +34,6 @@ jobs:
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
-      with:
-        gradle-version: '8.7'
 
     - name: Restore google-services.json
       env:
@@ -42,7 +50,7 @@ jobs:
         fi
 
     - name: Restore release upload keystore and export signing env
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'release')
       env:
         RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 || vars.RELEASE_KEYSTORE_BASE64 }}
         RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD || vars.RELEASE_KEYSTORE_PASSWORD }}
@@ -93,7 +101,7 @@ jobs:
         ./gradlew :app:assembleDebug
 
     - name: Build Release AAB
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'release')
       run: |
         if [ ! -f gradlew ]; then
           gradle wrapper
@@ -101,10 +109,19 @@ jobs:
         chmod +x gradlew
         ./gradlew :app:bundleRelease
 
+    - name: Build Debug AAB
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'debug'
+      run: |
+        if [ ! -f gradlew ]; then
+          gradle wrapper
+        fi
+        chmod +x gradlew
+        ./gradlew :app:bundleDebug
+
     - name: Upload AAB
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
       uses: actions/upload-artifact@v4
       with:
-        name: decluttr-release-aab
-        path: app/build/outputs/bundle/release/app-release.aab
+        name: decluttr-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_type || 'release' }}-aab
+        path: app/build/outputs/bundle/${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_type || 'release' }}/app-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_type || 'release' }}.aab
         if-no-files-found: error
