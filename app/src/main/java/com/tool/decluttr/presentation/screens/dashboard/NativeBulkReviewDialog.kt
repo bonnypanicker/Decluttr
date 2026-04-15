@@ -33,8 +33,7 @@ class NativeBulkReviewDialog(
         contentLayoutRes = R.layout.dialog_bulk_review,
         dismissOnOutside = false,
         maxWidthDp = 680,
-        horizontalMarginDp = 12,
-        fixedHeightFraction = 0.92f
+        horizontalMarginDp = 12
     ).build()
     private val notesMap = mutableMapOf<String, String>()
 
@@ -133,7 +132,6 @@ class NativeBulkReviewDialog(
             val icon: ImageView = view.findViewById(R.id.app_icon)
             val name: TextView = view.findViewById(R.id.app_name)
             val category: TextView = view.findViewById(R.id.app_category)
-            val pageCount: TextView = view.findViewById(R.id.page_count)
             val notesInput: TextInputEditText = view.findViewById(R.id.notes_input)
         }
 
@@ -147,7 +145,6 @@ class NativeBulkReviewDialog(
             val app = archivedApps[position]
             holder.name.text = app.name
             holder.category.text = app.category ?: "Uncategorized"
-            holder.pageCount.text = "${position + 1}/${archivedApps.size}"
             holder.icon.load(AppIconModel(app.packageId)) {
                 memoryCacheKey(app.packageId)
                 crossfade(false)

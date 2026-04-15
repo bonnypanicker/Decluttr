@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -47,6 +48,7 @@ class DashboardViewModel @Inject constructor(
     private val archiveQuotaService: ArchiveQuotaService,
     private val checkUsagePermissionUseCase: com.tool.decluttr.domain.usecase.CheckUsagePermissionUseCase,
     private val uninstallAppUseCase: com.tool.decluttr.domain.usecase.UninstallAppUseCase,
+    private val authRepository: com.tool.decluttr.domain.repository.AuthRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     companion object {
@@ -59,6 +61,12 @@ class DashboardViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+
+    val isLoggedIn: StateFlow<Boolean?> = authRepository.isUserLoggedIn
+        .map { it as Boolean? }
+        .stateIn(viewModelScope, SharingStarted.Lazily, null)
+
+    val startDiscoveryInRarelyUsed = MutableStateFlow(false)
 
     private val _unusedApps = MutableStateFlow<List<GetInstalledAppsUseCase.InstalledAppInfo>>(emptyList())
     val unusedApps = _unusedApps.asStateFlow()

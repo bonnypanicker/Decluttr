@@ -269,6 +269,14 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
                     }
                 }
                 launch {
+                    viewModel.startDiscoveryInRarelyUsed.collect { startRarelyUsed ->
+                        if (startRarelyUsed) {
+                            setViewState(DiscoveryViewState.RARELY_USED)
+                            viewModel.startDiscoveryInRarelyUsed.value = false
+                        }
+                    }
+                }
+                launch {
                     viewModel.isLoadingDiscovery.collect { loading ->
                         progressLoading.visibility = if (loading || viewModel.isPreparingAllApps.value) View.VISIBLE else View.GONE
                         if (loading) { viewDashboard.visibility = View.GONE; viewSpecificList.visibility = View.GONE }
@@ -461,6 +469,14 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
     }
 
     private fun executeBatchArchive() {
+        if (viewModel.isLoggedIn.value != true) {
+            com.google.android.material.snackbar.Snackbar.make(
+                requireView(), 
+                "Please login to use the archive feature.", 
+                com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+            ).show()
+            return
+        }
         val ids = selectedApps.toSet()
         if (ids.isEmpty()) return
 

@@ -22,6 +22,7 @@ import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -41,6 +42,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.EntitlementState
 import com.tool.decluttr.domain.model.ArchivedApp
+import com.tool.decluttr.presentation.screens.auth.AuthViewModel
 import com.tool.decluttr.presentation.screens.billing.BillingViewModel
 import com.tool.decluttr.presentation.screens.billing.PaywallBottomSheet
 import com.tool.decluttr.presentation.util.AppIconModel
@@ -60,6 +62,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
 
     private val viewModel: DashboardViewModel by activityViewModels()
     private val billingViewModel: BillingViewModel by activityViewModels()
+    private val authViewModel: AuthViewModel by viewModels()
 
     private var searchQuery = ""
     private var selectedCategory = "All"
@@ -83,6 +86,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private lateinit var emptyStateContainer: View
     private lateinit var tvEmptyMessage: TextView
     private lateinit var btnFindApps: Button
+    private lateinit var btnArchiveLogin: Button
     private lateinit var reinstalledPageContainer: View
     private lateinit var btnReinstalledBack: ImageView
     private lateinit var reinstalledRecyclerView: RecyclerView
@@ -152,6 +156,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         emptyStateContainer = v.findViewById(R.id.empty_state_container)
         tvEmptyMessage = v.findViewById(R.id.tv_empty_message)
         btnFindApps = v.findViewById(R.id.btn_find_apps)
+        btnArchiveLogin = v.findViewById(R.id.btn_archive_login)
         reinstalledPageContainer = v.findViewById(R.id.reinstalled_page_container)
         btnReinstalledBack = v.findViewById(R.id.btn_reinstalled_back)
         reinstalledRecyclerView = v.findViewById(R.id.reinstalled_recycler_view)
@@ -358,8 +363,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         }
 
         btnFindApps.setOnClickListener {
+            viewModel.startDiscoveryInRarelyUsed.value = true
             requireActivity().findViewById<BottomNavigationView>(R.id.bottom_nav)?.selectedItemId = R.id.nav_discover
         }
+        btnArchiveLogin.setOnClickListener { startGoogleSignIn() }
 
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
             if (isReinstalledPageVisible) {
@@ -438,7 +445,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private fun entitlementFingerprint(entitlement: EntitlementState): String {
         return listOf(
             entitlement.source,
-            entitlement.lastVerifiedAt.toString(),
             entitlement.productId.orEmpty(),
             entitlement.purchaseTokenHash.orEmpty()
         ).joinToString("|")
@@ -578,11 +584,19 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 recyclerView.visibility = View.GONE
                 emptyStateContainer.visibility = View.VISIBLE
                 if (visibleArchiveApps.isEmpty()) {
-                    tvEmptyMessage.text = getString(R.string.archive_empty_message)
-                    btnFindApps.visibility = View.VISIBLE
+                    if (viewModel.isLoggedIn.value != true) {
+                        tvEmptyMessage.text = getString(R.string.archive_empty_message_logged_out)
+                        btnFindApps.visibility = View.GONE
+                        btnArchiveLogin.visibility = View.VISIBLE
+                    } else {
+                        tvEmptyMessage.text = getString(R.string.archive_empty_message)
+                        btnFindApps.visibility = View.VISIBLE
+                        btnArchiveLogin.visibility = View.GONE
+                    }
                 } else {
                     tvEmptyMessage.text = getString(R.string.archive_empty_filtered)
                     btnFindApps.visibility = View.GONE
+                    btnArchiveLogin.visibility = View.GONE
                 }
             } else {
                 recyclerView.visibility = View.VISIBLE
@@ -622,15 +636,23 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         }
 
         if (groupedItems.isEmpty()) {
-            recyclerView.visibility = View.GONE
-            emptyStateContainer.visibility = View.VISIBLE
-            if (visibleArchiveApps.isEmpty()) {
-                tvEmptyMessage.text = getString(R.string.archive_empty_message)
-                btnFindApps.visibility = View.VISIBLE
-            } else {
-                tvEmptyMessage.text = getString(R.string.archive_empty_filtered)
-                btnFindApps.visibility = View.GONE
-            }
+                recyclerView.visibility = View.GONE
+                emptyStateContainer.visibility = View.VISIBLE
+                if (visibleArchiveApps.isEmpty()) {
+                    if (viewModel.isLoggedIn.value != true) {
+                        tvEmptyMessage.text = getString(R.string.archive_empty_message_logged_out)
+                        btnFindApps.visibility = View.GONE
+                        btnArchiveLogin.visibility = View.VISIBLE
+                    } else {
+                        tvEmptyMessage.text = getString(R.string.archive_empty_message)
+                        btnFindApps.visibility = View.VISIBLE
+                        btnArchiveLogin.visibility = View.GONE
+                    }
+                } else {
+                    tvEmptyMessage.text = getString(R.string.archive_empty_filtered)
+                    btnFindApps.visibility = View.GONE
+                    btnArchiveLogin.visibility = View.GONE
+                }
         } else {
             recyclerView.visibility = View.VISIBLE
             emptyStateContainer.visibility = View.GONE
@@ -964,6 +986,52 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
 
         fun submitArchivedApps(apps: List<ArchivedApp>) {
             submitList(apps.map { ReinstalledItem(it.packageId, it.name) })
+        }
+    }
+
+    private fun startGoogleSignIn() {
+        val credentialManager = androidx.credentials.CredentialManager.create(requireContext())
+        val serverClientId = runCatching { getString(R.string.default_web_client_id) }.getOrNull()
+        if (serverClientId.isNullOrBlank()) {
+            android.widget.Toast.makeText(requireContext(), "Google Sign-In is not configured for this build.", android.widget.Toast.LENGTH_LONG).show()
+            return
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val rawNonce = java.util.UUID.randomUUID().toString()
+                val bytes = rawNonce.toByteArray()
+                val md = java.security.MessageDigest.getInstance("SHA-256")
+                val digest = md.digest(bytes)
+                val hashedNonce = digest.fold("") { str, it -> str + "%02x".format(it) }
+
+                val googleIdOption = com.google.android.libraries.identity.googleid.GetGoogleIdOption.Builder()
+                    .setServerClientId(serverClientId)
+                    .setFilterByAuthorizedAccounts(false)
+                    .setAutoSelectEnabled(false)
+                    .setNonce(hashedNonce)
+                    .build()
+
+                val request = androidx.credentials.GetCredentialRequest.Builder()
+                    .addCredentialOption(googleIdOption)
+                    .build()
+
+                val result = credentialManager.getCredential(
+                    context = requireActivity(),
+                    request = request
+                )
+
+                val credential = result.credential
+                if (credential is androidx.credentials.CustomCredential &&
+                    credential.type == com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                ) {
+                    val googleCredential = com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.createFrom(credential.data)
+                    authViewModel.authenticateWithGoogleIdToken(googleCredential.idToken, rawNonce)
+                } else {
+                    android.widget.Toast.makeText(requireContext(), "Unable to read Google credential.", android.widget.Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(requireContext(), e.localizedMessage ?: "Google sign-in failed.", android.widget.Toast.LENGTH_LONG).show()
+            }
         }
     }
 }

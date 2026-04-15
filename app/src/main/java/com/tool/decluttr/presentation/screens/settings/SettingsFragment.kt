@@ -26,6 +26,7 @@ import com.google.android.material.button.MaterialButtonToggleGroup
 import com.tool.decluttr.R
 import com.tool.decluttr.presentation.screens.billing.BillingViewModel
 import com.tool.decluttr.presentation.screens.billing.PaywallBottomSheet
+import com.tool.decluttr.presentation.screens.auth.AuthViewModel
 import com.tool.decluttr.presentation.util.AppLinks
 import com.tool.decluttr.presentation.util.ThemePreferences
 import dagger.hilt.android.AndroidEntryPoint
@@ -36,6 +37,7 @@ import java.io.InputStreamReader
 class SettingsFragment : Fragment(R.layout.fragment_settings) {
 
     private val viewModel: SettingsViewModel by viewModels()
+    private val authViewModel: AuthViewModel by viewModels()
     private val billingViewModel: BillingViewModel by activityViewModels()
 
     private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -63,6 +65,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         val btnImport = view.findViewById<MaterialButton>(R.id.btn_import)
         val progress = view.findViewById<ProgressBar>(R.id.progress)
         val tvEmail = view.findViewById<TextView>(R.id.tv_email)
+        val btnSignin = view.findViewById<MaterialButton>(R.id.btn_signin)
         val btnSignout = view.findViewById<MaterialButton>(R.id.btn_signout)
         val btnManagePremium = view.findViewById<MaterialButton>(R.id.btn_manage_premium)
         val btnPrivacyPolicy = view.findViewById<MaterialButton>(R.id.btn_privacy_policy)
@@ -125,6 +128,10 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
         }
 
+        btnSignin.setOnClickListener {
+            startGoogleSignIn()
+        }
+
         btnSignout.setOnClickListener {
             viewModel.signOut()
         }
@@ -182,6 +189,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
                 launch {
                     viewModel.isLoggedIn.collect { loggedIn ->
                         btnSignout.visibility = if (loggedIn == true) View.VISIBLE else View.GONE
+                        btnSignin.visibility = if (loggedIn != true) View.VISIBLE else View.GONE
                     }
                 }
                 launch {
@@ -280,5 +288,51 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             limit = limitArg
         )
             .show(parentFragmentManager, tag)
+    }
+
+    private fun startGoogleSignIn() {
+        val credentialManager = androidx.credentials.CredentialManager.create(requireContext())
+        val serverClientId = runCatching { getString(R.string.default_web_client_id) }.getOrNull()
+        if (serverClientId.isNullOrBlank()) {
+            Toast.makeText(requireContext(), "Google Sign-In is not configured for this build.", Toast.LENGTH_LONG).show()
+            return
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val rawNonce = java.util.UUID.randomUUID().toString()
+                val bytes = rawNonce.toByteArray()
+                val md = java.security.MessageDigest.getInstance("SHA-256")
+                val digest = md.digest(bytes)
+                val hashedNonce = digest.fold("") { str, it -> str + "%02x".format(it) }
+
+                val googleIdOption = com.google.android.libraries.identity.googleid.GetGoogleIdOption.Builder()
+                    .setServerClientId(serverClientId)
+                    .setFilterByAuthorizedAccounts(false)
+                    .setAutoSelectEnabled(false)
+                    .setNonce(hashedNonce)
+                    .build()
+
+                val request = androidx.credentials.GetCredentialRequest.Builder()
+                    .addCredentialOption(googleIdOption)
+                    .build()
+
+                val result = credentialManager.getCredential(
+                    context = requireActivity(),
+                    request = request
+                )
+
+                val credential = result.credential
+                if (credential is androidx.credentials.CustomCredential &&
+                    credential.type == com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                ) {
+                    val googleCredential = com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.createFrom(credential.data)
+                    authViewModel.authenticateWithGoogleIdToken(googleCredential.idToken, rawNonce)
+                } else {
+                    Toast.makeText(requireContext(), "Unable to read Google credential.", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), e.localizedMessage ?: "Google sign-in failed.", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 }
