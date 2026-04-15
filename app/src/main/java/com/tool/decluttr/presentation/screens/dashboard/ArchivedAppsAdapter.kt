@@ -155,7 +155,7 @@ class ArchivedAppsAdapter(
                 val clipData = ClipData.newPlainText("packageId", app.packageId)
 
                 // 2. Build a scaled-up shadow (Pixel Launcher uses ~1.1x scale)
-                val shadowBuilder = ScaledDragShadowBuilder(view, 1.1f)
+                val shadowBuilder = ScaledDragShadowBuilder(icon, 1.1f)
 
                 // 3. Start drag
                 val started = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -616,4 +616,3 @@ class ArchivedAppsAdapter(
             }
     }
 }
-
