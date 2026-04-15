@@ -61,7 +61,7 @@ class FolderAppsAdapter(
                     "FOLDER longPress start pkg=${app.packageId} pos=${holder.bindingAdapterPosition} viewHash=${System.identityHashCode(view)}"
                 )
                 val clipData = ClipData.newPlainText("packageId", app.packageId)
-                val shadowBuilder = ScaledDragShadowBuilder(view, 1.1f)
+                val shadowBuilder = ScaledDragShadowBuilder(holder.icon, 1.1f)
                 val started = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     view.startDragAndDrop(clipData, shadowBuilder, app, 0)
                 } else {
