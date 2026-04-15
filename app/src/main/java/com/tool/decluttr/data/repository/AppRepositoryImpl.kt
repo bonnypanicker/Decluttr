@@ -521,6 +521,7 @@ class AppRepositoryImpl(
     override suspend fun insertApp(app: ArchivedApp) {
         val previous = dao.getAppById(app.packageId)?.toArchivedApp()
         if (previous == null) {
+            // Free-tier quota is a write limit only: existing archived apps remain accessible.
             val entitlement = billingRepository.currentEntitlement()
             if (!entitlement.isPremium) {
                 val used = dao.getArchivedAppCount().coerceAtLeast(0)

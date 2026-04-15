@@ -55,7 +55,6 @@ class PaywallBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_paywa
     private var pendingAction: BillingAction = BillingAction.NONE
     private var latestUsedCredits: Int = 0
     private var latestCreditLimit: Int = 50
-    private var latestIsPremium: Boolean = false
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -77,9 +76,9 @@ class PaywallBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_paywa
         if (reason.contains("limit", ignoreCase = true)) {
             tvTitle.text = "Free Limit Reached"
             val subtitle = if (blockedUsed >= 0 && blockedLimit > 0) {
-                "You have used $blockedUsed/$blockedLimit archive credits."
+                "You have $blockedUsed archived apps. You can still access all of them, but archiving new apps requires Premium."
             } else {
-                "Upgrade to continue archiving to cloud without limits."
+                "You can still access your archived apps. Upgrade to archive new apps without limits."
             }
             tvSubtitle.text = subtitle
         }
@@ -104,23 +103,8 @@ class PaywallBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_paywa
                 promptSignInForBilling("Sign in is required to restore purchases.")
                 return@setOnClickListener
             }
-            if (shouldWarnCapLossBeforeRestore(reason)) {
-                MaterialAlertDialogBuilder(requireContext())
-                    .setTitle("Restore Premium?")
-                    .setMessage(
-                        "You currently have $latestUsedCredits archived apps, above the free cap of $latestCreditLimit.\n\n" +
-                            "If premium is not restored, apps above $latestCreditLimit may be removed to enforce the free limit."
-                    )
-                    .setNegativeButton("Cancel", null)
-                    .setPositiveButton("Restore") { _, _ ->
-                        pendingAction = BillingAction.RESTORE
-                        billingViewModel.restorePurchases()
-                    }
-                    .show()
-            } else {
-                pendingAction = BillingAction.RESTORE
-                billingViewModel.restorePurchases()
-            }
+            pendingAction = BillingAction.RESTORE
+            billingViewModel.restorePurchases()
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -143,7 +127,6 @@ class PaywallBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_paywa
 
                 launch {
                     billingViewModel.archiveCreditsUi.collect { credits ->
-                        latestIsPremium = credits.isPremium
                         latestUsedCredits = credits.used
                         latestCreditLimit = credits.limit
                         tvStatus.text = if (credits.isPremium) {
@@ -245,10 +228,4 @@ class PaywallBottomSheet : BottomSheetDialogFragment(R.layout.bottom_sheet_paywa
         return com.google.android.material.R.style.ThemeOverlay_Material3_BottomSheetDialog
     }
 
-    private fun shouldWarnCapLossBeforeRestore(reason: String): Boolean {
-        return reason == "settings_manage_premium" &&
-            !latestIsPremium &&
-            latestCreditLimit > 0 &&
-            latestUsedCredits > latestCreditLimit
-    }
 }

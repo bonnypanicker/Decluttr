@@ -37,7 +37,7 @@ class ShareViewModel @Inject constructor(
                 .onFailure { error ->
                     if (error is ArchiveLimitExceededException) {
                         _shareStatus.value = ShareStatus.Error(
-                            "Archive limit reached (${error.used}/${error.limit}). Upgrade to archive more apps."
+                            "Archive limit reached (${error.used}/${error.limit}). You can still access existing archived apps. Upgrade to archive more."
                         )
                     } else {
                         _shareStatus.value = ShareStatus.Error(
