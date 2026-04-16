@@ -64,7 +64,7 @@ class DashboardViewModel @Inject constructor(
 
     val isLoggedIn: StateFlow<Boolean?> = authRepository.isUserLoggedIn
         .map { it as Boolean? }
-        .stateIn(viewModelScope, SharingStarted.Lazily, null)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val startDiscoveryInRarelyUsed = MutableStateFlow(false)
 
