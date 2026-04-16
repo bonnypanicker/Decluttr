@@ -157,7 +157,15 @@ class ArchivedAppsAdapter(
                 // 2. Build a scaled-up shadow (Pixel Launcher uses ~1.1x scale)
                 val shadowBuilder = ScaledDragShadowBuilder(icon, 1.1f)
 
-                // 3. Start drag
+                // 3. CRITICAL: Hide the source view and clear pressed/ripple state
+                //    BEFORE starting drag to prevent the one-frame background flash.
+                //    The shadow builder holds a direct reference to |icon| and calls
+                //    icon.draw(canvas) which works regardless of parent visibility.
+                view.isPressed = false
+                view.background?.state = intArrayOf()
+                view.visibility = View.INVISIBLE
+
+                // 4. Start drag
                 val started = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     view.startDragAndDrop(clipData, shadowBuilder, app, 0)
                 } else {
@@ -177,18 +185,15 @@ class ArchivedAppsAdapter(
                         TAG,
                         "session=$activeDragSessionId START_DRAG pkg=${app.packageId} pos=${bindingAdapterPosition} view=${describeView(view)}"
                     )
-                    // 4. CRITICAL: Hide the source view so it doesn't duplicate
-                    //    Pixel Launcher hides the icon from its cell during drag.
-                    view.visibility = View.INVISIBLE
 
                     // Haptic feedback like Pixel Launcher
                     view.performHapticFeedback(
                         android.view.HapticFeedbackConstants.LONG_PRESS,
                         android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
                     )
-                }
-
-                if (!started) {
+                } else {
+                    // Drag failed – restore visibility
+                    view.visibility = View.VISIBLE
                     android.util.Log.w(
                         TAG,
                         "session=$activeDragSessionId START_DRAG_FAILED pkg=${app.packageId} pos=${bindingAdapterPosition} view=${describeView(view)}"

@@ -81,6 +81,15 @@ class DashboardItemDiffCallback : DiffUtil.ItemCallback<DashboardItem>() {
     override fun areContentsTheSame(oldItem: DashboardItem, newItem: DashboardItem): Boolean {
         return oldItem == newItem
     }
+
+    override fun getChangePayload(oldItem: DashboardItem, newItem: DashboardItem): Any? {
+        if (oldItem is DashboardItem.AppItem && newItem is DashboardItem.AppItem) {
+            if (oldItem.info == newItem.info && oldItem.isSelected != newItem.isSelected) {
+                return "SELECTION_CHANGED"
+            }
+        }
+        return null
+    }
 }
 
 class DiscoveryDashboardAdapter(
@@ -144,6 +153,15 @@ class DiscoveryDashboardAdapter(
             is DashboardItem.AllAppsHeader -> (holder as AllAppsHeaderViewHolder).bind(item)
             is DashboardItem.SearchBar -> (holder as SearchBarViewHolder).bind(item)
             is DashboardItem.AppItem -> (holder as AppItemViewHolder).bind(item)
+        }
+    }
+
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isNotEmpty() && holder is AppItemViewHolder) {
+            val item = getItem(position) as? DashboardItem.AppItem ?: return
+            holder.bindSelection(item.isSelected)
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
         }
     }
 
@@ -316,6 +334,12 @@ class DiscoveryDashboardAdapter(
                 crossfade(false)
                 size(96)
             }
+        }
+
+        /** Partial bind: update only the selection-related views without touching anything else. */
+        fun bindSelection(isSelected: Boolean) {
+            checkBox.isChecked = isSelected
+            cardView.isChecked = isSelected
         }
     }
 

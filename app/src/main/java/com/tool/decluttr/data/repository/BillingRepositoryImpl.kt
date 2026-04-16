@@ -8,12 +8,14 @@ import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.ConsumeParams
 import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
+import com.tool.decluttr.BuildConfig
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -424,10 +426,17 @@ class BillingRepositoryImpl(
             purchaseState.value = PurchaseState.Success(
                 "Premium active on this device. Cloud sync will retry automatically."
             )
-            return
+        } else {
+            purchaseState.value = PurchaseState.Success("Premium unlocked successfully.")
         }
 
-        purchaseState.value = PurchaseState.Success("Premium unlocked successfully.")
+        // In debug builds, consume the one-time purchase so it can be re-bought
+        // with test cards. Without this, test purchases stay permanently "owned"
+        // and the purchase flow cannot be retested.
+        if (BuildConfig.DEBUG) {
+            consumePurchase(token)
+            recordBreadcrumb("debug_purchase_consumed")
+        }
     }
 
     private suspend fun invokeVerifyCallableWithFallback(
@@ -511,6 +520,26 @@ class BillingRepositoryImpl(
                 .setPurchaseToken(purchaseToken)
                 .build()
             billingClient.acknowledgePurchase(params) {
+                if (continuation.isActive) continuation.resume(Unit)
+            }
+        }
+    }
+
+    /**
+     * Consume a one-time purchase so it can be re-bought.
+     * Used in debug builds to allow repeated testing with test cards.
+     * In production this is never called — the purchase stays permanent.
+     */
+    private suspend fun consumePurchase(purchaseToken: String) {
+        suspendCancellableCoroutine<Unit> { continuation ->
+            val params = ConsumeParams.newBuilder()
+                .setPurchaseToken(purchaseToken)
+                .build()
+            billingClient.consumeAsync(params) { result, _ ->
+                Log.d(
+                    TAG,
+                    "consumePurchase: code=${result.responseCode}, msg=${result.debugMessage}"
+                )
                 if (continuation.isActive) continuation.resume(Unit)
             }
         }

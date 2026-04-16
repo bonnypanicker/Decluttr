@@ -32,6 +32,16 @@ class DiscoveryAppDiffCallback : DiffUtil.ItemCallback<AppListItem>() {
     override fun areContentsTheSame(oldItem: AppListItem, newItem: AppListItem): Boolean {
         return oldItem == newItem
     }
+
+    override fun getChangePayload(oldItem: AppListItem, newItem: AppListItem): Any? {
+        // When only the selection state changed, return a non-null payload so the
+        // DefaultItemAnimator skips its full cross-fade animation and we can do
+        // a targeted partial bind instead.
+        if (oldItem.info == newItem.info && oldItem.isSelected != newItem.isSelected) {
+            return "SELECTION_CHANGED"
+        }
+        return null
+    }
 }
 
 
@@ -47,6 +57,16 @@ class DiscoveryAppsAdapter(
 
     override fun onBindViewHolder(holder: AppViewHolder, position: Int) {
         holder.bind(getItem(position))
+    }
+
+    override fun onBindViewHolder(holder: AppViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isNotEmpty()) {
+            // Partial bind: only update selection state (no cross-fade animation)
+            val item = getItem(position)
+            holder.bindSelection(item.isSelected)
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
     }
 
     inner class AppViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -104,6 +124,12 @@ class DiscoveryAppsAdapter(
                 crossfade(false)
                 size(96)
             }
+        }
+
+        /** Partial bind: update only the selection-related views without touching anything else. */
+        fun bindSelection(isSelected: Boolean) {
+            checkBox.isChecked = isSelected
+            cardView.isChecked = isSelected
         }
     }
 

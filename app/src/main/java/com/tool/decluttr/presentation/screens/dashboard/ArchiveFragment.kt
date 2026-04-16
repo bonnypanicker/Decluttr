@@ -57,7 +57,7 @@ import java.text.DecimalFormat
 class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     companion object {
         private const val TAG = "DecluttrDragDbg"
-        private const val PREF_KEY_PREMIUM_NOTICE_FINGERPRINT = "premium_notice_fingerprint"
+        private const val PREF_KEY_PREMIUM_NOTICE_SHOWN = "premium_notice_shown"
     }
 
     private val viewModel: DashboardViewModel by activityViewModels()
@@ -118,6 +118,9 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private val singletonCollapseInFlight = mutableSetOf<String>()
     private val pendingFolderCreations = mutableMapOf<String, Long>()
     private val pendingFolderCreationWindowMs = 3_000L
+    /** In-memory guard: once true for this fragment instance, the notice will never re-show
+     *  even if the entitlement flow re-emits (which it does on every tab switch). */
+    private var premiumNoticeShownInMemory = false
     private val premiumNoticePrefs by lazy {
         requireContext().getSharedPreferences("billing_notice_prefs", android.content.Context.MODE_PRIVATE)
     }
@@ -431,23 +434,19 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
 
     private fun shouldShowPremiumNotice(entitlement: EntitlementState): Boolean {
         if (!entitlement.isPremium) return false
-        val fingerprint = entitlementFingerprint(entitlement)
-        val shown = premiumNoticePrefs.getString(PREF_KEY_PREMIUM_NOTICE_FINGERPRINT, null)
-        return shown != fingerprint
+        // In-memory guard: prevents re-showing within the same fragment lifecycle
+        // even if the StateFlow re-emits on tab switch.
+        if (premiumNoticeShownInMemory) return false
+        // Persisted guard: prevents re-showing across app restarts.
+        return !premiumNoticePrefs.getBoolean(PREF_KEY_PREMIUM_NOTICE_SHOWN, false)
     }
 
     private fun markPremiumNoticeShown(entitlement: EntitlementState) {
+        premiumNoticeShownInMemory = true
+        // Use commit() for synchronous write to prevent any race with subsequent flow emissions.
         premiumNoticePrefs.edit()
-            .putString(PREF_KEY_PREMIUM_NOTICE_FINGERPRINT, entitlementFingerprint(entitlement))
-            .apply()
-    }
-
-    private fun entitlementFingerprint(entitlement: EntitlementState): String {
-        return listOf(
-            entitlement.source,
-            entitlement.productId.orEmpty(),
-            entitlement.purchaseTokenHash.orEmpty()
-        ).joinToString("|")
+            .putBoolean(PREF_KEY_PREMIUM_NOTICE_SHOWN, true)
+            .commit()
     }
 
     private fun updatePremiumIndicator(isPremium: Boolean) {
@@ -714,9 +713,26 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private fun setReinstalledPageVisible(visible: Boolean) {
         isReinstalledPageVisible = visible
         reinstalledPageContainer.visibility = if (visible) View.VISIBLE else View.GONE
+
+        // Hide main archive controls that don't apply to the reinstalled page
         if (visible) {
+            searchBar.visibility = View.GONE
+            btnSort.visibility = View.GONE
+            btnViewSwitch.visibility = View.GONE
+            btnPremium.visibility = View.GONE
+            creditsCard.visibility = View.GONE
+            categoryBar.visibility = View.GONE
+            infoCardsContainer.visibility = View.GONE
+
             reinstalledAdapter.submitArchivedApps(reinstatedApps)
             tvReinstalledEmpty.visibility = if (reinstatedApps.isEmpty()) View.VISIBLE else View.GONE
+        } else {
+            // Restore archive controls
+            searchBar.visibility = View.VISIBLE
+            btnViewSwitch.visibility = View.VISIBLE
+            btnSort.visibility = if (isListMode) View.VISIBLE else View.GONE
+            // Premium & credits visibility will be refreshed by the next UI update
+            updateUI(viewModel.archivedApps.value)
         }
     }
 
