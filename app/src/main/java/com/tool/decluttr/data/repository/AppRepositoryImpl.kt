@@ -12,7 +12,9 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import com.tool.decluttr.data.local.dao.AppDao
 import com.tool.decluttr.data.mapper.toAppEntity
@@ -76,6 +78,12 @@ class AppRepositoryImpl(
                     flushPendingSyncs()
                 } else {
                     clearPendingSyncState()
+                    currentUserId?.let {
+                        context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
+                            .edit()
+                            .remove("last_sync_time_$it")
+                            .apply()
+                    }
                     currentUserId = null
                     dao.deleteAllApps()
                 }
@@ -88,18 +96,46 @@ class AppRepositoryImpl(
         val firestore = firestoreOrNull() ?: return
         val user = auth.currentUser ?: return
         try {
-            val snapshot = firestore.collection("users").document(user.uid).collection("apps").get().await()
-            val localApps = dao.getArchivedAppsSnapshot().associateBy { it.packageId }
-            val remoteApps = snapshot.documents.mapNotNull { doc ->
-                doc.toArchivedAppOrNull()
+            val prefs = context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
+            val lastSyncTimeKey = "last_sync_time_${user.uid}"
+            val lastSyncTime = prefs.getLong(lastSyncTimeKey, 0L)
+
+            var query: Query = firestore.collection("users").document(user.uid).collection("apps")
+            if (lastSyncTime > 0L) {
+                query = query.whereGreaterThan("lastModified", lastSyncTime)
             }
 
-            remoteApps.forEach { remoteApp ->
+            val snapshot = query.get().await()
+            val localApps = dao.getArchivedAppsSnapshot().associateBy { it.packageId }
+
+            var maxModified = lastSyncTime
+
+            for (doc in snapshot.documents) {
+                val remoteLastModified = doc.getLong("lastModified") ?: 0L
+                if (remoteLastModified > maxModified) {
+                    maxModified = remoteLastModified
+                }
+
+                val packageId = doc.getString("packageId") ?: doc.id
+                val isDeleted = doc.getBoolean("isDeleted") ?: false
+
+                if (isDeleted) {
+                    val localApp = localApps[packageId]
+                    if (localApp != null && localApp.lastModified > remoteLastModified) {
+                        enqueueUpsert(localApp.toArchivedApp())
+                    } else {
+                        dao.deleteAppById(packageId)
+                    }
+                    continue
+                }
+
+                val remoteApp = doc.toArchivedAppOrNull() ?: continue
                 val localApp = localApps[remoteApp.packageId]?.toArchivedApp()
                 val mergedRemoteApp = mergeRemoteWithLocal(remoteApp, localApp)
                 val enrichedRemoteApp = enrichArchiveApp(mergedRemoteApp)
                 val shouldHealRemote = requiresRemoteHealing(remoteApp, enrichedRemoteApp)
                 val usingRemoteAsSource = localApp == null || remoteApp.lastModified >= localApp.lastModified
+
                 when {
                     localApp == null -> dao.insertApp(enrichedRemoteApp.toAppEntity())
                     remoteApp.lastModified >= localApp.lastModified -> dao.insertApp(enrichedRemoteApp.toAppEntity())
@@ -110,12 +146,19 @@ class AppRepositoryImpl(
                 }
             }
 
-            localApps.values
-                .map { it.toArchivedApp() }
-                .filter { localApp -> remoteApps.none { it.packageId == localApp.packageId } }
-                .forEach { localOnlyApp ->
-                    enqueueUpsert(localOnlyApp)
-                }
+            // Only enqueue local-only apps if we did a full fetch
+            if (lastSyncTime == 0L) {
+                val remotePackageIds = snapshot.documents.mapNotNull { it.getString("packageId") ?: it.id }.toSet()
+                localApps.values
+                    .map { it.toArchivedApp() }
+                    .filter { localApp -> !remotePackageIds.contains(localApp.packageId) }
+                    .forEach { localOnlyApp ->
+                        enqueueUpsert(localOnlyApp)
+                    }
+            }
+
+            val newSyncTime = if (maxModified > 0L) maxModified else System.currentTimeMillis()
+            prefs.edit().putLong(lastSyncTimeKey, newSyncTime).apply()
         } catch (e: Exception) {
             recordException(e)
         }
@@ -275,7 +318,8 @@ class AppRepositoryImpl(
             "isPlayStoreInstalled" to app.isPlayStoreInstalled,
             "lastTimeUsed" to app.lastTimeUsed,
             "folderName" to app.folderName,
-            "lastModified" to app.lastModified
+            "lastModified" to app.lastModified,
+            "isDeleted" to false
         )
         firestore.collection("users").document(user.uid).collection("apps")
             .document(app.packageId)
@@ -287,9 +331,16 @@ class AppRepositoryImpl(
         val auth = firebaseAuthOrNull() ?: error("FirebaseAuth unavailable")
         val firestore = firestoreOrNull() ?: error("Firestore unavailable")
         val user = auth.currentUser ?: error("No signed-in user")
+        
+        val deleteData = mapOf(
+            "isDeleted" to true,
+            "lastModified" to System.currentTimeMillis(),
+            "iconBase64" to FieldValue.delete()
+        )
+        
         firestore.collection("users").document(user.uid).collection("apps")
             .document(packageId)
-            .delete()
+            .set(deleteData, SetOptions.merge())
             .await()
     }
 
