@@ -28,6 +28,7 @@ class BillingViewModel @Inject constructor(
 
     data class ArchiveCreditsUi(
         val isPremium: Boolean,
+        val isVisible: Boolean,
         val used: Int,
         val limit: Int,
         val remaining: Int,
@@ -36,7 +37,7 @@ class BillingViewModel @Inject constructor(
     )
 
     val entitlementState: StateFlow<EntitlementState> = billingRepository.observeEntitlement()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), EntitlementState())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), billingRepository.currentEntitlement())
 
     val productUi: StateFlow<ProductUi> = billingRepository.observeProduct()
         .stateIn(
@@ -57,14 +58,22 @@ class BillingViewModel @Inject constructor(
     val isLoggedIn: StateFlow<Boolean> = authRepository.isUserLoggedIn
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    private val _isBillingLoading = MutableStateFlow(false)
+
     val archiveCreditsUi: StateFlow<ArchiveCreditsUi> = combine(
         appRepository.getAllArchivedApps().map { it.size },
-        entitlementState
-    ) { archivedCount, entitlement ->
+        entitlementState,
+        authRepository.isUserLoggedIn,
+        _isBillingLoading
+    ) { archivedCount, entitlement, loggedInObj, isLoading ->
+        val loggedIn = loggedInObj ?: false
         val used = archivedCount.coerceAtLeast(0)
+        val isVisible = loggedIn && !isLoading
+
         if (entitlement.isPremium) {
             ArchiveCreditsUi(
                 isPremium = true,
+                isVisible = isVisible,
                 used = used,
                 limit = Int.MAX_VALUE,
                 remaining = Int.MAX_VALUE,
@@ -79,6 +88,7 @@ class BillingViewModel @Inject constructor(
                 .coerceIn(0, 100)
             ArchiveCreditsUi(
                 isPremium = false,
+                isVisible = isVisible,
                 used = used,
                 limit = limit,
                 remaining = remaining,
@@ -90,7 +100,8 @@ class BillingViewModel @Inject constructor(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
         ArchiveCreditsUi(
-            isPremium = false,
+            isPremium = billingRepository.currentEntitlement().isPremium,
+            isVisible = false,
             used = 0,
             limit = ArchiveQuotaService.FREE_ARCHIVE_LIMIT,
             remaining = ArchiveQuotaService.FREE_ARCHIVE_LIMIT,
@@ -101,8 +112,10 @@ class BillingViewModel @Inject constructor(
 
     fun refreshBilling() {
         viewModelScope.launch {
+            _isBillingLoading.value = true
             billingRepository.refreshEntitlement()
             billingRepository.restorePurchases()
+            _isBillingLoading.value = false
         }
     }
 
