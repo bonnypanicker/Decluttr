@@ -48,6 +48,7 @@ class FolderAppsAdapter(
         holder.name.text = toDisplayName(app.name, app.packageId)
         holder.icon.load(iconDataFor(app)) {
             memoryCacheKey(app.packageId)
+            size(coil.size.Size.ORIGINAL)
             crossfade(false)
             placeholder(R.drawable.ic_launcher)
             error(R.drawable.ic_launcher)

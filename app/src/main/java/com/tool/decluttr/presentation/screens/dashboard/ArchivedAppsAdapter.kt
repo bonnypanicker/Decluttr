@@ -142,6 +142,7 @@ class ArchivedAppsAdapter(
             name.text = toDisplayName(app.name, app.packageId)
             icon.load(iconDataFor(app)) {
                 memoryCacheKey(app.packageId)
+                size(coil.size.Size.ORIGINAL)
                 crossfade(false)
                 placeholder(R.drawable.ic_launcher)
                 error(R.drawable.ic_launcher)
@@ -236,6 +237,7 @@ class ArchivedAppsAdapter(
             apps.forEachIndexed { index, app ->
                 icons[index].load(iconDataFor(app)) {
                     memoryCacheKey(app.packageId)
+                    size(coil.size.Size.ORIGINAL)
                     crossfade(false)
                     placeholder(R.drawable.ic_launcher)
                     error(R.drawable.ic_launcher)
@@ -266,6 +268,7 @@ class ArchivedAppsAdapter(
             meta.text = "${m.sizeLabel} • ${m.uninstallDateLabel} • $category"
             icon.load(iconDataFor(app)) {
                 memoryCacheKey(app.packageId)
+                size(coil.size.Size.ORIGINAL)
                 crossfade(false)
                 placeholder(R.drawable.ic_launcher)
                 error(R.drawable.ic_launcher)
