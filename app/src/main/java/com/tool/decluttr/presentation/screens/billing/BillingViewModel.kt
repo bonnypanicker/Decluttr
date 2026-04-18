@@ -65,8 +65,7 @@ class BillingViewModel @Inject constructor(
         entitlementState,
         authRepository.isUserLoggedIn,
         _isBillingLoading
-    ) { archivedCount, entitlement, loggedInObj, isLoading ->
-        val loggedIn = loggedInObj ?: false
+    ) { archivedCount, entitlement, loggedIn, isLoading ->
         val used = archivedCount.coerceAtLeast(0)
         val isVisible = loggedIn && !isLoading
 

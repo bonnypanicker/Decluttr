@@ -258,9 +258,10 @@ class AppRepositoryImpl(
                     val entry = pendingUpserts.entries.firstOrNull()
                     if (entry == null) {
                         pendingSyncJob = null
-                        return@synchronized null
+                        null
+                    } else {
+                        entry.toPair()
                     }
-                    entry.toPair()
                 } ?: return
 
                 val packageId = nextUpsert.first
