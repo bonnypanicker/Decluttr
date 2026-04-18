@@ -75,7 +75,7 @@ class AppRepositoryImpl(
                         currentUserId = uid
                     }
                     syncFromFirestore()
-                    flushPendingSyncs()
+                    schedulePendingSync()
                 } else {
                     clearPendingSyncState()
                     currentUserId?.let {
@@ -217,13 +217,15 @@ class AppRepositoryImpl(
     }
 
     private fun schedulePendingSync(delayMs: Long = 0L) {
-        val existing = pendingSyncJob
-        if (existing?.isActive == true) return
-        pendingSyncJob = scope.launch {
-            if (delayMs > 0L) {
-                delay(delayMs)
+        synchronized(syncStateLock) {
+            val existing = pendingSyncJob
+            if (existing?.isActive == true) return
+            pendingSyncJob = scope.launch {
+                if (delayMs > 0L) {
+                    delay(delayMs)
+                }
+                flushPendingSyncs()
             }
-            flushPendingSyncs()
         }
     }
 
@@ -243,15 +245,22 @@ class AppRepositoryImpl(
                         synchronized(syncStateLock) { pendingDeletes.remove(nextDelete) }
                         continue
                     }
-                    pendingSyncJob = scope.launch {
-                        delay(SYNC_RETRY_BASE_DELAY_MS * (MAX_SYNC_RETRIES + 1))
-                        flushPendingSyncs()
+                    synchronized(syncStateLock) {
+                        pendingSyncJob = scope.launch {
+                            delay(SYNC_RETRY_BASE_DELAY_MS * (MAX_SYNC_RETRIES + 1))
+                            flushPendingSyncs()
+                        }
                     }
                     return
                 }
 
                 val nextUpsert = synchronized(syncStateLock) {
-                    pendingUpserts.entries.firstOrNull()?.toPair()
+                    val entry = pendingUpserts.entries.firstOrNull()
+                    if (entry == null) {
+                        pendingSyncJob = null
+                        return@synchronized null
+                    }
+                    entry.toPair()
                 } ?: return
 
                 val packageId = nextUpsert.first
@@ -262,9 +271,11 @@ class AppRepositoryImpl(
                     }
                     continue
                 }
-                pendingSyncJob = scope.launch {
-                    delay(SYNC_RETRY_BASE_DELAY_MS * (MAX_SYNC_RETRIES + 1))
-                    flushPendingSyncs()
+                synchronized(syncStateLock) {
+                    pendingSyncJob = scope.launch {
+                        delay(SYNC_RETRY_BASE_DELAY_MS * (MAX_SYNC_RETRIES + 1))
+                        flushPendingSyncs()
+                    }
                 }
                 return
             }

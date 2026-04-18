@@ -385,6 +385,11 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
+                    viewModel.isLoggedIn.collect {
+                        updateUI(viewModel.archivedApps.value)
+                    }
+                }
+                launch {
                     viewModel.archivedApps.collect { apps ->
                         android.util.Log.v(
                             TAG,
@@ -409,7 +414,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 }
                 launch {
                     billingViewModel.archiveCreditsUi.collect { credits ->
-                        updatePremiumIndicator(credits.isPremium)
+                        updatePremiumIndicator(credits.isPremium, credits.isVisible)
                         if (!credits.isPremium) {
                             tvArchiveCredits.text = credits.label
                             progressArchiveCredits.setProgressCompat(credits.progress, true)
@@ -449,7 +454,13 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             .commit()
     }
 
-    private fun updatePremiumIndicator(isPremium: Boolean) {
+    private fun updatePremiumIndicator(isPremium: Boolean, isVisible: Boolean = true) {
+        if (!isVisible) {
+            creditsCard.visibility = View.GONE
+            btnPremium.visibility = View.GONE
+            return
+        }
+
         if (isPremium) {
             creditsCard.visibility = View.GONE
             btnPremium.visibility = View.GONE
@@ -583,7 +594,12 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 recyclerView.visibility = View.GONE
                 emptyStateContainer.visibility = View.VISIBLE
                 if (visibleArchiveApps.isEmpty()) {
-                    if (viewModel.isLoggedIn.value != true) {
+                    val loggedIn = viewModel.isLoggedIn.value
+                    if (loggedIn == null) {
+                        tvEmptyMessage.text = ""
+                        btnFindApps.visibility = View.GONE
+                        btnArchiveLogin.visibility = View.GONE
+                    } else if (!loggedIn) {
                         tvEmptyMessage.text = getString(R.string.archive_empty_message_logged_out)
                         btnFindApps.visibility = View.GONE
                         btnArchiveLogin.visibility = View.VISIBLE
@@ -638,7 +654,12 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 recyclerView.visibility = View.GONE
                 emptyStateContainer.visibility = View.VISIBLE
                 if (visibleArchiveApps.isEmpty()) {
-                    if (viewModel.isLoggedIn.value != true) {
+                    val loggedIn = viewModel.isLoggedIn.value
+                    if (loggedIn == null) {
+                        tvEmptyMessage.text = ""
+                        btnFindApps.visibility = View.GONE
+                        btnArchiveLogin.visibility = View.GONE
+                    } else if (!loggedIn) {
                         tvEmptyMessage.text = getString(R.string.archive_empty_message_logged_out)
                         btnFindApps.visibility = View.GONE
                         btnArchiveLogin.visibility = View.VISIBLE
