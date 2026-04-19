@@ -23,6 +23,37 @@ class FolderAppsAdapter(
     private val onDragStartFromFolder: (() -> Unit)? = null
 ) : RecyclerView.Adapter<FolderAppsAdapter.ViewHolder>() {
 
+    private val bitmapCache = object : android.util.LruCache<String, android.graphics.Bitmap>(4 * 1024 * 1024) { // 4MB
+        override fun sizeOf(key: String, value: android.graphics.Bitmap): Int = value.byteCount
+    }
+
+    private fun getIconBitmap(app: ArchivedApp): android.graphics.Bitmap? {
+        val bytes = app.iconBytes ?: return null
+        var bmp = bitmapCache.get(app.packageId)
+        if (bmp == null) {
+            bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            if (bmp != null) {
+                bitmapCache.put(app.packageId, bmp)
+            }
+        }
+        return bmp
+    }
+
+    private fun loadIcon(imageView: ImageView, app: ArchivedApp) {
+        val bmp = getIconBitmap(app)
+        if (bmp != null) {
+            imageView.setImageBitmap(bmp)
+        } else {
+            imageView.load(AppIconModel(app.packageId)) {
+                memoryCacheKey(app.packageId)
+                size(coil.size.Size.ORIGINAL)
+                crossfade(false)
+                placeholder(R.drawable.ic_launcher)
+                error(R.drawable.ic_launcher)
+            }
+        }
+    }
+
     companion object {
         private const val TAG = "DecluttrDragDbg"
     }
@@ -45,15 +76,13 @@ class FolderAppsAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val app = apps[position]
+        holder.itemView.tag = app
         holder.name.text = toDisplayName(app.name, app.packageId)
-        holder.icon.load(iconDataFor(app)) {
-            memoryCacheKey(app.packageId)
-            size(coil.size.Size.ORIGINAL)
-            crossfade(false)
-            placeholder(R.drawable.ic_launcher)
-            error(R.drawable.ic_launcher)
+        loadIcon(holder.icon, app)
+
+        holder.itemView.setOnClickListener {
+            onAppClick(app.packageId)
         }
-        holder.itemView.setOnClickListener { onAppClick(app.packageId) }
 
         holder.itemView.setOnLongClickListener { view ->
             try {

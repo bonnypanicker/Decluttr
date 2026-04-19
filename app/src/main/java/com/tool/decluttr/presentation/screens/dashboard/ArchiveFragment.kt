@@ -113,8 +113,9 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private var installedPackagesCacheAt: Long = 0L
     private val installedPackagesCacheTtlMs: Long = 8_000L
     private var savedItemAnimator: RecyclerView.ItemAnimator? = null
-    private var isDragInProgress: Boolean = false
+    private var isDragInProgress = false
     private var pendingAppsDuringDrag: List<ArchivedApp>? = null
+    private var isGoogleSignInLoading = false
     private val singletonCollapseInFlight = mutableSetOf<String>()
     private val pendingFolderCreations = mutableMapOf<String, Long>()
     private val pendingFolderCreationWindowMs = 3_000L
@@ -390,6 +391,11 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                     }
                 }
                 launch {
+                    authViewModel.isLoading.collect { isLoading ->
+                        updateUI(viewModel.archivedApps.value)
+                    }
+                }
+                launch {
                     viewModel.archivedApps.collect { apps ->
                         android.util.Log.v(
                             TAG,
@@ -546,8 +552,8 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             selectedCategory = "All"
         }
 
-        categoryBar.visibility = if (categories.size > 1 || reinstatedApps.isNotEmpty()) View.VISIBLE else View.GONE
-        btnReinstalledApps.visibility = if (reinstatedApps.isNotEmpty()) View.VISIBLE else View.GONE
+        categoryBar.visibility = View.VISIBLE
+        btnReinstalledApps.visibility = View.VISIBLE
 
         if (categories.size > 1) {
             chipContainerScrollView.visibility = View.VISIBLE
@@ -569,7 +575,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 chipContainer.addView(chip)
             }
         } else {
-            chipContainerScrollView.visibility = View.GONE
+            chipContainerScrollView.visibility = View.INVISIBLE
         }
 
         val filteredApps = visibleArchiveApps.filter { app ->
@@ -595,7 +601,9 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 emptyStateContainer.visibility = View.VISIBLE
                 if (visibleArchiveApps.isEmpty()) {
                     val loggedIn = viewModel.isLoggedIn.value
-                    if (loggedIn == null) {
+                    val isAuthLoading = isGoogleSignInLoading || authViewModel.isLoading.value
+
+                    if (loggedIn == null || isAuthLoading) {
                         tvEmptyMessage.text = ""
                         btnFindApps.visibility = View.GONE
                         btnArchiveLogin.visibility = View.GONE
@@ -655,7 +663,9 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 emptyStateContainer.visibility = View.VISIBLE
                 if (visibleArchiveApps.isEmpty()) {
                     val loggedIn = viewModel.isLoggedIn.value
-                    if (loggedIn == null) {
+                    val isAuthLoading = isGoogleSignInLoading || authViewModel.isLoading.value
+
+                    if (loggedIn == null || isAuthLoading) {
                         tvEmptyMessage.text = ""
                         btnFindApps.visibility = View.GONE
                         btnArchiveLogin.visibility = View.GONE
@@ -1034,6 +1044,8 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             return
         }
         viewLifecycleOwner.lifecycleScope.launch {
+            isGoogleSignInLoading = true
+            updateUI(viewModel.archivedApps.value)
             try {
                 val rawNonce = java.util.UUID.randomUUID().toString()
                 val bytes = rawNonce.toByteArray()
@@ -1067,7 +1079,12 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                     android.widget.Toast.makeText(requireContext(), "Unable to read Google credential.", android.widget.Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
-                android.widget.Toast.makeText(requireContext(), e.localizedMessage ?: "Google sign-in failed.", android.widget.Toast.LENGTH_LONG).show()
+                if (e !is androidx.credentials.exceptions.GetCredentialCancellationException) {
+                    android.widget.Toast.makeText(requireContext(), "Google Sign-In failed.", android.widget.Toast.LENGTH_LONG).show()
+                }
+            } finally {
+                isGoogleSignInLoading = false
+                updateUI(viewModel.archivedApps.value)
             }
         }
     }
