@@ -9,6 +9,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import android.graphics.drawable.GradientDrawable
+import android.graphics.Color
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.credentials.CredentialManager
@@ -218,23 +219,47 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
         return listOf(
             OnboardingPanel(
                 iconRes = R.drawable.ic_cleaning_services,
+                accentColor = Color.parseColor("#FF6B35"),
+                tag = getString(R.string.auth_panel_1_tag),
                 title = getString(R.string.auth_panel_1_title),
                 body = getString(R.string.auth_panel_1_body)
             ),
             OnboardingPanel(
                 iconRes = R.drawable.ic_archive_outlined,
+                accentColor = Color.parseColor("#4ECDC4"),
+                tag = getString(R.string.auth_panel_2_tag),
                 title = getString(R.string.auth_panel_2_title),
                 body = getString(R.string.auth_panel_2_body)
             ),
             OnboardingPanel(
                 iconRes = R.drawable.ic_storage_outlined,
+                accentColor = Color.parseColor("#A78BFA"),
+                tag = getString(R.string.auth_panel_3_tag),
                 title = getString(R.string.auth_panel_3_title),
                 body = getString(R.string.auth_panel_3_body)
             ),
             OnboardingPanel(
-                iconRes = R.drawable.ic_play_store,
+                iconRes = R.drawable.ic_list,
+                accentColor = Color.parseColor("#F59E0B"),
+                tag = getString(R.string.auth_panel_4_tag),
                 title = getString(R.string.auth_panel_4_title),
-                body = getString(R.string.auth_panel_4_body)
+                body = getString(R.string.auth_panel_4_body),
+                supportText = getString(R.string.auth_panel_4_support)
+            ),
+            OnboardingPanel(
+                iconRes = R.drawable.ic_search,
+                accentColor = Color.parseColor("#34D399"),
+                tag = getString(R.string.auth_panel_5_tag),
+                title = getString(R.string.auth_panel_5_title),
+                body = getString(R.string.auth_panel_5_body)
+            ),
+            OnboardingPanel(
+                iconRes = R.drawable.ic_play_store,
+                accentColor = Color.parseColor("#60A5FA"),
+                tag = getString(R.string.auth_panel_6_tag),
+                title = getString(R.string.auth_panel_6_title),
+                body = getString(R.string.auth_panel_6_body),
+                supportText = getString(R.string.auth_panel_6_support)
             )
         )
     }
