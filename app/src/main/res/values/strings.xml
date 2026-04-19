@@ -87,7 +87,7 @@
     <string name="discovery_empty_title">Nothing to show here</string>
     <string name="discovery_empty_message">Try changing search or sort to discover more apps.</string>
     <string name="discovery_loading">Analyzing installed apps…</string>
-    <string name="discovery_storage_estimated_label">Estimated storage freed</string>
+    <string name="discovery_storage_estimated_label">Estimated space to reclaim</string>
     <string name="discovery_storage_subtitle_empty">No high-impact cleanup targets right now</string>
     <string name="discovery_storage_subtitle_usage_and_size">%1$d high-impact candidates identified from usage and size</string>
     <string name="discovery_storage_subtitle_size_only">%1$d high-impact candidates identified from app size</string>

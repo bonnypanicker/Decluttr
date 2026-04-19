@@ -106,6 +106,25 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
             switchTab(0)
         }
 
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.archivedApps.collect { apps ->
+                    val pill = view.findViewById<android.widget.TextView>(R.id.toolbar_reclaimed_pill)
+                    val totalBytes = apps.sumOf { it.archivedSizeBytes ?: 0L }
+                    val mb = totalBytes / (1024.0 * 1024.0)
+                    val formatted = if (mb < 1.0) String.format(java.util.Locale.US, "%.1f MB freed", mb)
+                                    else String.format(java.util.Locale.US, "%.0f MB freed", mb)
+                    pill.text = formatted
+
+                    if (selectedTabIndex == 1 && totalBytes > 0) {
+                        pill.visibility = View.VISIBLE
+                    } else {
+                        pill.visibility = View.GONE
+                    }
+                }
+            }
+        }
+
         // Observe review events for bulk review dialog
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -130,6 +149,15 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
 
     private fun switchTab(index: Int) {
         selectedTabIndex = index
+        
+        val pill = view?.findViewById<android.widget.TextView>(R.id.toolbar_reclaimed_pill)
+        val totalBytes = viewModel.archivedApps.value.sumOf { it.archivedSizeBytes ?: 0L }
+        if (index == 1 && totalBytes > 0) {
+            pill?.visibility = View.VISIBLE
+        } else {
+            pill?.visibility = View.GONE
+        }
+
         val fragment = when (index) {
             0 -> DiscoveryFragment()
             1 -> ArchiveFragment()

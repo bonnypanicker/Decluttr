@@ -40,18 +40,36 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
     private val authViewModel: AuthViewModel by viewModels()
     private val billingViewModel: BillingViewModel by activityViewModels()
 
+    private var pendingExportData: String? = null
+
+    private val exportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+        uri?.let {
+            try {
+                val data = pendingExportData
+                if (data != null) {
+                    val encryptedBytes = com.tool.decluttr.presentation.util.CryptoUtils.encrypt(data)
+                    requireContext().contentResolver.openOutputStream(it)?.use { out ->
+                        out.write(encryptedBytes)
+                    }
+                    Toast.makeText(context, "Archive exported securely!", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error writing encrypted file", Toast.LENGTH_SHORT).show()
+            }
+        }
+        pendingExportData = null
+    }
+
     private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
             try {
-                val inputStream = requireContext().contentResolver.openInputStream(it)
-                if (inputStream != null) {
-                    val reader = InputStreamReader(inputStream)
-                    val jsonStr = reader.readText()
-                    reader.close()
+                requireContext().contentResolver.openInputStream(it)?.use { inputStream ->
+                    val bytes = inputStream.readBytes()
+                    val jsonStr = com.tool.decluttr.presentation.util.CryptoUtils.decrypt(bytes)
                     viewModel.importData(jsonStr)
                 }
             } catch (e: Exception) {
-                Toast.makeText(context, "Error reading file", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Error reading or decrypting file", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -125,7 +143,8 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         }
 
         btnImport.setOnClickListener {
-            importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
+            // Allows selecting the .enc or .bak files (or any file, technically)
+            importLauncher.launch(arrayOf("application/octet-stream", "*/*"))
         }
 
         btnSignin.setOnClickListener {
@@ -224,13 +243,9 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
                                 btnExport.isEnabled = true
                                 btnImport.isEnabled = true
                                 
-                                val sendIntent: Intent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    putExtra(Intent.EXTRA_TEXT, state.jsonString)
-                                    type = "text/plain"
-                                }
-                                val shareIntent = Intent.createChooser(sendIntent, "Save or Share Decluttr Archive")
-                                requireContext().startActivity(shareIntent)
+                                pendingExportData = state.jsonString
+                                val timeStr = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(java.util.Date())
+                                exportLauncher.launch("DecluttrArchive_\${timeStr}.dec")
                                 viewModel.resetState()
                             }
                             is SettingsState.ImportSuccess -> {
