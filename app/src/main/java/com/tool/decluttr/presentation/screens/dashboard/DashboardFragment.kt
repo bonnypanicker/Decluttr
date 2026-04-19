@@ -32,6 +32,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
     }
 
     companion object {
+        private const val TAG = "DashboardFragment"
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
