@@ -1,15 +1,14 @@
 package com.tool.decluttr.presentation.screens.auth
 
-import android.os.Bundle
-import android.util.TypedValue
-import android.view.View
-import android.view.animation.DecelerateInterpolator
-import android.widget.LinearLayout
-import android.widget.ProgressBar
-import android.widget.TextView
-import android.widget.Toast
-import android.graphics.drawable.GradientDrawable
 import android.graphics.Color
+import android.os.Bundle
+import android.util.Base64
+import android.view.View
+import android.webkit.JavascriptInterface
+import android.webkit.WebChromeClient
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.widget.Toast
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.credentials.CredentialManager
@@ -21,102 +20,57 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.core.view.updateLayoutParams
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.color.MaterialColors
 import androidx.navigation.fragment.findNavController
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import java.security.MessageDigest
-import java.util.UUID
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
-import androidx.viewpager2.widget.ViewPager2
 import com.tool.decluttr.R
 import com.tool.decluttr.presentation.screens.settings.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import java.security.MessageDigest
+import java.util.UUID
 
 @AndroidEntryPoint
 class AuthFragment : Fragment(R.layout.screen_auth) {
 
     private val viewModel: AuthViewModel by viewModels()
     private val settingsViewModel: SettingsViewModel by viewModels()
-    private var pagerCallback: ViewPager2.OnPageChangeCallback? = null
+
+    private lateinit var credentialManager: CredentialManager
+    private var onboardingWebView: WebView? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val tvError = view.findViewById<TextView>(R.id.tv_error)
-        val btnGoogle = view.findViewById<MaterialButton>(R.id.btn_google_signin)
-        val progressLoading = view.findViewById<ProgressBar>(R.id.progress_loading)
-        val onboardingPager = view.findViewById<ViewPager2>(R.id.onboarding_pager)
-        val pagerIndicator = view.findViewById<LinearLayout>(R.id.pager_indicator)
-        val credentialManager = CredentialManager.create(requireContext())
-        val panels = buildPanels()
-        onboardingPager.adapter = OnboardingPanelAdapter(panels)
-        renderPagerDots(
-            indicator = pagerIndicator,
-            selectedIndex = onboardingPager.currentItem,
-            total = panels.size
-        )
-        pagerCallback = object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                renderPagerDots(
-                    indicator = pagerIndicator,
-                    selectedIndex = position,
-                    total = panels.size
-                )
-            }
-        }.also { onboardingPager.registerOnPageChangeCallback(it) }
+        credentialManager = CredentialManager.create(requireContext())
+        val webView = view.findViewById<WebView>(R.id.onboarding_webview)
+        onboardingWebView = webView
 
-        // Edge-to-edge insets
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right,
-                maxOf(systemBars.bottom, ime.bottom))
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
-        // Click handlers
-        btnGoogle.setOnClickListener { startGoogleSignIn(credentialManager) }
+        configureWebView(webView)
+        loadExactOnboarding(webView)
 
-        // Staggered entrance animation
-        val animatableViews = listOf(onboardingPager, pagerIndicator, btnGoogle)
-        animatableViews.forEachIndexed { index, v ->
-            v.alpha = 0f
-            v.translationY = 40f * resources.displayMetrics.density
-            v.animate()
-                .alpha(1f).translationY(0f)
-                .setDuration(400)
-                .setStartDelay(index * 50L + 100L)
-                .setInterpolator(DecelerateInterpolator(1.5f))
-                .start()
-        }
-
-        // Observe ViewModel state
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     viewModel.isLoading.collect { loading ->
-                        btnGoogle.isEnabled = !loading
-                        btnGoogle.alpha = if (loading) 0.85f else 1f
-                        onboardingPager.isUserInputEnabled = !loading
-                        if (loading) {
-                            btnGoogle.text = ""
-                            btnGoogle.icon = null
-                            progressLoading.visibility = View.VISIBLE
-                        } else {
-                            btnGoogle.text = getString(R.string.auth_google_signin)
-                            btnGoogle.setIconResource(R.drawable.ic_google_logo)
-                            progressLoading.visibility = View.GONE
-                        }
+                        onboardingWebView?.evaluateJavascript(
+                            "window.setAuthLoading && window.setAuthLoading(${if (loading) "true" else "false"});",
+                            null
+                        )
                     }
                 }
                 launch {
                     viewModel.errorMessage.collect { error ->
-                        tvError.visibility = if (error != null) View.VISIBLE else View.GONE
-                        tvError.text = error
+                        if (!error.isNullOrBlank()) {
+                            Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
+                        }
                     }
                 }
                 launch {
@@ -134,18 +88,58 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
     }
 
     override fun onDestroyView() {
-        view?.findViewById<ViewPager2>(R.id.onboarding_pager)?.let { pager ->
-            pagerCallback?.let { pager.unregisterOnPageChangeCallback(it) }
+        onboardingWebView?.apply {
+            stopLoading()
+            removeJavascriptInterface("AndroidAuth")
+            webChromeClient = null
+            webViewClient = null
+            destroy()
         }
-        pagerCallback = null
+        onboardingWebView = null
         super.onDestroyView()
+    }
+
+    private fun configureWebView(webView: WebView) {
+        webView.setBackgroundColor(Color.TRANSPARENT)
+        webView.overScrollMode = View.OVER_SCROLL_NEVER
+        webView.webViewClient = WebViewClient()
+        webView.webChromeClient = WebChromeClient()
+        webView.settings.javaScriptEnabled = true
+        webView.settings.domStorageEnabled = true
+        webView.addJavascriptInterface(AuthBridge(), "AndroidAuth")
+    }
+
+    private fun loadExactOnboarding(webView: WebView) {
+        val template = requireContext().assets.open("onboarding-shell.html")
+            .bufferedReader()
+            .use { it.readText() }
+        val jsxBytes = requireContext().assets.open("decluttr-onboarding.jsx")
+            .use { it.readBytes() }
+        val jsxBase64 = Base64.encodeToString(jsxBytes, Base64.NO_WRAP)
+        val html = template.replace("__DECLUTTR_JSX_BASE64__", jsxBase64)
+        webView.loadDataWithBaseURL(
+            "https://decluttr.local/",
+            html,
+            "text/html",
+            "utf-8",
+            null
+        )
+    }
+
+    private inner class AuthBridge {
+        @JavascriptInterface
+        fun startGoogleSignIn() {
+            activity?.runOnUiThread {
+                startGoogleSignIn()
+            }
+        }
     }
 
     private fun navigateToDashboard() {
         findNavController().navigate(R.id.action_auth_to_dashboard)
     }
 
-    private fun startGoogleSignIn(credentialManager: CredentialManager) {
+    private fun startGoogleSignIn() {
         val serverClientId = runCatching { getString(R.string.default_web_client_id) }.getOrNull()
         if (serverClientId.isNullOrBlank()) {
             Toast.makeText(
@@ -213,107 +207,5 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
                 ).show()
             }
         }
-    }
-
-    private fun buildPanels(): List<OnboardingPanel> {
-        return listOf(
-            OnboardingPanel(
-                iconRes = R.drawable.ic_cleaning_services,
-                accentColor = Color.parseColor("#FF6B35"),
-                tag = getString(R.string.auth_panel_1_tag),
-                title = getString(R.string.auth_panel_1_title),
-                body = getString(R.string.auth_panel_1_body)
-            ),
-            OnboardingPanel(
-                iconRes = R.drawable.ic_archive_outlined,
-                accentColor = Color.parseColor("#4ECDC4"),
-                tag = getString(R.string.auth_panel_2_tag),
-                title = getString(R.string.auth_panel_2_title),
-                body = getString(R.string.auth_panel_2_body)
-            ),
-            OnboardingPanel(
-                iconRes = R.drawable.ic_storage_outlined,
-                accentColor = Color.parseColor("#A78BFA"),
-                tag = getString(R.string.auth_panel_3_tag),
-                title = getString(R.string.auth_panel_3_title),
-                body = getString(R.string.auth_panel_3_body)
-            ),
-            OnboardingPanel(
-                iconRes = R.drawable.ic_list,
-                accentColor = Color.parseColor("#F59E0B"),
-                tag = getString(R.string.auth_panel_4_tag),
-                title = getString(R.string.auth_panel_4_title),
-                body = getString(R.string.auth_panel_4_body),
-                supportText = getString(R.string.auth_panel_4_support)
-            ),
-            OnboardingPanel(
-                iconRes = R.drawable.ic_search,
-                accentColor = Color.parseColor("#34D399"),
-                tag = getString(R.string.auth_panel_5_tag),
-                title = getString(R.string.auth_panel_5_title),
-                body = getString(R.string.auth_panel_5_body)
-            ),
-            OnboardingPanel(
-                iconRes = R.drawable.ic_play_store,
-                accentColor = Color.parseColor("#60A5FA"),
-                tag = getString(R.string.auth_panel_6_tag),
-                title = getString(R.string.auth_panel_6_title),
-                body = getString(R.string.auth_panel_6_body),
-                supportText = getString(R.string.auth_panel_6_support)
-            )
-        )
-    }
-
-    private fun renderPagerDots(
-        indicator: LinearLayout,
-        selectedIndex: Int,
-        total: Int
-    ) {
-        if (total <= 0) return
-        if (indicator.childCount != total) {
-            indicator.removeAllViews()
-            repeat(total) {
-                val dot = View(requireContext()).apply {
-                    layoutParams = LinearLayout.LayoutParams(dp(8), dp(8)).apply {
-                        marginStart = dp(4)
-                        marginEnd = dp(4)
-                    }
-                }
-                indicator.addView(dot)
-            }
-        }
-
-        val selectedColor = MaterialColors.getColor(
-            indicator,
-            com.google.android.material.R.attr.colorPrimary
-        )
-        val unselectedColor = MaterialColors.getColor(
-            indicator,
-            com.google.android.material.R.attr.colorOutlineVariant
-        )
-
-        for (i in 0 until indicator.childCount) {
-            val dot = indicator.getChildAt(i)
-            val active = i == selectedIndex
-            val shape = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = dp(99).toFloat()
-                setColor(if (active) selectedColor else unselectedColor)
-            }
-            dot.background = shape
-            dot.alpha = if (active) 1f else 0.5f
-            dot.updateLayoutParams<LinearLayout.LayoutParams> {
-                width = if (active) dp(20) else dp(8)
-                height = dp(8)
-            }
-        }
-    }
-
-    private fun dp(value: Int): Int {
-        return TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP,
-            value.toFloat(),
-            resources.displayMetrics
-        ).toInt()
     }
 }
