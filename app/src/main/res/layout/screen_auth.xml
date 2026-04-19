@@ -5,142 +5,166 @@
     android:layout_height="match_parent"
     android:background="?attr/colorSurface">
 
-    <!-- Ambient background gradients matching new design -->
-    <!-- Top Left Primary Blur -->
     <View
         android:layout_width="250dp"
         android:layout_height="250dp"
         android:layout_gravity="top|start"
-        android:background="?attr/colorPrimaryContainer"
         android:alpha="0.2"
+        android:background="?attr/colorPrimaryContainer"
         android:translationX="-50dp"
         android:translationY="-50dp" />
 
-    <!-- Right Indigo Blur -->
     <View
         android:layout_width="200dp"
         android:layout_height="200dp"
         android:layout_gravity="center_vertical|end"
-        android:background="?attr/colorSecondaryContainer"
         android:alpha="0.4"
+        android:background="?attr/colorSecondaryContainer"
         android:translationX="50dp" />
 
-    <!-- Bottom Left Gold Blur -->
     <View
         android:layout_width="300dp"
         android:layout_height="300dp"
         android:layout_gravity="bottom|start"
-        android:background="?attr/colorTertiaryContainer"
         android:alpha="0.05"
+        android:background="?attr/colorTertiaryContainer"
         android:translationX="-50dp"
         android:translationY="50dp" />
 
-    <ScrollView
+    <LinearLayout
+        android:id="@+id/auth_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:orientation="vertical"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="16dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:paddingHorizontal="24dp"
-            android:paddingVertical="48dp">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <!-- App Branding Header -->
+            <FrameLayout
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:background="@drawable/bg_editorial_gradient">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:layout_gravity="center"
+                    android:src="@mipmap/ic_launcher_round" />
+            </FrameLayout>
+
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center_horizontal"
-                android:layout_marginBottom="48dp">
-
-                <!-- Icon Box -->
-                <FrameLayout
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
-                    android:background="@drawable/bg_editorial_gradient"
-                    android:layout_marginBottom="24dp">
-                    <ImageView
-                        android:layout_width="32dp"
-                        android:layout_height="32dp"
-                        android:layout_gravity="center"
-                        android:src="@mipmap/ic_launcher_round" />
-                </FrameLayout>
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Decluttr"
+                    android:text="@string/app_name"
+                    android:textAppearance="?attr/textAppearanceTitleLarge"
                     android:textColor="?attr/colorOnSurface"
-                    android:textAppearance="?attr/textAppearanceDisplaySmall"
-                    android:textStyle="bold"
-                    android:letterSpacing="-0.02"
-                    android:layout_marginBottom="8dp" />
+                    android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/auth_app_tagline"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:textAppearance="?attr/textAppearanceTitleMedium"
-                    android:gravity="center"
-                    android:maxWidth="280dp" />
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
+        </LinearLayout>
 
-            <!-- Auth Card -->
-            <LinearLayout
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/onboarding_pager"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="14dp"
+            android:layout_weight="1" />
+
+        <LinearLayout
+            android:id="@+id/pager_indicator"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal" />
+
+        <LinearLayout
+            android:id="@+id/sign_in_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_surface_container_low"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/bg_surface_container_low"
-                android:padding="32dp"
-                android:maxWidth="440dp">
+                android:text="@string/auth_onboarding_signin_title"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:textColor="?attr/colorOnSurface"
+                android:textStyle="bold" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/auth_google_only_subtitle"
-                    android:textColor="?attr/colorOnSurfaceVariant"
-                    android:textAppearance="?attr/textAppearanceBodyLarge"
-                    android:layout_marginBottom="20dp" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/auth_onboarding_signin_subtitle"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="?attr/colorOnSurfaceVariant" />
 
-                <TextView
-                    android:id="@+id/tv_error"
+            <TextView
+                android:id="@+id/tv_error"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorError"
+                android:visibility="gone" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_google_signin"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="12dp"
-                    android:textColor="?attr/colorError"
-                    android:textAppearance="?attr/textAppearanceBodySmall"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:paddingVertical="14dp"
+                    android:text="@string/auth_google_signin"
+                    app:icon="@drawable/ic_google_logo"
+                    app:iconGravity="textStart"
+                    app:iconPadding="12dp"
+                    app:iconTint="@null" />
+
+                <ProgressBar
+                    android:id="@+id/progress_loading"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
                     android:visibility="gone" />
+            </FrameLayout>
 
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_google_signin"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:insetTop="0dp"
-                        android:insetBottom="0dp"
-                        android:paddingVertical="16dp"
-                        android:text="@string/auth_google_signin"
-                        app:icon="@drawable/ic_google_logo"
-                        app:iconTint="@null"
-                        app:iconPadding="12dp"
-                        app:iconGravity="textStart" />
-
-                    <ProgressBar
-                        android:id="@+id/progress_loading"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:layout_gravity="center"
-                        android:visibility="gone" />
-                </FrameLayout>
-            </LinearLayout>
-
+            <TextView
+                android:id="@+id/tv_archive_notice"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/auth_onboarding_archive_notice"
+                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
-    </ScrollView>
+    </LinearLayout>
 </FrameLayout>

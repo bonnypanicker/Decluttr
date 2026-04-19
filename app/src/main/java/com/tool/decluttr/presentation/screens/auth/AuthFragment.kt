@@ -1,11 +1,14 @@
 package com.tool.decluttr.presentation.screens.auth
 
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.View
 import android.view.animation.DecelerateInterpolator
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import android.graphics.drawable.GradientDrawable
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.credentials.CredentialManager
@@ -17,13 +20,16 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.core.view.updateLayoutParams
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.color.MaterialColors
 import androidx.navigation.fragment.findNavController
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import java.security.MessageDigest
 import java.util.UUID
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
+import androidx.viewpager2.widget.ViewPager2
 import com.tool.decluttr.R
 import com.tool.decluttr.presentation.screens.settings.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -34,6 +40,7 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
 
     private val viewModel: AuthViewModel by viewModels()
     private val settingsViewModel: SettingsViewModel by viewModels()
+    private var pagerCallback: ViewPager2.OnPageChangeCallback? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -41,7 +48,25 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
         val tvError = view.findViewById<TextView>(R.id.tv_error)
         val btnGoogle = view.findViewById<MaterialButton>(R.id.btn_google_signin)
         val progressLoading = view.findViewById<ProgressBar>(R.id.progress_loading)
+        val onboardingPager = view.findViewById<ViewPager2>(R.id.onboarding_pager)
+        val pagerIndicator = view.findViewById<LinearLayout>(R.id.pager_indicator)
         val credentialManager = CredentialManager.create(requireContext())
+        val panels = buildPanels()
+        onboardingPager.adapter = OnboardingPanelAdapter(panels)
+        renderPagerDots(
+            indicator = pagerIndicator,
+            selectedIndex = onboardingPager.currentItem,
+            total = panels.size
+        )
+        pagerCallback = object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                renderPagerDots(
+                    indicator = pagerIndicator,
+                    selectedIndex = position,
+                    total = panels.size
+                )
+            }
+        }.also { onboardingPager.registerOnPageChangeCallback(it) }
 
         // Edge-to-edge insets
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
@@ -56,7 +81,7 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
         btnGoogle.setOnClickListener { startGoogleSignIn(credentialManager) }
 
         // Staggered entrance animation
-        val animatableViews = listOf(btnGoogle)
+        val animatableViews = listOf(onboardingPager, pagerIndicator, btnGoogle)
         animatableViews.forEachIndexed { index, v ->
             v.alpha = 0f
             v.translationY = 40f * resources.displayMetrics.density
@@ -75,6 +100,7 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
                     viewModel.isLoading.collect { loading ->
                         btnGoogle.isEnabled = !loading
                         btnGoogle.alpha = if (loading) 0.85f else 1f
+                        onboardingPager.isUserInputEnabled = !loading
                         if (loading) {
                             btnGoogle.text = ""
                             btnGoogle.icon = null
@@ -104,6 +130,14 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
                 }
             }
         }
+    }
+
+    override fun onDestroyView() {
+        view?.findViewById<ViewPager2>(R.id.onboarding_pager)?.let { pager ->
+            pagerCallback?.let { pager.unregisterOnPageChangeCallback(it) }
+        }
+        pagerCallback = null
+        super.onDestroyView()
     }
 
     private fun navigateToDashboard() {
@@ -178,5 +212,83 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
                 ).show()
             }
         }
+    }
+
+    private fun buildPanels(): List<OnboardingPanel> {
+        return listOf(
+            OnboardingPanel(
+                iconRes = R.drawable.ic_cleaning_services,
+                title = getString(R.string.auth_panel_1_title),
+                body = getString(R.string.auth_panel_1_body)
+            ),
+            OnboardingPanel(
+                iconRes = R.drawable.ic_archive_outlined,
+                title = getString(R.string.auth_panel_2_title),
+                body = getString(R.string.auth_panel_2_body)
+            ),
+            OnboardingPanel(
+                iconRes = R.drawable.ic_storage_outlined,
+                title = getString(R.string.auth_panel_3_title),
+                body = getString(R.string.auth_panel_3_body)
+            ),
+            OnboardingPanel(
+                iconRes = R.drawable.ic_play_store,
+                title = getString(R.string.auth_panel_4_title),
+                body = getString(R.string.auth_panel_4_body)
+            )
+        )
+    }
+
+    private fun renderPagerDots(
+        indicator: LinearLayout,
+        selectedIndex: Int,
+        total: Int
+    ) {
+        if (total <= 0) return
+        if (indicator.childCount != total) {
+            indicator.removeAllViews()
+            repeat(total) {
+                val dot = View(requireContext()).apply {
+                    layoutParams = LinearLayout.LayoutParams(dp(8), dp(8)).apply {
+                        marginStart = dp(4)
+                        marginEnd = dp(4)
+                    }
+                }
+                indicator.addView(dot)
+            }
+        }
+
+        val selectedColor = MaterialColors.getColor(
+            indicator,
+            com.google.android.material.R.attr.colorPrimary
+        )
+        val unselectedColor = MaterialColors.getColor(
+            indicator,
+            com.google.android.material.R.attr.colorOutlineVariant
+        )
+
+        for (i in 0 until indicator.childCount) {
+            val dot = indicator.getChildAt(i)
+            val active = i == selectedIndex
+            val shape = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dp(99).toFloat()
+                setColor(if (active) selectedColor else unselectedColor)
+            }
+            dot.background = shape
+            dot.alpha = if (active) 1f else 0.5f
+            dot.updateLayoutParams<LinearLayout.LayoutParams> {
+                width = if (active) dp(20) else dp(8)
+                height = dp(8)
+            }
+        }
+    }
+
+    private fun dp(value: Int): Int {
+        return TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            value.toFloat(),
+            resources.displayMetrics
+        ).toInt()
     }
 }
