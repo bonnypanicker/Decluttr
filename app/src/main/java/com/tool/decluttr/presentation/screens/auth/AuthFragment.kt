@@ -49,7 +49,8 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
 
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            // Let onboarding content handle top safe-area in WebView so it can use the notch area.
+            v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom)
             insets
         }
 
