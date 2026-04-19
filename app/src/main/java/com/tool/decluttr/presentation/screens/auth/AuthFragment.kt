@@ -92,7 +92,6 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
             stopLoading()
             removeJavascriptInterface("AndroidAuth")
             webChromeClient = null
-            webViewClient = null
             destroy()
         }
         onboardingWebView = null
