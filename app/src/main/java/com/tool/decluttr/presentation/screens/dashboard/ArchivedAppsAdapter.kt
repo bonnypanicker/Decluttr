@@ -140,14 +140,7 @@ class ArchivedAppsAdapter(
             itemView.scaleX = 1f
             itemView.scaleY = 1f
             name.text = toDisplayName(app.name, app.packageId)
-            icon.load(iconDataFor(app)) {
-                memoryCacheKey(app.packageId)
-                size(coil.size.Size.ORIGINAL)
-                crossfade(false)
-                placeholder(R.drawable.ic_launcher)
-                error(R.drawable.ic_launcher)
-            }
-
+            loadIcon(icon, app)
             itemView.setOnClickListener { onAppClick(app.packageId) }
             itemView.setOnLongClickListener { view ->
                 onAppStartDrag(app)
@@ -235,13 +228,7 @@ class ArchivedAppsAdapter(
                 it.setImageDrawable(null)
             } // Clear previous and reset icon state
             apps.forEachIndexed { index, app ->
-                icons[index].load(iconDataFor(app)) {
-                    memoryCacheKey(app.packageId)
-                    size(coil.size.Size.ORIGINAL)
-                    crossfade(false)
-                    placeholder(R.drawable.ic_launcher)
-                    error(R.drawable.ic_launcher)
-                }
+                loadIcon(icons[index], app)
             }
 
             itemView.setOnClickListener { onFolderClick(folderItem.name, itemView) }
@@ -266,13 +253,7 @@ class ArchivedAppsAdapter(
             val m = appMetaProvider(app)
             val category = app.category ?: "Uncategorized"
             meta.text = "${m.sizeLabel} • ${m.uninstallDateLabel} • $category"
-            icon.load(iconDataFor(app)) {
-                memoryCacheKey(app.packageId)
-                size(coil.size.Size.ORIGINAL)
-                crossfade(false)
-                placeholder(R.drawable.ic_launcher)
-                error(R.drawable.ic_launcher)
-            }
+            loadIcon(icon, app)
             itemView.setOnClickListener { onAppClick(app.packageId) }
         }
     }
@@ -592,6 +573,37 @@ class ArchivedAppsAdapter(
         is ArchivedItem.App -> "App(pkg=${item.app.packageId},folder=${item.app.folderName})"
         is ArchivedItem.Folder -> "Folder(name=${item.name},size=${item.apps.size})"
         null -> "null"
+    }
+
+    private val bitmapCache = object : android.util.LruCache<String, android.graphics.Bitmap>(8 * 1024 * 1024) { // 8MB
+        override fun sizeOf(key: String, value: android.graphics.Bitmap): Int = value.byteCount
+    }
+
+    private fun getIconBitmap(app: ArchivedApp): android.graphics.Bitmap? {
+        val bytes = app.iconBytes ?: return null
+        var bmp = bitmapCache.get(app.packageId)
+        if (bmp == null) {
+            bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            if (bmp != null) {
+                bitmapCache.put(app.packageId, bmp)
+            }
+        }
+        return bmp
+    }
+
+    private fun loadIcon(imageView: ImageView, app: ArchivedApp) {
+        val bmp = getIconBitmap(app)
+        if (bmp != null) {
+            imageView.setImageBitmap(bmp)
+        } else {
+            imageView.load(AppIconModel(app.packageId)) {
+                memoryCacheKey(app.packageId)
+                size(coil.size.Size.ORIGINAL)
+                crossfade(false)
+                placeholder(R.drawable.ic_launcher)
+                error(R.drawable.ic_launcher)
+            }
+        }
     }
 
     private fun iconDataFor(app: ArchivedApp): Any {
