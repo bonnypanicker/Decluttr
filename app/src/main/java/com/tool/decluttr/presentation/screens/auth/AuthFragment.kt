@@ -133,6 +133,17 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
                 this@AuthFragment.startGoogleSignIn()
             }
         }
+
+        @JavascriptInterface
+        fun openUrl(url: String) {
+            activity?.runOnUiThread {
+                try {
+                    startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+                } catch (e: Exception) {
+                    Toast.makeText(requireContext(), "Unable to open link", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     private fun navigateToDashboard() {

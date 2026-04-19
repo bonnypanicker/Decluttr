@@ -635,14 +635,14 @@ export default function DecluttrOnboarding() {
 
         .next-btn:hover { background: rgba(255,255,255,0.12) !important; }
         .dot:hover { transform: scale(1.3); }
-        
+        .sign-in-btn:hover { background: rgba(255,255,255,0.06) !important; }
         .get-started-btn:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
         .get-started-btn { transition: all 0.2s ease; }
       `}</style>
 
       <div
         style={{
-          width: "100%", maxWidth: 390, minHeight: "100dvh",
+          width: "100%", maxWidth: 390, minHeight: "100vh",
           margin: "0 auto", background: "#0a0b0f",
           display: "flex", flexDirection: "column",
           position: "relative", overflow: "hidden", userSelect: "none",
@@ -660,17 +660,17 @@ export default function DecluttrOnboarding() {
         {/* Top bar */}
         <div style={{
           display: "flex", justifyContent: "space-between", alignItems: "center",
-          padding: "calc(env(safe-area-inset-top, 0px) + 18px) 28px 0",
+          padding: "52px 28px 0",
           position: "relative", zIndex: 10,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <div style={{
               width: 28, height: 28, borderRadius: 8,
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.15)",
+              background: `linear-gradient(135deg, ${slide.accent}, ${slide.accent}80)`,
               display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "background 0.4s ease",
             }}>
-              <img src="file:///android_asset/icon_final.png" alt="Decluttr" style={{ width: 20, height: 20, objectFit: "contain" }} />
+              <span style={{ fontSize: 14 }}>📦</span>
             </div>
             <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 16, color: "rgba(255,255,255,0.9)", letterSpacing: "-0.01em" }}>
               Decluttr
@@ -846,21 +846,28 @@ export default function DecluttrOnboarding() {
                   Continue with Google
                 </span>
               </button>
+
+              <button
+                className="sign-in-btn"
+                style={{
+                  width: "100%", height: 48, borderRadius: 14,
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  cursor: "pointer", fontSize: 14, fontWeight: 600,
+                  color: "rgba(255,255,255,0.6)",
+                  fontFamily: "'DM Sans', sans-serif",
+                  transition: "background 0.2s ease",
+                }}
+              >
+                Sign in with Email
+              </button>
+
               <p style={{
                 fontSize: 11, color: "rgba(255,255,255,0.2)",
                 fontFamily: "'DM Sans', sans-serif", textAlign: "center",
                 lineHeight: 1.5, marginTop: 4,
               }}>
-                By continuing you agree to our{" "}
-                <span
-                  style={{ color: "rgba(255,255,255,0.5)", textDecoration: "underline", cursor: "pointer" }}
-                  onClick={() => window.AndroidAuth && window.AndroidAuth.openUrl('https://decluttr-3c299.web.app/terms-and-conditions.html')}
-                >Terms</span>
-                {" "}&{" "}
-                <span
-                  style={{ color: "rgba(255,255,255,0.5)", textDecoration: "underline", cursor: "pointer" }}
-                  onClick={() => window.AndroidAuth && window.AndroidAuth.openUrl('https://decluttr-3c299.web.app/privacy-policy.html')}
-                >Privacy Policy</span>
+                By continuing you agree to our Terms & Privacy Policy
               </p>
             </div>
           )}
@@ -869,4 +876,3 @@ export default function DecluttrOnboarding() {
     </>
   );
 }
-

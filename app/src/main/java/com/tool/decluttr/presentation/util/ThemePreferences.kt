@@ -9,7 +9,7 @@ object ThemePreferences {
 
     fun getThemeMode(context: Context): Int {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getInt(KEY_THEME_MODE, AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+            .getInt(KEY_THEME_MODE, AppCompatDelegate.MODE_NIGHT_YES)
     }
 
     fun setThemeMode(context: Context, mode: Int) {

@@ -60,245 +60,51 @@ const slides = [
 ];
 
 const ClutterVisual = ({ accent }) => {
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 1800);
-    return () => clearInterval(id);
-  }, []);
-
-  const grid = [
-    { emoji: "📄", name: "Docs",    badge: 0,  dim: false, color: "#4A90E2" },
-    { emoji: "🎵", name: "Music",   badge: 0,  dim: false, color: "#E2574A" },
-    { emoji: "🛒", name: "Shop",    badge: 7,  dim: true,  color: "#F5A623" },
-    { emoji: "🗺️", name: "Maps",    badge: 0,  dim: false, color: "#34A853" },
-    { emoji: "💸", name: "Tax",     badge: 0,  dim: true,  color: "#9B59B6" },
-    { emoji: "📷", name: "Cam",     badge: 0,  dim: false, color: "#E74C3C" },
-    { emoji: "📰", name: "News",    badge: 12, dim: true,  color: "#1ABC9C" },
-    { emoji: "🔧", name: "PDF",     badge: 0,  dim: true,  color: "#E67E22" },
-    { emoji: "💬", name: "Chat",    badge: 3,  dim: false, color: "#3498DB" },
-    { emoji: "🌐", name: "VPN",     badge: 0,  dim: true,  color: "#8E44AD" },
-    { emoji: "🏋️", name: "Fit",     badge: 1,  dim: true,  color: "#27AE60" },
-    { emoji: "🔍", name: "Scan",    badge: 0,  dim: true,  color: "#E74C3C" },
-    { emoji: "📊", name: "Stats",   badge: 0,  dim: true,  color: "#2980B9" },
-    { emoji: "🎮", name: "Game",    badge: 5,  dim: true,  color: "#D35400" },
-    { emoji: "🌤️", name: "Weathr",  badge: 0,  dim: false, color: "#16A085" },
-    { emoji: "🔔", name: "Notif",   badge: 9,  dim: true,  color: "#C0392B" },
+  const apps = [
+    { name: "Docs", x: 12, y: 20, size: 44, opacity: 0.9 },
+    { name: "VPN", x: 62, y: 8, size: 38, opacity: 0.7 },
+    { name: "Fit", x: 30, y: 55, size: 50, opacity: 0.95 },
+    { name: "Tax", x: 75, y: 50, size: 36, opacity: 0.6 },
+    { name: "PDF", x: 5, y: 72, size: 42, opacity: 0.8 },
+    { name: "Scan", x: 50, y: 75, size: 38, opacity: 0.75 },
+    { name: "Trans", x: 80, y: 78, size: 34, opacity: 0.5 },
+    { name: "Edit", x: 40, y: 30, size: 46, opacity: 0.85 },
   ];
-
-  // Status bar metrics that animate
-  const battery = 34 - (tick % 3);
-  const notifCount = [12, 14, 11, 15][tick % 4];
-
   return (
-    <div style={{
-      display: "flex", justifyContent: "center", alignItems: "flex-start",
-      width: "100%", height: "100%", position: "relative",
-    }}>
-      {/* Glow behind phone */}
-      <div style={{
-        position: "absolute", width: 160, height: 240, borderRadius: "50%",
-        background: `radial-gradient(circle, ${accent}22 0%, transparent 70%)`,
-        top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-        pointerEvents: "none",
-      }} />
-
-      {/* Phone shell — Android proportions: flat sides, subtle corner radius, power button on right */}
-      <div style={{
-        width: 168, height: 318,
-        borderRadius: "22px",
-        background: "linear-gradient(175deg, #222228 0%, #101014 100%)",
-        border: "1.5px solid rgba(255,255,255,0.10)",
-        boxShadow: `0 28px 60px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.03), inset 0 1px 0 rgba(255,255,255,0.06)`,
-        display: "flex", flexDirection: "column",
-        overflow: "hidden", position: "relative", flexShrink: 0,
-      }}>
-        {/* Volume buttons — left side */}
-        {[38, 62, 82].map((top, i) => (
-          <div key={i} style={{
-            position: "absolute", left: -3, top: top,
-            width: 3, height: i === 0 ? 10 : 18,
-            borderRadius: "2px 0 0 2px",
-            background: "rgba(255,255,255,0.12)",
-          }} />
-        ))}
-        {/* Power button — right side */}
-        <div style={{
-          position: "absolute", right: -3, top: 60,
-          width: 3, height: 22,
-          borderRadius: "0 2px 2px 0",
-          background: "rgba(255,255,255,0.15)",
-        }} />
-
-        {/* Android status bar — time left, icons right, punch-hole camera centred */}
-        <div style={{
-          display: "flex", justifyContent: "space-between", alignItems: "center",
-          padding: "10px 14px 0", fontSize: 8, position: "relative", zIndex: 10,
-          color: "rgba(255,255,255,0.55)", fontFamily: "'DM Sans', sans-serif", fontWeight: 600,
-        }}>
-          <span>9:41</span>
-          {/* Punch-hole camera — centred in status bar */}
-          <div style={{
-            position: "absolute", left: "50%", top: 8, transform: "translateX(-50%)",
-            width: 9, height: 9, borderRadius: "50%",
-            background: "#060608",
-            boxShadow: "0 0 0 1px rgba(255,255,255,0.08)",
-          }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            {/* Notification dot */}
-            <div style={{ position: "relative" }}>
-              <span style={{ fontSize: 8 }}>🔔</span>
-              <div style={{
-                position: "absolute", top: -2, right: -3,
-                width: 11, height: 11, borderRadius: "50%",
-                background: accent, display: "flex", alignItems: "center",
-                justifyContent: "center", fontSize: 6, fontWeight: 800,
-                color: "#0a0b0f", transition: "all 0.3s ease",
-              }}>{notifCount}</div>
-            </div>
-            {/* Signal bars */}
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 1 }}>
-              {[3, 5, 7, 9].map((h, i) => (
-                <div key={i} style={{
-                  width: 2, height: h, borderRadius: 1,
-                  background: i < 3 ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.15)",
-                }} />
-              ))}
-            </div>
-            {/* Wifi */}
-            <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-              <path d="M5 6.5a1 1 0 100 2 1 1 0 000-2z" fill="rgba(255,255,255,0.5)"/>
-              <path d="M2.5 4.5C3.2 3.8 4 3.5 5 3.5s1.8.3 2.5 1" stroke="rgba(255,255,255,0.4)" strokeWidth="1" strokeLinecap="round" fill="none"/>
-              <path d="M0.5 2.5C1.8 1.2 3.3.5 5 .5s3.2.7 4.5 2" stroke="rgba(255,255,255,0.2)" strokeWidth="1" strokeLinecap="round" fill="none"/>
-            </svg>
-            {/* Battery — Android style: vertical nub on right */}
-            <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <div style={{
-                  width: 15, height: 8, borderRadius: "2px",
-                  border: `1px solid ${battery < 20 ? accent : "rgba(255,255,255,0.35)"}`,
-                  padding: "1px", position: "relative",
-                }}>
-                  <div style={{
-                    height: "100%", borderRadius: "1px",
-                    width: `${battery}%`,
-                    background: battery < 20 ? accent : "rgba(255,255,255,0.55)",
-                    transition: "width 0.8s ease",
-                  }} />
-                </div>
-                {/* nub */}
-                <div style={{
-                  width: 2, height: 4, borderRadius: "0 1px 1px 0",
-                  background: battery < 20 ? accent : "rgba(255,255,255,0.3)",
-                  marginLeft: 0,
-                }} />
-              </div>
-              <span style={{ fontSize: 7, color: battery < 20 ? accent : "rgba(255,255,255,0.35)", transition: "color 0.5s" }}>{battery}%</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Wallpaper area — faint */}
-        <div style={{
-          position: "absolute", inset: 0,
-          background: `radial-gradient(ellipse at 50% 30%, ${accent}08, transparent 60%)`,
-          pointerEvents: "none",
-        }} />
-
-        {/* App grid */}
-        <div style={{
-          flex: 1, padding: "6px 10px 4px",
-          display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
-          gap: "6px 4px", alignContent: "start",
-        }}>
-          {grid.map((app, i) => (
-            <div
-              key={i}
-              style={{
-                display: "flex", flexDirection: "column",
-                alignItems: "center", gap: 3,
-                animation: `fadeSlideIn 0.4s ease both`,
-                animationDelay: `${i * 0.03}s`,
-                opacity: app.dim ? 0.38 : 1,
-                transition: "opacity 0.4s ease",
-              }}
-            >
-              <div style={{ position: "relative" }}>
-                <div style={{
-                  width: 33, height: 33, borderRadius: 9,
-                  background: app.dim
-                    ? "rgba(255,255,255,0.05)"
-                    : `linear-gradient(145deg, ${app.color}30, ${app.color}10)`,
-                  border: `1px solid ${app.dim ? "rgba(255,255,255,0.06)" : app.color + "35"}`,
-                  display: "flex", alignItems: "center",
-                  justifyContent: "center", fontSize: 15,
-                  filter: app.dim ? "grayscale(0.8)" : "none",
-                }}>
-                  {app.emoji}
-                </div>
-                {app.badge > 0 && (
-                  <div style={{
-                    position: "absolute", top: -3, right: -3,
-                    minWidth: 13, height: 13, borderRadius: 7,
-                    background: "#FF3B30",
-                    border: "1.5px solid #0a0b0f",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 7, fontWeight: 800, color: "#fff",
-                    fontFamily: "'DM Sans', sans-serif",
-                    padding: "0 2px",
-                    animation: "blink 2s ease-in-out infinite",
-                    animationDelay: `${i * 0.3}s`,
-                  }}>{app.badge}</div>
-                )}
-              </div>
-              <span style={{
-                fontSize: 7, color: app.dim ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.65)",
-                fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
-                maxWidth: 34, textAlign: "center", lineHeight: 1.1,
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              }}>{app.name}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Android gesture navigation bar */}
-        <div style={{
-          padding: "6px 0 10px",
-          display: "flex", justifyContent: "center", alignItems: "center",
-        }}>
-          <div style={{
-            width: 90, height: 4, borderRadius: 2,
-            background: "rgba(255,255,255,0.18)",
-          }} />
-        </div>
-      </div>
-
-      {/* Side labels — pain points */}
-      {[
-        { text: "37 notifications", top: "18%", left: "-8px", align: "flex-end" },
-        { text: "14 apps unused", top: "42%", left: "-8px", align: "flex-end" },
-        { text: "Battery at 34%", top: "66%", left: "-8px", align: "flex-end" },
-      ].map((label, i) => (
-        <div key={i} style={{
-          position: "absolute",
-          top: label.top,
-          left: label.left,
-          display: "flex", alignItems: "center", gap: 5,
-          flexDirection: "row-reverse",
-          animation: `fadeSlideIn 0.5s ease both`,
-          animationDelay: `${0.4 + i * 0.12}s`,
-        }}>
-          <div style={{
-            width: 20, height: 1,
-            background: `linear-gradient(to left, ${accent}60, transparent)`,
-          }} />
-          <span style={{
-            fontSize: 9, color: `${accent}90`,
-            fontFamily: "'DM Sans', sans-serif", fontWeight: 700,
-            letterSpacing: "0.04em", whiteSpace: "nowrap",
-            textAlign: "right",
-          }}>{label.text}</span>
+    <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden" }}>
+      {apps.map((app, i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            left: `${app.x}%`,
+            top: `${app.y}%`,
+            width: app.size,
+            height: app.size,
+            borderRadius: 12,
+            background: `linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))`,
+            border: `1px solid rgba(255,255,255,0.1)`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 9,
+            color: `rgba(255,255,255,${app.opacity * 0.7})`,
+            opacity: app.opacity,
+            fontFamily: "'DM Sans', sans-serif",
+            fontWeight: 600,
+            letterSpacing: "0.02em",
+            backdropFilter: "blur(4px)",
+            animation: `float${i % 3} ${3 + (i % 3)}s ease-in-out infinite`,
+            transform: `rotate(${(i % 5 - 2) * 3}deg)`,
+          }}
+        >
+          {app.name}
         </div>
       ))}
+      <div style={{
+        position: "absolute", inset: 0,
+        background: `radial-gradient(circle at 50% 50%, ${accent}15 0%, transparent 70%)`,
+      }} />
     </div>
   );
 };
@@ -635,14 +441,14 @@ export default function DecluttrOnboarding() {
 
         .next-btn:hover { background: rgba(255,255,255,0.12) !important; }
         .dot:hover { transform: scale(1.3); }
-        
+        .sign-in-btn:hover { background: rgba(255,255,255,0.06) !important; }
         .get-started-btn:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
         .get-started-btn { transition: all 0.2s ease; }
       `}</style>
 
       <div
         style={{
-          width: "100%", maxWidth: 390, minHeight: "100dvh",
+          width: "100%", maxWidth: 390, minHeight: "100vh",
           margin: "0 auto", background: "#0a0b0f",
           display: "flex", flexDirection: "column",
           position: "relative", overflow: "hidden", userSelect: "none",
@@ -660,17 +466,17 @@ export default function DecluttrOnboarding() {
         {/* Top bar */}
         <div style={{
           display: "flex", justifyContent: "space-between", alignItems: "center",
-          padding: "calc(env(safe-area-inset-top, 0px) + 18px) 28px 0",
+          padding: "52px 28px 0",
           position: "relative", zIndex: 10,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <div style={{
               width: 28, height: 28, borderRadius: 8,
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.15)",
+              background: `linear-gradient(135deg, ${slide.accent}, ${slide.accent}80)`,
               display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "background 0.4s ease",
             }}>
-              <img src="file:///android_asset/icon_final.png" alt="Decluttr" style={{ width: 20, height: 20, objectFit: "contain" }} />
+              <span style={{ fontSize: 14 }}>📦</span>
             </div>
             <span style={{ fontFamily: "'DM Serif Display', serif", fontSize: 16, color: "rgba(255,255,255,0.9)", letterSpacing: "-0.01em" }}>
               Decluttr
@@ -846,21 +652,28 @@ export default function DecluttrOnboarding() {
                   Continue with Google
                 </span>
               </button>
+
+              <button
+                className="sign-in-btn"
+                style={{
+                  width: "100%", height: 48, borderRadius: 14,
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  cursor: "pointer", fontSize: 14, fontWeight: 600,
+                  color: "rgba(255,255,255,0.6)",
+                  fontFamily: "'DM Sans', sans-serif",
+                  transition: "background 0.2s ease",
+                }}
+              >
+                Sign in with Email
+              </button>
+
               <p style={{
                 fontSize: 11, color: "rgba(255,255,255,0.2)",
                 fontFamily: "'DM Sans', sans-serif", textAlign: "center",
                 lineHeight: 1.5, marginTop: 4,
               }}>
-                By continuing you agree to our{" "}
-                <span
-                  style={{ color: "rgba(255,255,255,0.5)", textDecoration: "underline", cursor: "pointer" }}
-                  onClick={() => window.AndroidAuth && window.AndroidAuth.openUrl('https://decluttr-3c299.web.app/terms-and-conditions.html')}
-                >Terms</span>
-                {" "}&{" "}
-                <span
-                  style={{ color: "rgba(255,255,255,0.5)", textDecoration: "underline", cursor: "pointer" }}
-                  onClick={() => window.AndroidAuth && window.AndroidAuth.openUrl('https://decluttr-3c299.web.app/privacy-policy.html')}
-                >Privacy Policy</span>
+                By continuing you agree to our Terms & Privacy Policy
               </p>
             </div>
           )}
@@ -869,4 +682,3 @@ export default function DecluttrOnboarding() {
     </>
   );
 }
-
