@@ -129,7 +129,7 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
         @JavascriptInterface
         fun startGoogleSignIn() {
             activity?.runOnUiThread {
-                startGoogleSignIn()
+                this@AuthFragment.startGoogleSignIn()
             }
         }
     }
