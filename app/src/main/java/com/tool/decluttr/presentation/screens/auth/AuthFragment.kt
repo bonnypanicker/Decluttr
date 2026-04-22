@@ -42,15 +42,17 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
         val btnGoogle = view.findViewById<MaterialButton>(R.id.btn_google_signin)
         val progressLoading = view.findViewById<ProgressBar>(R.id.progress_loading)
         val credentialManager = CredentialManager.create(requireContext())
+        val scrollView = view.findViewById<android.widget.ScrollView>(R.id.auth_scroll_view)
 
         // Edge-to-edge insets
-        ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(scrollView) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right,
                 maxOf(systemBars.bottom, ime.bottom))
             insets
         }
+        ViewCompat.requestApplyInsets(scrollView)
 
         // Click handlers
         btnGoogle.setOnClickListener { startGoogleSignIn(credentialManager) }

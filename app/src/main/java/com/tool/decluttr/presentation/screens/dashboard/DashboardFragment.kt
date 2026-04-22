@@ -86,6 +86,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
             )
             insets
         }
+        ViewCompat.requestApplyInsets(view)
         bottomNav.post {
             val systemBars = ViewCompat.getRootWindowInsets(view)?.getInsets(WindowInsetsCompat.Type.systemBars())
             val bottomInset = systemBars?.bottom ?: 0
