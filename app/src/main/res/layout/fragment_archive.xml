@@ -43,17 +43,6 @@
             android:padding="8dp"
             android:src="@drawable/ic_list"
             android:tint="?attr/colorOnSurfaceVariant" />
-
-        <ImageButton
-            android:id="@+id/btn_premium"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="4dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Upgrade to premium"
-            android:padding="8dp"
-            android:src="@drawable/ic_premium"
-            android:tint="?attr/colorPrimary" />
     </LinearLayout>
 
     <com.google.android.material.card.MaterialCardView

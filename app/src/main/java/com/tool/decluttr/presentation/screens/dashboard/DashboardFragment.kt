@@ -18,6 +18,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.tool.decluttr.R
+import com.tool.decluttr.presentation.screens.billing.BillingViewModel
 import com.tool.decluttr.presentation.screens.billing.PaywallBottomSheet
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -26,6 +27,7 @@ import kotlinx.coroutines.launch
 class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
 
     private val viewModel: DashboardViewModel by activityViewModels()
+    private val billingViewModel: BillingViewModel by activityViewModels()
     private var selectedTabIndex = 0
     private val onboardingPrefs by lazy {
         requireContext().getSharedPreferences("decluttr_prefs", android.content.Context.MODE_PRIVATE)
@@ -44,10 +46,17 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
 
         // Toolbar
         toolbar.setOnMenuItemClickListener { item ->
-            if (item.itemId == R.id.action_settings) {
-                openSettings()
-                true
-            } else false
+            when (item.itemId) {
+                R.id.action_settings -> {
+                    openSettings()
+                    true
+                }
+                R.id.action_get_pro -> {
+                    showPaywall(reason = "toolbar_get_pro", limit = null, overflow = null)
+                    true
+                }
+                else -> false
+            }
         }
 
         // Apply our custom unique production-ready Navigation Bar styling natively
@@ -107,23 +116,27 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
             switchTab(0)
         }
 
-        // Observe review events for bulk review dialog
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.reviewEvent.collect { data ->
-                    showBulkReviewDialog(data)
+                launch {
+                    viewModel.reviewEvent.collect { data ->
+                        showBulkReviewDialog(data)
+                    }
                 }
-            }
-        }
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.paywallEvent.collect { request ->
-                    showPaywall(
-                        reason = request.reason,
-                        used = request.quota?.used,
-                        limit = request.quota?.limit
-                    )
+                launch {
+                    viewModel.paywallEvent.collect { request ->
+                        showPaywall(
+                            reason = request.reason,
+                            used = request.quota?.used,
+                            limit = request.quota?.limit
+                        )
+                    }
+                }
+                launch {
+                    billingViewModel.entitlementState.collect { entitlement ->
+                        val getProItem = toolbar.menu.findItem(R.id.action_get_pro)
+                        getProItem?.isVisible = !entitlement.isPremium && selectedTabIndex == 1
+                    }
                 }
             }
         }
@@ -139,6 +152,11 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         childFragmentManager.beginTransaction()
             .replace(R.id.content_container, fragment)
             .commit()
+        
+        view?.findViewById<MaterialToolbar>(R.id.toolbar)?.let { toolbar ->
+            val getProItem = toolbar.menu.findItem(R.id.action_get_pro)
+            getProItem?.isVisible = !billingViewModel.entitlementState.value.isPremium && selectedTabIndex == 1
+        }
     }
 
     private fun openSettings() {

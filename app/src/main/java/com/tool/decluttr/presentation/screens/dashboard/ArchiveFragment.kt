@@ -78,7 +78,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private lateinit var btnReinstalledApps: ImageView
     private lateinit var btnSort: ImageView
     private lateinit var btnViewSwitch: ImageView
-    private lateinit var btnPremium: ImageView
     private lateinit var creditsCard: View
     private lateinit var tvArchiveCredits: TextView
     private lateinit var progressArchiveCredits: LinearProgressIndicator
@@ -152,7 +151,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         btnReinstalledApps = v.findViewById(R.id.btn_reinstalled_apps)
         btnSort = v.findViewById(R.id.btn_sort)
         btnViewSwitch = v.findViewById(R.id.btn_view_switch)
-        btnPremium = v.findViewById(R.id.btn_premium)
         creditsCard = v.findViewById(R.id.archive_credits_card)
         tvArchiveCredits = v.findViewById(R.id.tv_archive_credits)
         progressArchiveCredits = v.findViewById(R.id.progress_archive_credits)
@@ -346,7 +344,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
 
         btnSort.setOnClickListener { showSortMenu() }
         btnSort.visibility = if (isListMode) View.VISIBLE else View.GONE
-        btnPremium.setOnClickListener { showPaywall(reason = "archive_icon_tap") }
 
         btnDismissDragInfo.setOnClickListener {
             isDragInfoDismissed = true
@@ -463,32 +460,13 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private fun updatePremiumIndicator(isPremium: Boolean, isVisible: Boolean = true) {
         if (!isVisible) {
             creditsCard.visibility = View.GONE
-            btnPremium.visibility = View.GONE
             return
         }
 
         if (isPremium) {
             creditsCard.visibility = View.GONE
-            btnPremium.visibility = View.GONE
-            btnPremium.contentDescription = "Premium active"
-            btnPremium.animate().cancel()
-            btnPremium.scaleX = 1f
-            btnPremium.scaleY = 1f
-            btnPremium.backgroundTintList = null
-            btnPremium.imageTintList = null
         } else {
             creditsCard.visibility = View.VISIBLE
-            btnPremium.visibility = View.VISIBLE
-            btnPremium.contentDescription = "Upgrade to premium"
-            btnPremium.backgroundTintList = null
-            val tint = MaterialColors.getColor(
-                btnPremium,
-                com.google.android.material.R.attr.colorPrimary
-            )
-            btnPremium.imageTintList = ColorStateList.valueOf(tint)
-            btnPremium.animate().cancel()
-            btnPremium.scaleX = 1f
-            btnPremium.scaleY = 1f
         }
     }
 
@@ -750,7 +728,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             searchBar.visibility = View.GONE
             btnSort.visibility = View.GONE
             btnViewSwitch.visibility = View.GONE
-            btnPremium.visibility = View.GONE
             creditsCard.visibility = View.GONE
             categoryBar.visibility = View.GONE
             infoCardsContainer.visibility = View.GONE
