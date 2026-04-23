@@ -19,4 +19,5 @@
     <color name="DarkSecondaryText">#9CA3AF</color>
     <color name="AccentTeal">#14B8A6</color>
     <color name="GooglePlayGreen">#34A853</color>
+    <color name="drag_highlight_fill">#1A6750A4</color>
 </resources>

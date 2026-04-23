@@ -14,8 +14,7 @@ internal data class ArchiveNotesUiState(
 internal class ArchiveNotesStateMachine(initialText: String?) {
     private var savedText: String = initialText?.trim().orEmpty()
     private var draftText: String = savedText
-    private var mode: ArchiveNotesMode =
-        if (savedText.isBlank()) ArchiveNotesMode.EDIT else ArchiveNotesMode.VIEW
+    private var mode: ArchiveNotesMode = ArchiveNotesMode.VIEW
 
     fun state(): ArchiveNotesUiState {
         return ArchiveNotesUiState(

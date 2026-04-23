@@ -127,6 +127,11 @@ class FolderExpandOverlay(
                 overlayView = null
                 isExpanded = false
                 animateAnchorFolderIcons(visible = true, animate = false)
+                
+                // Force the RecyclerView to re-layout immediately
+                val rv = parentView.findViewWithTag<RecyclerView>("archive_recycler")
+                rv?.requestLayout()
+
                 android.util.Log.d(TAG, "FOLDER_OVERLAY removed instantly for drag folder=$folderName")
                 onDismiss()
                 onDragStartFromFolder?.invoke()
@@ -147,14 +152,21 @@ class FolderExpandOverlay(
         // ── OPEN ANIMATION ──
 
         // Calculate anchor position for animation origin
-        val anchorLocation = IntArray(2)
-        val parentLocation = IntArray(2)
-        anchorView?.getLocationInWindow(anchorLocation)
-        parentView.getLocationInWindow(parentLocation)
-        val anchorCenterX = (anchorLocation[0] - parentLocation[0] +
-            (anchorView?.width ?: 0) / 2).toFloat()
-        val anchorCenterY = (anchorLocation[1] - parentLocation[1] +
-            (anchorView?.height ?: 0) / 2).toFloat()
+        val anchorCenterX: Float
+        val anchorCenterY: Float
+
+        if (anchorView != null) {
+            val anchorLocation = IntArray(2)
+            val parentLocation = IntArray(2)
+            anchorView.getLocationInWindow(anchorLocation)
+            parentView.getLocationInWindow(parentLocation)
+            anchorCenterX = (anchorLocation[0] - parentLocation[0] + anchorView.width / 2).toFloat()
+            anchorCenterY = (anchorLocation[1] - parentLocation[1] + anchorView.height / 2).toFloat()
+        } else {
+            // Fallback: animate from screen center
+            anchorCenterX = parentView.width / 2f
+            anchorCenterY = parentView.height / 2f
+        }
 
         // Scrim fade in
         scrim.alpha = 0f
@@ -166,7 +178,8 @@ class FolderExpandOverlay(
 
         // Apply blur if API 31+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            scrim.setRenderEffect(
+            // Apply it to the parent root which actually has content behind it
+            parentView.setRenderEffect(
                 android.graphics.RenderEffect.createBlurEffect(
                     15f, 15f,
                     android.graphics.Shader.TileMode.CLAMP
@@ -223,6 +236,10 @@ class FolderExpandOverlay(
         val overlay = overlayView ?: return
         val scrim = overlay.findViewById<View>(R.id.folder_scrim)
         val card = overlay.findViewById<MaterialCardView>(R.id.folder_card)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            parentView.setRenderEffect(null)
+        }
 
         // Card: spring back to small size with bounce
         val scaleXSpring = SpringAnimation(card, DynamicAnimation.SCALE_X).apply {

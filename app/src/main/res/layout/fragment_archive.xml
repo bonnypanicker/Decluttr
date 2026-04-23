@@ -275,6 +275,8 @@
             android:layout_height="match_parent"
             android:background="?attr/colorSurface"
             android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true"
             android:visibility="gone">
 
             <LinearLayout
@@ -292,7 +294,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="Back"
                     android:padding="8dp"
-                    android:src="@android:drawable/ic_media_previous"
+                    android:src="@drawable/ic_arrow_back"
                     android:tint="?attr/colorOnSurface" />
 
                 <TextView

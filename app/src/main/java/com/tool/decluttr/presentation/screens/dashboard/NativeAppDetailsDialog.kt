@@ -33,9 +33,19 @@ class NativeAppDetailsDialog(
             dismissOnOutside = true,
             maxWidthDp = 640,
             horizontalMarginDp = 12,
+            fixedHeightFraction = null,
             softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
         ).build().apply {
             setOnDismissListener { onDismissRequest() }
+
+            // Cap the dialog to 85% screen height to prevent overflow
+            window?.decorView?.post {
+                val maxHeight = (context.resources.displayMetrics.heightPixels * 0.85f).toInt()
+                val currentHeight = window?.decorView?.height ?: 0
+                if (currentHeight > maxHeight) {
+                    window?.setLayout(window?.attributes?.width ?: 0, maxHeight)
+                }
+            }
 
             val appIcon = findViewById<ImageView>(R.id.app_icon)
             val appName = findViewById<TextView>(R.id.app_name)
@@ -85,7 +95,9 @@ class NativeAppDetailsDialog(
             }
 
             setOnShowListener {
-                btnReinstall.requestFocus()
+                if (!btnReinstall.isInTouchMode) {
+                    btnReinstall.requestFocus()
+                }
             }
         }
         dialog?.show()

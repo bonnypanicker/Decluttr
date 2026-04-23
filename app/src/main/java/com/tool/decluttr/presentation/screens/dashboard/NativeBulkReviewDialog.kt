@@ -33,7 +33,8 @@ class NativeBulkReviewDialog(
         contentLayoutRes = R.layout.dialog_bulk_review,
         dismissOnOutside = false,
         maxWidthDp = 680,
-        horizontalMarginDp = 12
+        horizontalMarginDp = 12,
+        fixedHeightFraction = 0.7f
     ).build()
     private val notesMap = mutableMapOf<String, String>()
 
@@ -56,26 +57,43 @@ class NativeBulkReviewDialog(
         viewPager.adapter = adapter
 
         // Setup Dots
-        val dotSize = (8 * context.resources.displayMetrics.density).toInt()
-        val dotMargin = (4 * context.resources.displayMetrics.density).toInt()
         val dots = mutableListOf<View>()
-        for (i in archivedApps.indices) {
-            val dot = View(context).apply {
-                val lp = LinearLayout.LayoutParams(dotSize, dotSize)
-                lp.setMargins(dotMargin, 0, dotMargin, 0)
-                layoutParams = lp
-                setBackgroundResource(if (i == 0) R.drawable.dot_active else R.drawable.dot_inactive)
+        if (archivedApps.size <= 8) {
+            dotsContainer.visibility = View.VISIBLE
+            val dotSize = (8 * context.resources.displayMetrics.density).toInt()
+            val dotMargin = (4 * context.resources.displayMetrics.density).toInt()
+            for (i in archivedApps.indices) {
+                val dot = View(context).apply {
+                    val lp = LinearLayout.LayoutParams(dotSize, dotSize)
+                    lp.setMargins(dotMargin, 0, dotMargin, 0)
+                    layoutParams = lp
+                    setBackgroundResource(if (i == 0) R.drawable.dot_active else R.drawable.dot_inactive)
+                }
+                dots.add(dot)
+                dotsContainer.addView(dot)
             }
-            dots.add(dot)
-            dotsContainer.addView(dot)
+        } else {
+            dotsContainer.visibility = View.GONE
+            val pageIndicator = dialog.findViewById<TextView>(R.id.tv_page_indicator)
+            pageIndicator?.visibility = View.VISIBLE
+            pageIndicator?.text = "1 of ${archivedApps.size}"
         }
 
         viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
-                dots.forEachIndexed { index, dot ->
-                    dot.setBackgroundResource(
-                        if (index == position) R.drawable.dot_active else R.drawable.dot_inactive
-                    )
+                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                viewPager.windowToken?.let { token ->
+                    imm.hideSoftInputFromWindow(token, 0)
+                }
+
+                if (archivedApps.size <= 8) {
+                    dots.forEachIndexed { index, dot ->
+                        dot.setBackgroundResource(
+                            if (index == position) R.drawable.dot_active else R.drawable.dot_inactive
+                        )
+                    }
+                } else {
+                    dialog.findViewById<TextView>(R.id.tv_page_indicator)?.text = "${position + 1} of ${archivedApps.size}"
                 }
                 btnNext.visibility = if (position < archivedApps.size - 1) View.VISIBLE else View.GONE
                 btnDone.visibility = if (position == archivedApps.size - 1) View.VISIBLE else View.GONE

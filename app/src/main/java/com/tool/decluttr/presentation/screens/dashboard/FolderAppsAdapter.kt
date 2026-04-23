@@ -23,24 +23,8 @@ class FolderAppsAdapter(
     private val onDragStartFromFolder: (() -> Unit)? = null
 ) : RecyclerView.Adapter<FolderAppsAdapter.ViewHolder>() {
 
-    private val bitmapCache = object : android.util.LruCache<String, android.graphics.Bitmap>(4 * 1024 * 1024) { // 4MB
-        override fun sizeOf(key: String, value: android.graphics.Bitmap): Int = value.byteCount
-    }
-
-    private fun getIconBitmap(app: ArchivedApp): android.graphics.Bitmap? {
-        val bytes = app.iconBytes ?: return null
-        var bmp = bitmapCache.get(app.packageId)
-        if (bmp == null) {
-            bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            if (bmp != null) {
-                bitmapCache.put(app.packageId, bmp)
-            }
-        }
-        return bmp
-    }
-
     private fun loadIcon(imageView: ImageView, app: ArchivedApp) {
-        val bmp = getIconBitmap(app)
+        val bmp = IconBitmapCache.getOrDecode(app)
         if (bmp != null) {
             imageView.setImageBitmap(bmp)
         } else {
@@ -59,8 +43,16 @@ class FolderAppsAdapter(
     }
 
     fun updateData(newApps: List<ArchivedApp>) {
+        val diffResult = androidx.recyclerview.widget.DiffUtil.calculateDiff(object : androidx.recyclerview.widget.DiffUtil.Callback() {
+            override fun getOldListSize() = apps.size
+            override fun getNewListSize() = newApps.size
+            override fun areItemsTheSame(oldPos: Int, newPos: Int) =
+                apps[oldPos].packageId == newApps[newPos].packageId
+            override fun areContentsTheSame(oldPos: Int, newPos: Int) =
+                apps[oldPos] == newApps[newPos]
+        })
         apps = newApps
-        notifyDataSetChanged()
+        diffResult.dispatchUpdatesTo(this)
     }
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -99,6 +91,7 @@ class FolderAppsAdapter(
                     view.startDrag(clipData, shadowBuilder, app, 0)
                 }
                 if (started) {
+                    // Hide AFTER drag started so shadow builder already captured the view
                     view.visibility = View.INVISIBLE
                     view.performHapticFeedback(
                         android.view.HapticFeedbackConstants.LONG_PRESS,
@@ -106,6 +99,7 @@ class FolderAppsAdapter(
                     )
 
                     android.util.Log.d(TAG, "FOLDER drag started pkg=${app.packageId}; dismiss overlay")
+                    // Use post to ensure the drag shadow is already attached before removing overlay
                     view.post { onDragStartFromFolder?.invoke() }
                 } else {
                     android.util.Log.w(TAG, "FOLDER drag failed to start pkg=${app.packageId}")

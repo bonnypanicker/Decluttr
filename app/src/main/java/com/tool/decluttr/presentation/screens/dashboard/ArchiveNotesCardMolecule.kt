@@ -110,7 +110,11 @@ internal class ArchiveNotesCardMolecule(
         }
         notesSavedText.text = savedText
         notesSavedText.alpha = if (hasSavedText) 1f else 0.78f
-        inlineEditButton.text = notesSavedText.context.getString(R.string.archive_popup_edit)
+        inlineEditButton.text = if (hasSavedText) {
+            notesSavedText.context.getString(R.string.archive_popup_edit)
+        } else {
+            "Add"
+        }
 
         if (state.mode == ArchiveNotesMode.EDIT) {
             notesViewCard.visibility = View.GONE

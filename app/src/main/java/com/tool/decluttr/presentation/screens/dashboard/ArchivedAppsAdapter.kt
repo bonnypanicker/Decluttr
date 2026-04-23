@@ -114,6 +114,15 @@ class ArchivedAppsAdapter(
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        // Safety: always ensure the item view is visible when bound.
+        // Prevents ghost items from a drag that didn't clean up properly.
+        holder.itemView.animate().cancel()
+        pulseAnimators.remove(holder.itemView)?.cancel()
+        holder.itemView.visibility = View.VISIBLE
+        holder.itemView.alpha = 1f
+        holder.itemView.scaleX = 1f
+        holder.itemView.scaleY = 1f
+
         val item = getItem(position)
         if (holder is AppViewHolder && item is ArchivedItem.App) {
             holder.bind(item)
@@ -473,8 +482,31 @@ class ArchivedAppsAdapter(
             .alpha(1f)
             .scaleX(1f)
             .scaleY(1f)
-            .setDuration(300)
-            .setInterpolator(OvershootInterpolator(1.5f))
+            .setDuration(250)
+            .setInterpolator(android.view.animation.OvershootInterpolator())
+            .start()
+    }
+
+    private fun restoreDraggedSourceViewCancelled(view: View) {
+        view.animate().cancel()
+        view.visibility = View.VISIBLE
+        view.alpha = 0f
+        view.scaleX = 0.8f
+        view.scaleY = 0.8f
+
+        // Quick scale-up with overshoot + subtle horizontal shake
+        view.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(350)
+            .setInterpolator(android.view.animation.OvershootInterpolator(2.0f))
+            .withEndAction {
+                // Subtle shake to indicate "nope, didn't land"
+                val shakeAnimator = android.animation.ObjectAnimator.ofFloat(view, "translationX", 0f, -6f, 6f, -4f, 4f, 0f)
+                shakeAnimator.duration = 250
+                shakeAnimator.start()
+            }
             .start()
     }
 
@@ -484,6 +516,11 @@ class ArchivedAppsAdapter(
         endingViewOriginalBackground: android.graphics.drawable.Drawable?,
         dropAction: (() -> Unit)?
     ) {
+        // Guard: if this session was already finalized, bail out
+        if (!dragInFlight && !dragEndScheduled) {
+            android.util.Log.v(TAG, "session=$activeDragSessionId FINALIZE already completed, skip")
+            return
+        }
         try {
             pulseAnimators.remove(endingView)?.cancel()
             endingView.background = endingViewOriginalBackground
@@ -491,12 +528,13 @@ class ArchivedAppsAdapter(
             endingView.scaleY = 1f
 
             val dragSource = draggingViewRef?.get()
+            var foundSourceView: View? = null
             if (dragSource != null && dragSource.visibility != View.VISIBLE) {
                 android.util.Log.d(
                     TAG,
                     "session=$activeDragSessionId FINALIZE restore source=weakRef view=${describeView(dragSource)}"
                 )
-                restoreDraggedSourceView(dragSource)
+                foundSourceView = dragSource
             } else {
                 val draggingPkg = draggingPackageId
                 if (draggingPkg != null && recyclerView != null) {
@@ -508,7 +546,7 @@ class ArchivedAppsAdapter(
                                 TAG,
                                 "session=$activeDragSessionId FINALIZE restore source=scan pkg=$draggingPkg child=${describeView(child)}"
                             )
-                            restoreDraggedSourceView(child)
+                            foundSourceView = child
                             break
                         }
                     }
@@ -516,17 +554,15 @@ class ArchivedAppsAdapter(
             }
 
             if (dropAction != null) {
+                foundSourceView?.let { restoreDraggedSourceView(it) }
                 android.util.Log.d(TAG, "session=$activeDragSessionId FINALIZE execute drop action")
                 runCatching { dropAction.invoke() }
                     .onFailure {
-                        android.util.Log.e(
-                            TAG,
-                            "session=$activeDragSessionId FINALIZE drop action failed",
-                            it
-                        )
+                        android.util.Log.e(TAG, "session=$activeDragSessionId FINALIZE drop action failed", it)
                     }
             } else {
                 android.util.Log.d(TAG, "session=$activeDragSessionId FINALIZE no drop action")
+                foundSourceView?.let { restoreDraggedSourceViewCancelled(it) }
             }
         } finally {
             draggingViewRef = null
@@ -575,24 +611,8 @@ class ArchivedAppsAdapter(
         null -> "null"
     }
 
-    private val bitmapCache = object : android.util.LruCache<String, android.graphics.Bitmap>(8 * 1024 * 1024) { // 8MB
-        override fun sizeOf(key: String, value: android.graphics.Bitmap): Int = value.byteCount
-    }
-
-    private fun getIconBitmap(app: ArchivedApp): android.graphics.Bitmap? {
-        val bytes = app.iconBytes ?: return null
-        var bmp = bitmapCache.get(app.packageId)
-        if (bmp == null) {
-            bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            if (bmp != null) {
-                bitmapCache.put(app.packageId, bmp)
-            }
-        }
-        return bmp
-    }
-
     private fun loadIcon(imageView: ImageView, app: ArchivedApp) {
-        val bmp = getIconBitmap(app)
+        val bmp = IconBitmapCache.getOrDecode(app)
         if (bmp != null) {
             imageView.setImageBitmap(bmp)
         } else {

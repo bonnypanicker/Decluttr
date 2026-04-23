@@ -553,7 +553,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 chipContainer.addView(chip)
             }
         } else {
-            chipContainerScrollView.visibility = View.INVISIBLE
+            chipContainerScrollView.visibility = View.GONE
         }
 
         val filteredApps = visibleArchiveApps.filter { app ->
@@ -687,7 +687,8 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             val folder = app.folderName
             folder != null &&
                 (folderCounts[folder] ?: 0) == 1 &&
-                !pendingFolderCreations.containsKey(folder)
+                !pendingFolderCreations.containsKey(folder) &&
+                isDefaultFolderName(folder)
         }
 
         val singletonPkgIds = singletonApps.map { it.packageId }.toSet()
@@ -719,9 +720,15 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         popup.show()
     }
 
+    private fun isDefaultFolderName(name: String): Boolean {
+        if (name == "New Folder") return true
+        return name.matches(Regex("New Folder \\d+"))
+    }
+
     private fun setReinstalledPageVisible(visible: Boolean) {
         isReinstalledPageVisible = visible
         reinstalledPageContainer.visibility = if (visible) View.VISIBLE else View.GONE
+        recyclerView.isEnabled = !visible
 
         // Hide main archive controls that don't apply to the reinstalled page
         if (visible) {
@@ -735,6 +742,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             reinstalledAdapter.submitArchivedApps(reinstatedApps)
             tvReinstalledEmpty.visibility = if (reinstatedApps.isEmpty()) View.VISIBLE else View.GONE
         } else {
+            recyclerView.isEnabled = true
             // Restore archive controls
             searchBar.visibility = View.VISIBLE
             btnViewSwitch.visibility = View.VISIBLE
@@ -839,8 +847,14 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         android.util.Log.d(TAG, "handleAppDropOnApp dragged=${draggedApp.packageId} target=${targetApp.packageId}")
         if (draggedApp.packageId == targetApp.packageId) return
         val apps = viewModel.archivedApps.value
-        val latestDragged = apps.firstOrNull { it.packageId == draggedApp.packageId } ?: return
-        val latestTarget = apps.firstOrNull { it.packageId == targetApp.packageId } ?: return
+        val latestDragged = apps.firstOrNull { it.packageId == draggedApp.packageId }
+        val latestTarget = apps.firstOrNull { it.packageId == targetApp.packageId }
+
+        if (latestDragged == null || latestTarget == null) {
+            // App was deleted/modified during drag
+            com.google.android.material.snackbar.Snackbar.make(requireView(), "App was modified during drag. Try again.", com.google.android.material.snackbar.Snackbar.LENGTH_SHORT).show()
+            return
+        }
 
         if (latestDragged.folderName != null && latestDragged.folderName == latestTarget.folderName) return
 
