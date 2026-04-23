@@ -1,10 +1,13 @@
 package com.tool.decluttr.presentation.screens.auth
 
+import android.graphics.Color
 import android.os.Bundle
+import android.util.Base64
 import android.view.View
-import android.view.animation.DecelerateInterpolator
-import android.widget.ProgressBar
-import android.widget.TextView
+import android.webkit.JavascriptInterface
+import android.webkit.WebChromeClient
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -17,17 +20,16 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.google.android.material.button.MaterialButton
 import androidx.navigation.fragment.findNavController
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import java.security.MessageDigest
-import java.util.UUID
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.tool.decluttr.R
 import com.tool.decluttr.presentation.screens.settings.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import java.security.MessageDigest
+import java.util.UUID
 
 @AndroidEntryPoint
 class AuthFragment : Fragment(R.layout.screen_auth) {
@@ -35,63 +37,41 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
     private val viewModel: AuthViewModel by viewModels()
     private val settingsViewModel: SettingsViewModel by viewModels()
 
+    private lateinit var credentialManager: CredentialManager
+    private var onboardingWebView: WebView? = null
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val tvError = view.findViewById<TextView>(R.id.tv_error)
-        val btnGoogle = view.findViewById<MaterialButton>(R.id.btn_google_signin)
-        val progressLoading = view.findViewById<ProgressBar>(R.id.progress_loading)
-        val credentialManager = CredentialManager.create(requireContext())
-        val scrollView = view.findViewById<android.widget.ScrollView>(R.id.auth_scroll_view)
+        credentialManager = CredentialManager.create(requireContext())
+        val webView = view.findViewById<WebView>(R.id.onboarding_webview)
+        onboardingWebView = webView
 
-        // Edge-to-edge insets
-        ViewCompat.setOnApplyWindowInsetsListener(scrollView) { v, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right,
-                maxOf(systemBars.bottom, ime.bottom))
+            // Let onboarding content handle top safe-area in WebView so it can use the notch area.
+            v.setPadding(systemBars.left, 0, systemBars.right, systemBars.bottom)
             insets
         }
-        ViewCompat.requestApplyInsets(scrollView)
 
-        // Click handlers
-        btnGoogle.setOnClickListener { startGoogleSignIn(credentialManager) }
+        configureWebView(webView)
+        loadExactOnboarding(webView)
 
-        // Staggered entrance animation
-        val animatableViews = listOf(btnGoogle)
-        animatableViews.forEachIndexed { index, v ->
-            v.alpha = 0f
-            v.translationY = 40f * resources.displayMetrics.density
-            v.animate()
-                .alpha(1f).translationY(0f)
-                .setDuration(400)
-                .setStartDelay(index * 50L + 100L)
-                .setInterpolator(DecelerateInterpolator(1.5f))
-                .start()
-        }
-
-        // Observe ViewModel state
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     viewModel.isLoading.collect { loading ->
-                        btnGoogle.isEnabled = !loading
-                        btnGoogle.alpha = if (loading) 0.85f else 1f
-                        if (loading) {
-                            btnGoogle.text = ""
-                            btnGoogle.icon = null
-                            progressLoading.visibility = View.VISIBLE
-                        } else {
-                            btnGoogle.text = getString(R.string.auth_google_signin)
-                            btnGoogle.setIconResource(R.drawable.ic_google_logo)
-                            progressLoading.visibility = View.GONE
-                        }
+                        onboardingWebView?.evaluateJavascript(
+                            "window.setAuthLoading && window.setAuthLoading(${if (loading) "true" else "false"});",
+                            null
+                        )
                     }
                 }
                 launch {
                     viewModel.errorMessage.collect { error ->
-                        tvError.visibility = if (error != null) View.VISIBLE else View.GONE
-                        tvError.text = error
+                        if (!error.isNullOrBlank()) {
+                            Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show()
+                        }
                     }
                 }
                 launch {
@@ -108,11 +88,69 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
         }
     }
 
+    override fun onDestroyView() {
+        onboardingWebView?.apply {
+            stopLoading()
+            removeJavascriptInterface("AndroidAuth")
+            webChromeClient = null
+            destroy()
+        }
+        onboardingWebView = null
+        super.onDestroyView()
+    }
+
+    private fun configureWebView(webView: WebView) {
+        webView.setBackgroundColor(Color.TRANSPARENT)
+        webView.overScrollMode = View.OVER_SCROLL_NEVER
+        webView.webViewClient = WebViewClient()
+        webView.webChromeClient = WebChromeClient()
+        webView.settings.javaScriptEnabled = true
+        webView.settings.domStorageEnabled = true
+        webView.addJavascriptInterface(AuthBridge(), "AndroidAuth")
+    }
+
+    private fun loadExactOnboarding(webView: WebView) {
+        val template = requireContext().assets.open("onboarding-shell.html")
+            .bufferedReader()
+            .use { it.readText() }
+        val jsxBytes = requireContext().assets.open("decluttr-onboarding.jsx")
+            .use { it.readBytes() }
+        val jsxBase64 = Base64.encodeToString(jsxBytes, Base64.NO_WRAP)
+        val html = template.replace("__DECLUTTR_JSX_BASE64__", jsxBase64)
+        webView.loadDataWithBaseURL(
+            "https://decluttr.local/",
+            html,
+            "text/html",
+            "utf-8",
+            null
+        )
+    }
+
+    private inner class AuthBridge {
+        @JavascriptInterface
+        fun startGoogleSignIn() {
+            activity?.runOnUiThread {
+                this@AuthFragment.startGoogleSignIn()
+            }
+        }
+
+        @JavascriptInterface
+        fun openUrl(url: String) {
+            activity?.runOnUiThread {
+                try {
+                    startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)))
+                } catch (e: Exception) {
+                    Toast.makeText(requireContext(), "Unable to open link", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
     private fun navigateToDashboard() {
         findNavController().navigate(R.id.action_auth_to_dashboard)
     }
 
-    private fun startGoogleSignIn(credentialManager: CredentialManager) {
+    private fun startGoogleSignIn() {
         val serverClientId = runCatching { getString(R.string.default_web_client_id) }.getOrNull()
         if (serverClientId.isNullOrBlank()) {
             Toast.makeText(

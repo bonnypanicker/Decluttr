@@ -34,6 +34,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
     }
 
     companion object {
+        private const val TAG = "DashboardFragment"
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -52,7 +53,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
                     true
                 }
                 R.id.action_get_pro -> {
-                    showPaywall(reason = "toolbar_get_pro", limit = null, overflow = null)
+                    showPaywall(reason = "toolbar_get_pro", used = null, limit = null)
                     true
                 }
                 else -> false
@@ -138,12 +139,37 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
                         getProItem?.isVisible = !entitlement.isPremium && selectedTabIndex == 1
                     }
                 }
+                launch {
+                    viewModel.archivedApps.collect { apps ->
+                        val pill = view.findViewById<android.widget.TextView>(R.id.toolbar_reclaimed_pill)
+                        val totalBytes = apps.sumOf { it.archivedSizeBytes ?: 0L }
+                        val mb = totalBytes / (1024.0 * 1024.0)
+                        val formatted = if (mb < 1.0) String.format(java.util.Locale.US, "%.1f MB freed", mb)
+                                        else String.format(java.util.Locale.US, "%.0f MB freed", mb)
+                        pill.text = formatted
+
+                        if (selectedTabIndex == 1 && totalBytes > 0) {
+                            pill.visibility = View.VISIBLE
+                        } else {
+                            pill.visibility = View.GONE
+                        }
+                    }
+                }
             }
         }
     }
 
     private fun switchTab(index: Int) {
         selectedTabIndex = index
+        
+        val pill = view?.findViewById<android.widget.TextView>(R.id.toolbar_reclaimed_pill)
+        val totalBytes = viewModel.archivedApps.value.sumOf { it.archivedSizeBytes ?: 0L }
+        if (index == 1 && totalBytes > 0) {
+            pill?.visibility = View.VISIBLE
+        } else {
+            pill?.visibility = View.GONE
+        }
+
         val fragment = when (index) {
             0 -> DiscoveryFragment()
             1 -> ArchiveFragment()

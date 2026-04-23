@@ -215,24 +215,33 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:text="Export or import archive JSON to move data safely between devices."
+                        android:text="Export or import your archive to move data safely between devices."
                         android:textAppearance="?attr/textAppearanceBodySmall"
                         android:textColor="?attr/colorOnSurfaceVariant" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_export"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:text="Export Archive (JSON)" />
+                        android:orientation="horizontal"
+                        android:layout_marginTop="12dp">
+                        
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_export"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="6dp"
+                            android:text="Export Archive" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_import"
-                        style="?attr/materialButtonOutlinedStyle"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:text="Import Archive (JSON)" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_import"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:text="Import Archive" />
+                    </LinearLayout>
 
                     <ProgressBar
                         android:id="@+id/progress"
@@ -262,7 +271,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Legal &amp; App Info"
+                        android:text="App Info"
                         android:textAppearance="?attr/textAppearanceTitleMedium"
                         android:textColor="?attr/colorOnSurface"
                         android:textStyle="bold" />
