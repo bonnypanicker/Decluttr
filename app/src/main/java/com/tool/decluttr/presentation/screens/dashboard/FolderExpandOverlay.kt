@@ -176,17 +176,6 @@ class FolderExpandOverlay(
             .setInterpolator(android.view.animation.AccelerateInterpolator())
             .start()
 
-        // Apply blur if API 31+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // Apply it to the parent root which actually has content behind it
-            parentView.setRenderEffect(
-                android.graphics.RenderEffect.createBlurEffect(
-                    15f, 15f,
-                    android.graphics.Shader.TileMode.CLAMP
-                )
-            )
-        }
-
         // Card: start from anchor, expand to center
         card.pivotX = anchorCenterX
         card.pivotY = anchorCenterY
@@ -236,10 +225,6 @@ class FolderExpandOverlay(
         val overlay = overlayView ?: return
         val scrim = overlay.findViewById<View>(R.id.folder_scrim)
         val card = overlay.findViewById<MaterialCardView>(R.id.folder_card)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            parentView.setRenderEffect(null)
-        }
 
         // Card: spring back to small size with bounce
         val scaleXSpring = SpringAnimation(card, DynamicAnimation.SCALE_X).apply {
