@@ -127,11 +127,6 @@ class FolderExpandOverlay(
                 overlayView = null
                 isExpanded = false
                 animateAnchorFolderIcons(visible = true, animate = false)
-                
-                // Force the RecyclerView to re-layout immediately
-                val rv = parentView.findViewWithTag<RecyclerView>("archive_recycler")
-                rv?.requestLayout()
-
                 android.util.Log.d(TAG, "FOLDER_OVERLAY removed instantly for drag folder=$folderName")
                 onDismiss()
                 onDragStartFromFolder?.invoke()
@@ -152,21 +147,14 @@ class FolderExpandOverlay(
         // ── OPEN ANIMATION ──
 
         // Calculate anchor position for animation origin
-        val anchorCenterX: Float
-        val anchorCenterY: Float
-
-        if (anchorView != null) {
-            val anchorLocation = IntArray(2)
-            val parentLocation = IntArray(2)
-            anchorView.getLocationInWindow(anchorLocation)
-            parentView.getLocationInWindow(parentLocation)
-            anchorCenterX = (anchorLocation[0] - parentLocation[0] + anchorView.width / 2).toFloat()
-            anchorCenterY = (anchorLocation[1] - parentLocation[1] + anchorView.height / 2).toFloat()
-        } else {
-            // Fallback: animate from screen center
-            anchorCenterX = parentView.width / 2f
-            anchorCenterY = parentView.height / 2f
-        }
+        val anchorLocation = IntArray(2)
+        val parentLocation = IntArray(2)
+        anchorView?.getLocationInWindow(anchorLocation)
+        parentView.getLocationInWindow(parentLocation)
+        val anchorCenterX = (anchorLocation[0] - parentLocation[0] +
+            (anchorView?.width ?: 0) / 2).toFloat()
+        val anchorCenterY = (anchorLocation[1] - parentLocation[1] +
+            (anchorView?.height ?: 0) / 2).toFloat()
 
         // Scrim fade in
         scrim.alpha = 0f
@@ -176,32 +164,60 @@ class FolderExpandOverlay(
             .setInterpolator(android.view.animation.AccelerateInterpolator())
             .start()
 
-        // Card: start from anchor, expand to center
-        card.pivotX = anchorCenterX
-        card.pivotY = anchorCenterY
+        // Apply blur if API 31+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            scrim.setRenderEffect(
+                android.graphics.RenderEffect.createBlurEffect(
+                    15f, 15f,
+                    android.graphics.Shader.TileMode.CLAMP
+                )
+            )
+        }
+
+        // We must wait for the card to be laid out to know its bounds.
+        // Once laid out, we convert the parent-relative anchor coordinates
+        // to card-relative coordinates to set the correct pivot.
+        card.alpha = 0f
         card.scaleX = 0.2f
         card.scaleY = 0.2f
-        card.alpha = 0f
+        
+        card.post {
+            val cardLocation = IntArray(2)
+            card.getLocationInWindow(cardLocation)
+            
+            // anchorCenterX/Y are relative to parentView.
+            // cardLocation is relative to window. parentLocation is relative to window.
+            // Let's compute anchor center in window coordinates first:
+            val anchorWindowX = anchorLocation[0] + (anchorView?.width ?: 0) / 2
+            val anchorWindowY = anchorLocation[1] + (anchorView?.height ?: 0) / 2
+            
+            // Now compute pivot relative to card bounds
+            val pivotX = (anchorWindowX - cardLocation[0]).toFloat()
+            val pivotY = (anchorWindowY - cardLocation[1]).toFloat()
+            
+            card.pivotX = pivotX
+            card.pivotY = pivotY
 
-        // Use spring for dolly-zoom expand feel
-        val scaleXSpring = SpringAnimation(card, DynamicAnimation.SCALE_X).apply {
-            spring = SpringForce(1f)
-                .setStiffness(SpringForce.STIFFNESS_LOW)
-                .setDampingRatio(SpringForce.DAMPING_RATIO_LOW_BOUNCY)
+            // Use spring for dolly-zoom expand feel
+            val scaleXSpring = SpringAnimation(card, DynamicAnimation.SCALE_X).apply {
+                spring = SpringForce(1f)
+                    .setStiffness(SpringForce.STIFFNESS_LOW)
+                    .setDampingRatio(SpringForce.DAMPING_RATIO_LOW_BOUNCY)
+            }
+            val scaleYSpring = SpringAnimation(card, DynamicAnimation.SCALE_Y).apply {
+                spring = SpringForce(1f)
+                    .setStiffness(SpringForce.STIFFNESS_LOW)
+                    .setDampingRatio(SpringForce.DAMPING_RATIO_LOW_BOUNCY)
+            }
+
+            card.animate()
+                .alpha(1f)
+                .setDuration(150)
+                .start()
+
+            scaleXSpring.setStartValue(0.2f).start()
+            scaleYSpring.setStartValue(0.2f).start()
         }
-        val scaleYSpring = SpringAnimation(card, DynamicAnimation.SCALE_Y).apply {
-            spring = SpringForce(1f)
-                .setStiffness(SpringForce.STIFFNESS_LOW)
-                .setDampingRatio(SpringForce.DAMPING_RATIO_LOW_BOUNCY)
-        }
-
-        card.animate()
-            .alpha(1f)
-            .setDuration(150)
-            .start()
-
-        scaleXSpring.setStartValue(0.2f).start()
-        scaleYSpring.setStartValue(0.2f).start()
     }
 
     /**
@@ -225,6 +241,21 @@ class FolderExpandOverlay(
         val overlay = overlayView ?: return
         val scrim = overlay.findViewById<View>(R.id.folder_scrim)
         val card = overlay.findViewById<MaterialCardView>(R.id.folder_card)
+
+        // Make sure we have the correct pivot for the closing animation
+        val anchorView = anchorViewRef?.get()
+        if (anchorView != null) {
+            val anchorLocation = IntArray(2)
+            anchorView.getLocationInWindow(anchorLocation)
+            val cardLocation = IntArray(2)
+            card.getLocationInWindow(cardLocation)
+
+            val anchorWindowX = anchorLocation[0] + anchorView.width / 2
+            val anchorWindowY = anchorLocation[1] + anchorView.height / 2
+
+            card.pivotX = (anchorWindowX - cardLocation[0]).toFloat()
+            card.pivotY = (anchorWindowY - cardLocation[1]).toFloat()
+        }
 
         // Card: spring back to small size with bounce
         val scaleXSpring = SpringAnimation(card, DynamicAnimation.SCALE_X).apply {
