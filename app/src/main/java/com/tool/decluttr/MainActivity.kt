@@ -9,6 +9,7 @@ import androidx.navigation.fragment.NavHostFragment
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.tool.decluttr.presentation.screens.dashboard.DashboardViewModel
+import com.tool.decluttr.presentation.util.AppReviewManager
 import com.tool.decluttr.presentation.util.ThemePreferences
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -47,6 +48,10 @@ class MainActivity : AppCompatActivity() {
             }
             graph.setStartDestination(startDestination)
             navController.graph = graph
+            
+            // Check app launch count and potentially show Play Store rating panel
+            AppReviewManager.checkAndShowReview(this)
+            
             DecluttrApp.appendStartupLog(this, "Navigation graph ready with startDestination=$startDestination")
         } catch (throwable: Throwable) {
             DecluttrApp.appendStartupLog(this, "MainActivity onCreate failed", throwable)

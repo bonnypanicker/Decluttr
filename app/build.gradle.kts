@@ -96,6 +96,9 @@ dependencies {
     // Google Play Billing
     implementation("com.android.billingclient:billing-ktx:7.1.1")
     
+    // Google Play In-App Review
+    implementation("com.google.android.play:review-ktx:2.0.1")
+    
     // Fragment Navigation Migration
     implementation("androidx.navigation:navigation-fragment-ktx:2.8.5")
     implementation("androidx.navigation:navigation-ui-ktx:2.8.5")
