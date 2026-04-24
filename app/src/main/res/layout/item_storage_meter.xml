@@ -5,120 +5,111 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="@dimen/discovery_item_horizontal_margin"
-    android:layout_marginBottom="12dp"
+    android:layout_marginBottom="16dp"
+    android:layout_marginTop="8dp"
     app:cardBackgroundColor="@android:color/transparent"
-    app:cardCornerRadius="24dp"
-    app:cardElevation="0dp"
+    app:cardCornerRadius="28dp"
+    app:cardElevation="8dp"
     app:strokeWidth="0dp">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_storage_meter_card"
-        android:orientation="vertical"
-        android:padding="22dp">
+        android:padding="24dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <ImageView
+            android:id="@+id/storage_icon"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/bg_storage_meter_icon"
+            android:padding="14dp"
+            android:src="@drawable/ic_cleaning_services"
+            app:tint="@android:color/white"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <TextView
+            android:id="@+id/storage_label"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-            
-            <ImageView
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="@drawable/bg_smart_card_icon"
-                android:padding="12dp"
-                android:src="@drawable/ic_cleaning_services"
-                app:tint="?attr/colorOnPrimaryContainer" />
+            android:layout_marginStart="16dp"
+            android:text="@string/discovery_storage_estimated_label"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textColor="@android:color/white"
+            android:textStyle="bold"
+            app:layout_constraintStart_toEndOf="@id/storage_icon"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/storage_icon"
+            app:layout_constraintBottom_toTopOf="@id/storage_subtitle"
+            app:layout_constraintVertical_chainStyle="packed" />
 
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
+        <TextView
+            android:id="@+id/storage_subtitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="@string/discovery_storage_subtitle_empty"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="#E0FFFFFF"
+            app:layout_constraintStart_toEndOf="@id/storage_icon"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/storage_label"
+            app:layout_constraintBottom_toBottomOf="@id/storage_icon" />
 
-                <TextView
-                    android:id="@+id/storage_label"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/discovery_storage_estimated_label"
-                    android:textAppearance="?attr/textAppearanceTitleMedium"
-                    android:textColor="?attr/colorOnPrimaryContainer"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/storage_subtitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="@string/discovery_storage_subtitle_empty"
-                    android:textAppearance="?attr/textAppearanceBodySmall"
-                    android:textColor="?attr/colorOnPrimaryContainer"
-                    android:alpha="0.8" />
-            </LinearLayout>
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
+        <TextView
+            android:id="@+id/storage_value"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:orientation="vertical">
+            android:text="0 MB"
+            android:textAppearance="?attr/textAppearanceDisplayMedium"
+            android:textColor="@android:color/white"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/storage_icon" />
 
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp">
+        <TextView
+            android:id="@+id/waste_score"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_storage_meter_stat_chip_new"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp"
+            android:text="@string/discovery_storage_score_default"
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:textColor="@android:color/white"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="@id/storage_value"
+            app:layout_constraintTop_toTopOf="@id/storage_value" />
 
-                <TextView
-                    android:id="@+id/storage_value"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentStart="true"
-                    android:text="0 MB"
-                    android:textAppearance="?attr/textAppearanceHeadlineMedium"
-                    android:textColor="?attr/colorOnPrimaryContainer"
-                    android:textStyle="bold" />
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/storage_progress"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            app:indicatorColor="@android:color/white"
+            app:trackColor="#33FFFFFF"
+            app:trackCornerRadius="6dp"
+            app:trackThickness="12dp"
+            android:max="100"
+            android:progress="0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/storage_value" />
 
-                <TextView
-                    android:id="@+id/waste_score"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:background="@drawable/bg_storage_meter_stat_chip"
-                    android:paddingHorizontal="10dp"
-                    android:paddingVertical="5dp"
-                    android:text="@string/discovery_storage_score_default"
-                    android:textAppearance="?attr/textAppearanceLabelLarge"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textStyle="bold" />
-            </RelativeLayout>
+        <TextView
+            android:id="@+id/storage_motivation"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/discovery_storage_motivation_empty"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="#E0FFFFFF"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/storage_progress" />
 
-            <com.google.android.material.progressindicator.LinearProgressIndicator
-                android:id="@+id/storage_progress"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:indicatorColor="?attr/colorPrimary"
-                app:trackColor="?attr/colorSurfaceContainerHigh"
-                app:trackCornerRadius="8dp"
-                app:trackThickness="16dp"
-                android:max="100"
-                android:progress="0" />
-
-            <TextView
-                android:id="@+id/storage_motivation"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="@string/discovery_storage_motivation_empty"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorOnPrimaryContainer"
-                android:textStyle="bold" />
-
-        </LinearLayout>
-
-    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>
