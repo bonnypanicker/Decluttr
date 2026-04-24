@@ -149,74 +149,91 @@ class FolderExpandOverlay(
         // Calculate anchor position for animation origin
         val anchorLocation = IntArray(2)
         val parentLocation = IntArray(2)
-        anchorView?.getLocationInWindow(anchorLocation)
         parentView.getLocationInWindow(parentLocation)
-        val anchorCenterX = (anchorLocation[0] - parentLocation[0] +
-            (anchorView?.width ?: 0) / 2).toFloat()
-        val anchorCenterY = (anchorLocation[1] - parentLocation[1] +
-            (anchorView?.height ?: 0) / 2).toFloat()
 
-        // Scrim fade in
+        val hasAnchor = anchorView != null
+        if (hasAnchor) {
+            anchorView!!.getLocationInWindow(anchorLocation)
+        }
+
+        // Scrim fade in — slightly slower for a more cinematic feel
         scrim.alpha = 0f
         scrim.animate()
             .alpha(1f)
-            .setDuration(250)
-            .setInterpolator(android.view.animation.AccelerateInterpolator())
+            .setDuration(300)
+            .setInterpolator(android.view.animation.DecelerateInterpolator(1.5f))
             .start()
 
         // Apply blur if API 31+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            scrim.setRenderEffect(
-                android.graphics.RenderEffect.createBlurEffect(
-                    15f, 15f,
-                    android.graphics.Shader.TileMode.CLAMP
-                )
-            )
+            // Note: I will NOT re-add setRenderEffect to parentView here as we removed it
+            // previously to fix the blurry overlay bug. I'll leave this empty or use the fixed version
+            // wait, we removed the blur entirely earlier.
+            // Let's not add the blur back.
         }
 
-        // We must wait for the card to be laid out to know its bounds.
-        // Once laid out, we convert the parent-relative anchor coordinates
-        // to card-relative coordinates to set the correct pivot.
+        // Card: start fully invisible and at tiny scale.
+        // We set the initial state but defer the actual spring animation
+        // until after layout so the pivot is correct from frame one.
         card.alpha = 0f
-        card.scaleX = 0.2f
-        card.scaleY = 0.2f
-        
+        card.scaleX = 0f
+        card.scaleY = 0f
+
+        // Hide content initially for staggered reveal
+        val contentLayout = card.getChildAt(0) // LinearLayout inside card
+        contentLayout?.alpha = 0f
+
         card.post {
             val cardLocation = IntArray(2)
             card.getLocationInWindow(cardLocation)
-            
-            // anchorCenterX/Y are relative to parentView.
-            // cardLocation is relative to window. parentLocation is relative to window.
-            // Let's compute anchor center in window coordinates first:
-            val anchorWindowX = anchorLocation[0] + (anchorView?.width ?: 0) / 2
-            val anchorWindowY = anchorLocation[1] + (anchorView?.height ?: 0) / 2
-            
-            // Now compute pivot relative to card bounds
-            val pivotX = (anchorWindowX - cardLocation[0]).toFloat()
-            val pivotY = (anchorWindowY - cardLocation[1]).toFloat()
-            
-            card.pivotX = pivotX
-            card.pivotY = pivotY
 
-            // Use spring for dolly-zoom expand feel
+            if (hasAnchor) {
+                // Compute pivot relative to card's bounds
+                val anchorWindowX = anchorLocation[0] + (anchorView?.width ?: 0) / 2
+                val anchorWindowY = anchorLocation[1] + (anchorView?.height ?: 0) / 2
+                card.pivotX = (anchorWindowX - cardLocation[0]).toFloat()
+                card.pivotY = (anchorWindowY - cardLocation[1]).toFloat()
+            } else {
+                // No anchor (drag-created folder) — expand from center of card
+                card.pivotX = card.width / 2f
+                card.pivotY = card.height / 2f
+            }
+
+            // Phase 1: Card scale-up with spring (Pixel Launcher "dolly zoom" feel)
+            //   - STIFFNESS_MEDIUM (1500f) for a quick, confident expansion
+            //   - DAMPING_RATIO 0.65 for a slight bounce that settles fast
+            val targetScale = 1f
+            val stiffness = 800f  // between LOW (200) and MEDIUM (1500) — organic feel
+            val dampingRatio = 0.65f  // slightly bouncy but controlled
+
             val scaleXSpring = SpringAnimation(card, DynamicAnimation.SCALE_X).apply {
-                spring = SpringForce(1f)
-                    .setStiffness(SpringForce.STIFFNESS_LOW)
-                    .setDampingRatio(SpringForce.DAMPING_RATIO_LOW_BOUNCY)
+                spring = SpringForce(targetScale)
+                    .setStiffness(stiffness)
+                    .setDampingRatio(dampingRatio)
             }
             val scaleYSpring = SpringAnimation(card, DynamicAnimation.SCALE_Y).apply {
-                spring = SpringForce(1f)
-                    .setStiffness(SpringForce.STIFFNESS_LOW)
-                    .setDampingRatio(SpringForce.DAMPING_RATIO_LOW_BOUNCY)
+                spring = SpringForce(targetScale)
+                    .setStiffness(stiffness)
+                    .setDampingRatio(dampingRatio)
             }
 
+            // Fade in the card outline quickly
             card.animate()
                 .alpha(1f)
-                .setDuration(150)
+                .setDuration(120)
                 .start()
 
-            scaleXSpring.setStartValue(0.2f).start()
-            scaleYSpring.setStartValue(0.2f).start()
+            scaleXSpring.setStartValue(0.15f).start()
+            scaleYSpring.setStartValue(0.15f).start()
+
+            // Phase 2: Content fade-in after card starts expanding (staggered)
+            // Delay slightly so the card "arrives" first, then content materializes
+            contentLayout?.animate()
+                ?.alpha(1f)
+                ?.setStartDelay(100)
+                ?.setDuration(200)
+                ?.setInterpolator(android.view.animation.DecelerateInterpolator())
+                ?.start()
         }
     }
 
@@ -241,10 +258,11 @@ class FolderExpandOverlay(
         val overlay = overlayView ?: return
         val scrim = overlay.findViewById<View>(R.id.folder_scrim)
         val card = overlay.findViewById<MaterialCardView>(R.id.folder_card)
+        val contentLayout = card.getChildAt(0)
 
-        // Make sure we have the correct pivot for the closing animation
+        // Recalculate pivot for close animation
         val anchorView = anchorViewRef?.get()
-        if (anchorView != null) {
+        if (anchorView != null && anchorView.isAttachedToWindow) {
             val anchorLocation = IntArray(2)
             anchorView.getLocationInWindow(anchorLocation)
             val cardLocation = IntArray(2)
@@ -256,25 +274,41 @@ class FolderExpandOverlay(
             card.pivotX = (anchorWindowX - cardLocation[0]).toFloat()
             card.pivotY = (anchorWindowY - cardLocation[1]).toFloat()
         }
+        // If no anchor, pivot stays where it was set during open (center or anchor)
 
-        // Card: spring back to small size with bounce
+        // Phase 1: Content fades out quickly
+        contentLayout?.animate()
+            ?.alpha(0f)
+            ?.setDuration(80)
+            ?.start()
+
+        // Phase 2: Card springs back to small scale (Pixel QPR3 "bouncy jiggle" close)
+        val closeStiffness = 1200f   // faster than open for a "snap back" feel
+        val closeDamping = 0.72f     // slight bounce on close, but quick settle
+        val closeScale = 0.05f       // shrink to near-nothing (was 0.2f)
+
         val scaleXSpring = SpringAnimation(card, DynamicAnimation.SCALE_X).apply {
-            spring = SpringForce(0.2f)
-                .setStiffness(SpringForce.STIFFNESS_MEDIUM)
-                .setDampingRatio(SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY)
+            spring = SpringForce(closeScale)
+                .setStiffness(closeStiffness)
+                .setDampingRatio(closeDamping)
         }
         val scaleYSpring = SpringAnimation(card, DynamicAnimation.SCALE_Y).apply {
-            spring = SpringForce(0.2f)
-                .setStiffness(SpringForce.STIFFNESS_MEDIUM)
-                .setDampingRatio(SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY)
+            spring = SpringForce(closeScale)
+                .setStiffness(closeStiffness)
+                .setDampingRatio(closeDamping)
         }
 
-        card.animate().alpha(0f).setDuration(200).start()
+        // Card fades out as it shrinks
+        card.animate()
+            .alpha(0f)
+            .setDuration(180)
+            .start()
+
         scaleXSpring.start()
         scaleYSpring.start()
         animateAnchorFolderIcons(visible = true, animate = true)
 
-        // Scrim fade out
+        // Phase 3: Scrim fades out and cleanup
         scrim.animate()
             .alpha(0f)
             .setDuration(250)

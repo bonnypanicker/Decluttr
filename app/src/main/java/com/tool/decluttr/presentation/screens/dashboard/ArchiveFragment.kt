@@ -881,12 +881,29 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             }
             if (ready != null) {
                 expandedFolder = defaultName
-                runCatching { showFolderOverlay(defaultName, null) }
+                // Try to find the folder view in the RecyclerView for animation origin
+                val folderAnchor = findFolderViewByName(defaultName)
+                runCatching { showFolderOverlay(defaultName, folderAnchor) }
                     .onFailure { android.util.Log.e(TAG, "showFolderOverlay failed", it) }
             } else {
                 android.util.Log.w(TAG, "handleAppDropOnApp timed out waiting for folder '$defaultName' to contain 2 apps")
             }
         }
+    }
+
+    /**
+     * Scans the RecyclerView to find the folder item view for the given folder name.
+     * Returns null if the folder hasn't been laid out yet (animation will use center fallback).
+     */
+    private fun findFolderViewByName(folderName: String): View? {
+        for (i in 0 until recyclerView.childCount) {
+            val child = recyclerView.getChildAt(i)
+            val item = child?.tag
+            if (item is ArchivedItem.Folder && item.name == folderName) {
+                return child
+            }
+        }
+        return null
     }
 
     private fun nextDefaultFolderName(existingApps: List<ArchivedApp>): String {

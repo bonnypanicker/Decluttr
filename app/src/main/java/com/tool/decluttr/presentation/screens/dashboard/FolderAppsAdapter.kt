@@ -84,6 +84,11 @@ class FolderAppsAdapter(
                 )
                 val clipData = ClipData.newPlainText("packageId", app.packageId)
                 val shadowBuilder = ScaledDragShadowBuilder(holder.icon, 1.1f)
+
+                // Kill ripple before drag starts
+                view.isPressed = false
+                view.background = null
+
                 val started = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     view.startDragAndDrop(clipData, shadowBuilder, app, 0)
                 } else {
@@ -91,7 +96,6 @@ class FolderAppsAdapter(
                     view.startDrag(clipData, shadowBuilder, app, 0)
                 }
                 if (started) {
-                    // Hide AFTER drag started so shadow builder already captured the view
                     view.visibility = View.INVISIBLE
                     view.performHapticFeedback(
                         android.view.HapticFeedbackConstants.LONG_PRESS,
@@ -102,6 +106,8 @@ class FolderAppsAdapter(
                     // Use post to ensure the drag shadow is already attached before removing overlay
                     view.post { onDragStartFromFolder?.invoke() }
                 } else {
+                    // Restore if drag failed
+                    view.visibility = View.VISIBLE
                     android.util.Log.w(TAG, "FOLDER drag failed to start pkg=${app.packageId}")
                 }
                 started
