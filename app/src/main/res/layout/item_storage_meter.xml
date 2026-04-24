@@ -8,24 +8,24 @@
     android:layout_marginBottom="16dp"
     android:layout_marginTop="8dp"
     app:cardBackgroundColor="@android:color/transparent"
-    app:cardCornerRadius="28dp"
-    app:cardElevation="8dp"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="0dp"
     app:strokeWidth="0dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_storage_meter_card"
-        android:padding="24dp">
+        android:padding="20dp">
 
         <ImageView
             android:id="@+id/storage_icon"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="@drawable/bg_storage_meter_icon"
-            android:padding="14dp"
-            android:src="@drawable/ic_cleaning_services"
-            app:tint="@android:color/white"
+            android:padding="12dp"
+            android:src="@drawable/ic_donut_large"
+            app:tint="?attr/colorOnPrimaryContainer"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent" />
 
@@ -36,7 +36,7 @@
             android:layout_marginStart="16dp"
             android:text="@string/discovery_storage_estimated_label"
             android:textAppearance="?attr/textAppearanceTitleMedium"
-            android:textColor="@android:color/white"
+            android:textColor="?attr/colorOnSurface"
             android:textStyle="bold"
             app:layout_constraintStart_toEndOf="@id/storage_icon"
             app:layout_constraintEnd_toEndOf="parent"
@@ -51,7 +51,7 @@
             android:layout_marginStart="16dp"
             android:text="@string/discovery_storage_subtitle_empty"
             android:textAppearance="?attr/textAppearanceBodySmall"
-            android:textColor="#E0FFFFFF"
+            android:textColor="?attr/colorOnSurfaceVariant"
             app:layout_constraintStart_toEndOf="@id/storage_icon"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/storage_label"
@@ -63,8 +63,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:text="0 MB"
-            android:textAppearance="?attr/textAppearanceDisplayMedium"
-            android:textColor="@android:color/white"
+            android:textAppearance="?attr/textAppearanceDisplaySmall"
+            android:textColor="?attr/colorOnSurface"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/storage_icon" />
@@ -77,8 +77,8 @@
             android:paddingHorizontal="12dp"
             android:paddingVertical="6dp"
             android:text="@string/discovery_storage_score_default"
-            android:textAppearance="?attr/textAppearanceLabelLarge"
-            android:textColor="@android:color/white"
+            android:textAppearance="?attr/textAppearanceLabelMedium"
+            android:textColor="?attr/colorOnSecondaryContainer"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="@id/storage_value"
@@ -89,8 +89,8 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            app:indicatorColor="@android:color/white"
-            app:trackColor="#33FFFFFF"
+            app:indicatorColor="?attr/colorPrimary"
+            app:trackColor="?attr/colorSurfaceVariant"
             app:trackCornerRadius="6dp"
             app:trackThickness="12dp"
             android:max="100"
@@ -106,7 +106,7 @@
             android:layout_marginTop="12dp"
             android:text="@string/discovery_storage_motivation_empty"
             android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="#E0FFFFFF"
+            android:textColor="?attr/colorOnSurfaceVariant"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/storage_progress" />
