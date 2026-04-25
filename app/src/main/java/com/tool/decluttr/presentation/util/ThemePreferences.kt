@@ -8,6 +8,7 @@ object ThemePreferences {
     private const val KEY_THEME_MODE = "theme_mode"
 
     fun getThemeMode(context: Context): Int {
+        // Enforce MODE_NIGHT_YES (dark mode) as the absolute default
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .getInt(KEY_THEME_MODE, AppCompatDelegate.MODE_NIGHT_YES)
     }
@@ -21,6 +22,7 @@ object ThemePreferences {
     }
 
     fun applyTheme(context: Context) {
+        // Since we want Dark Mode as default, apply it based on getThemeMode
         AppCompatDelegate.setDefaultNightMode(getThemeMode(context))
     }
 }

@@ -11,6 +11,7 @@ import com.tool.decluttr.domain.usecase.IconCacheManager
 import com.tool.decluttr.presentation.util.AppIconFetcher
 import com.tool.decluttr.presentation.util.AppIconKeyer
 import com.tool.decluttr.domain.repository.AppRepository
+import com.tool.decluttr.presentation.util.ThemePreferences
 import dagger.hilt.android.HiltAndroidApp
 import java.io.File
 import java.io.PrintWriter
@@ -28,6 +29,9 @@ class DecluttrApp : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         appendStartupLog(this, "Application onCreate start")
+        // Apply theme immediately to prevent light mode flashes if system is light
+        ThemePreferences.applyTheme(this)
+        
         val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             appendStartupLog(this, "Uncaught exception on ${thread.name}", throwable)

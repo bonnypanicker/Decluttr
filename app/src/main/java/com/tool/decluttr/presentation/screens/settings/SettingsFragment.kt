@@ -245,7 +245,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
                                 
                                 pendingExportData = state.jsonString
                                 val timeStr = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US).format(java.util.Date())
-                                exportLauncher.launch("DecluttrArchive_\${timeStr}.dec")
+                                exportLauncher.launch("DecluttrArchive_${timeStr}.dec")
                                 viewModel.resetState()
                             }
                             is SettingsState.ImportSuccess -> {
