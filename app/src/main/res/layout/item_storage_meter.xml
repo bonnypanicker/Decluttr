@@ -24,7 +24,7 @@
             android:layout_height="48dp"
             android:background="@drawable/bg_storage_meter_icon"
             android:padding="12dp"
-            android:src="@drawable/ic_donut_large"
+            android:src="@drawable/ic_broom"
             app:tint="@android:color/white"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent" />
