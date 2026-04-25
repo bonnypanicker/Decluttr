@@ -8,24 +8,23 @@
     android:layout_marginBottom="16dp"
     android:layout_marginTop="8dp"
     app:cardBackgroundColor="@android:color/transparent"
-    app:cardCornerRadius="24dp"
+    app:cardCornerRadius="28dp"
     app:cardElevation="0dp"
     app:strokeWidth="0dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_storage_meter_card"
-        android:padding="20dp">
+        android:background="@drawable/bg_storage_meter_card_purple"
+        android:padding="24dp">
 
         <ImageView
             android:id="@+id/storage_icon"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="@drawable/bg_storage_meter_icon"
-            android:padding="12dp"
-            android:src="@drawable/ic_donut_large"
-            app:tint="?attr/colorOnPrimaryContainer"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_cleaning_services"
+            android:rotation="-45"
+            app:tint="@android:color/white"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent" />
 
@@ -35,8 +34,8 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:text="@string/discovery_storage_estimated_label"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            android:textColor="?attr/colorOnSurface"
+            android:textAppearance="?attr/textAppearanceTitleLarge"
+            android:textColor="@android:color/white"
             android:textStyle="bold"
             app:layout_constraintStart_toEndOf="@id/storage_icon"
             app:layout_constraintEnd_toEndOf="parent"
@@ -49,13 +48,13 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
+            android:layout_marginTop="4dp"
             android:text="@string/discovery_storage_subtitle_empty"
-            android:textAppearance="?attr/textAppearanceBodySmall"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="#CCFFFFFF"
             app:layout_constraintStart_toEndOf="@id/storage_icon"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/storage_label"
-            app:layout_constraintBottom_toBottomOf="@id/storage_icon" />
+            app:layout_constraintTop_toBottomOf="@id/storage_label" />
 
         <TextView
             android:id="@+id/storage_value"
@@ -63,23 +62,22 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:text="0 MB"
-            android:textAppearance="?attr/textAppearanceDisplaySmall"
-            android:textColor="?attr/colorOnSurface"
+            android:textAppearance="?attr/textAppearanceDisplayMedium"
+            android:textColor="@android:color/white"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/storage_icon" />
+            app:layout_constraintTop_toBottomOf="@id/storage_subtitle" />
 
         <TextView
             android:id="@+id/waste_score"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_storage_meter_stat_chip_new"
-            android:paddingHorizontal="12dp"
+            android:background="@drawable/bg_storage_meter_stat_chip_purple"
+            android:paddingHorizontal="14dp"
             android:paddingVertical="6dp"
             android:text="@string/discovery_storage_score_default"
-            android:textAppearance="?attr/textAppearanceLabelMedium"
-            android:textColor="?attr/colorOnSecondaryContainer"
-            android:textStyle="bold"
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:textColor="@android:color/white"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="@id/storage_value"
             app:layout_constraintTop_toTopOf="@id/storage_value" />
@@ -89,8 +87,8 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            app:indicatorColor="?attr/colorPrimary"
-            app:trackColor="?attr/colorSurfaceVariant"
+            app:indicatorColor="@android:color/white"
+            app:trackColor="#4A3F74"
             app:trackCornerRadius="6dp"
             app:trackThickness="12dp"
             android:max="100"
@@ -103,10 +101,11 @@
             android:id="@+id/storage_motivation"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="16dp"
             android:text="@string/discovery_storage_motivation_empty"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textColor="@android:color/white"
+            android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/storage_progress" />
