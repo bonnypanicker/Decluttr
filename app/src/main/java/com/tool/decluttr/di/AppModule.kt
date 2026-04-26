@@ -21,6 +21,10 @@ import com.tool.decluttr.data.repository.BillingRepositoryImpl
 import com.tool.decluttr.domain.repository.AuthRepository
 import com.tool.decluttr.domain.repository.BillingRepository
 
+import com.tool.decluttr.data.local.dao.WishlistDao
+import com.tool.decluttr.data.repository.WishlistRepositoryImpl
+import com.tool.decluttr.domain.repository.WishlistRepository
+
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
@@ -63,7 +67,8 @@ object AppModule {
         ).addMigrations(
             DecluttrDatabase.MIGRATION_2_3,
             DecluttrDatabase.MIGRATION_3_4,
-            DecluttrDatabase.MIGRATION_4_5
+            DecluttrDatabase.MIGRATION_4_5,
+            DecluttrDatabase.MIGRATION_5_6
         )
             .build()
     }
@@ -73,6 +78,16 @@ object AppModule {
     fun provideAppDao(db: DecluttrDatabase): AppDao {
         return db.appDao
     }
+
+    @Provides
+    @Singleton
+    fun provideWishlistDao(db: DecluttrDatabase): WishlistDao {
+        return db.wishlistDao
+    }
+
+    @Provides
+    @Singleton
+    fun provideWishlistRepository(impl: WishlistRepositoryImpl): WishlistRepository = impl
 
     @Provides
     @Singleton

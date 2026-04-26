@@ -714,6 +714,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                     setReinstalledPageVisible(true)
                     true
                 }
+                R.id.menu_wishlist -> {
+                    androidx.navigation.fragment.findNavController(this).navigate(R.id.action_archive_to_wishlist)
+                    true
+                }
                 else -> false
             }
         }

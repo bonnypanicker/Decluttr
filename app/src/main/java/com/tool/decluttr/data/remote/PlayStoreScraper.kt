@@ -1,0 +1,59 @@
+package com.tool.decluttr.data.remote
+
+import android.net.Uri
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.jsoup.Jsoup
+import javax.inject.Inject
+import javax.inject.Singleton
+
+data class PlayStoreAppInfo(
+    val packageId: String,
+    val name: String,
+    val iconUrl: String,
+    val description: String,
+)
+
+@Singleton
+class PlayStoreScraper @Inject constructor() {
+
+    suspend fun fetch(packageId: String): PlayStoreAppInfo? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val doc = Jsoup
+                    .connect("https://play.google.com/store/apps/details?id=$packageId&hl=en")
+                    .userAgent("Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36")
+                    .timeout(8_000)
+                    .get()
+
+                // og:title arrives as "App Name - Tagline", strip the tagline part
+                val rawTitle = doc.select("meta[property=og:title]").attr("content")
+                val name = rawTitle.substringBefore(" - ").trim().ifBlank { rawTitle }
+
+                // og:image is the app icon on play-lh.googleusercontent.com
+                // Replace the size suffix for a clean 256 × 256 px icon
+                val iconUrl = doc.select("meta[property=og:image]").attr("content")
+                    .replace(Regex("=w\\d+-h\\d+.*$"), "=w256-h256")
+
+                val description = doc
+                    .select("meta[property=og:description]")
+                    .attr("content")
+
+                PlayStoreAppInfo(packageId, name, iconUrl, description)
+            }
+            .onFailure { it.printStackTrace() }
+            .getOrNull()
+        }
+
+    companion object {
+        /**
+         * Pulls the package ID out of any Play Store share URL.
+         * Handles:
+         *   https://play.google.com/store/apps/details?id=com.example.app
+         *   https://market.android.com/details?id=com.example.app
+         *   market://details?id=com.example.app
+         */
+        fun extractPackageId(sharedUrl: String): String? =
+            Uri.parse(sharedUrl).getQueryParameter("id")
+    }
+}

@@ -121,7 +121,10 @@ dependencies {
 
     // Coil
     implementation("io.coil-kt:coil:2.6.0")
-    
+
+    // Jsoup
+    implementation("org.jsoup:jsoup:1.17.2")
+
     // Physics-based animations (SpringAnimation)
     implementation("androidx.dynamicanimation:dynamicanimation:1.0.0")
     

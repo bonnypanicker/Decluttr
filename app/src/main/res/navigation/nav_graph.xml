@@ -18,10 +18,19 @@
     <fragment
         android:id="@+id/dashboardFragment"
         android:name="com.tool.decluttr.presentation.screens.dashboard.DashboardFragment"
-        android:label="Dashboard" />
+        android:label="Dashboard">
+        <action
+            android:id="@+id/action_archive_to_wishlist"
+            app:destination="@id/wishlistFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/settingsFragment"
         android:name="com.tool.decluttr.presentation.screens.settings.SettingsFragment"
         android:label="Settings" />
+
+    <fragment
+        android:id="@+id/wishlistFragment"
+        android:name="com.tool.decluttr.presentation.screens.wishlist.WishlistFragment"
+        android:label="Wishlist" />
 </navigation>
