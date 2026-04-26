@@ -87,7 +87,7 @@ class FolderAppsAdapter(
 
                 // Kill ripple before drag starts
                 view.isPressed = false
-                view.background = null
+                view.setBackgroundColor(android.graphics.Color.TRANSPARENT)
 
                 val started = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     view.startDragAndDrop(clipData, shadowBuilder, app, 0)

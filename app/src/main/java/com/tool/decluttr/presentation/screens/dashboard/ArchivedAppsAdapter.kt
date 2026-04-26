@@ -165,7 +165,7 @@ class ArchivedAppsAdapter(
                 //    animates its exit and will render one "pressed" frame.
                 //    Nulling the background prevents any ripple from being drawn.
                 view.isPressed = false
-                view.background = null          // <-- KEY CHANGE: remove ripple entirely
+                view.setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 view.visibility = View.INVISIBLE
 
                 // 4. Start drag
