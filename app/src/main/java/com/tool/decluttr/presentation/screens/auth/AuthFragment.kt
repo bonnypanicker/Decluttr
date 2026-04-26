@@ -27,7 +27,9 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingExcept
 import com.tool.decluttr.R
 import com.tool.decluttr.presentation.screens.settings.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.security.MessageDigest
 import java.util.UUID
 
@@ -110,20 +112,9 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
     }
 
     private fun loadExactOnboarding(webView: WebView) {
-        val template = requireContext().assets.open("onboarding-shell.html")
-            .bufferedReader()
-            .use { it.readText() }
-        val jsxBytes = requireContext().assets.open("decluttr-onboarding.jsx")
-            .use { it.readBytes() }
-        val jsxBase64 = Base64.encodeToString(jsxBytes, Base64.NO_WRAP)
-        val html = template.replace("__DECLUTTR_JSX_BASE64__", jsxBase64)
-        webView.loadDataWithBaseURL(
-            "https://decluttr.local/",
-            html,
-            "text/html",
-            "utf-8",
-            null
-        )
+        // Show an instant background color while loading
+        webView.setBackgroundColor(0xFF0A0B0F.toInt())
+        webView.loadUrl("file:///android_asset/onboarding.html")
     }
 
     private inner class AuthBridge {
@@ -147,6 +138,10 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
     }
 
     private fun navigateToDashboard() {
+        runCatching {
+            com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true)
+            com.google.firebase.analytics.FirebaseAnalytics.getInstance(requireContext()).setAnalyticsCollectionEnabled(true)
+        }
         findNavController().navigate(R.id.action_auth_to_dashboard)
     }
 

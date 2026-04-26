@@ -20,12 +20,22 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         DecluttrApp.appendStartupLog(this, "MainActivity onCreate start")
         try {
-            ThemePreferences.applyTheme(this)
+            val currentUser = if (FirebaseApp.getApps(this).isNotEmpty()) {
+                runCatching { FirebaseAuth.getInstance().currentUser }.getOrNull()
+            } else {
+                null
+            }
+            val isNewUser = currentUser == null
+
             val splashScreen = installSplashScreen()
             DecluttrApp.appendStartupLog(this, "Splash screen installed")
-            splashScreen.setKeepOnScreenCondition {
-                !dashboardViewModel.isStartupReady.value
+            
+            if (!isNewUser) {
+                splashScreen.setKeepOnScreenCondition {
+                    !dashboardViewModel.isStartupReady.value
+                }
             }
+
             super.onCreate(savedInstanceState)
             DecluttrApp.appendStartupLog(this, "super.onCreate complete")
             enableEdgeToEdge()
@@ -36,11 +46,7 @@ class MainActivity : AppCompatActivity() {
                 .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
             val navController = navHostFragment.navController
             val graph = navController.navInflater.inflate(R.navigation.nav_graph)
-            val currentUser = if (FirebaseApp.getApps(this).isNotEmpty()) {
-                runCatching { FirebaseAuth.getInstance().currentUser }.getOrNull()
-            } else {
-                null
-            }
+            
             val startDestination = if (currentUser != null) {
                 R.id.dashboardFragment
             } else {

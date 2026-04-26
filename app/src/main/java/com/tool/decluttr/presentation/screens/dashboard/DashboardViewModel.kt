@@ -129,12 +129,20 @@ class DashboardViewModel @Inject constructor(
     private var lastRefreshTime = 0L
     private val REFRESH_COOLDOWN_MS = 30_000L  // 30 seconds
     private val INITIAL_ICON_PRELOAD_COUNT = 60
-    private val STARTUP_BLOCKING_ICON_PRELOAD_COUNT = 48
+    private val STARTUP_BLOCKING_ICON_PRELOAD_COUNT = 12
     private val ICON_PREFETCH_CHUNK_SIZE = 12
     private val ICON_WARM_PARALLELISM = 6
 
     init {
-        loadDiscoveryData()
+        viewModelScope.launch {
+            authRepository.isUserLoggedIn.collect { loggedIn ->
+                if (loggedIn == true && _unusedApps.value.isEmpty() && discoveryJob?.isActive != true) {
+                    loadDiscoveryData()
+                } else if (loggedIn == false) {
+                    _isStartupReady.value = true
+                }
+            }
+        }
     }
 
     fun checkUsagePermission() {

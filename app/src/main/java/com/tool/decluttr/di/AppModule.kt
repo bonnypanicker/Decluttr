@@ -20,6 +20,7 @@ import com.tool.decluttr.data.repository.AuthRepositoryImpl
 import com.tool.decluttr.data.repository.BillingRepositoryImpl
 import com.tool.decluttr.domain.repository.AuthRepository
 import com.tool.decluttr.domain.repository.BillingRepository
+import kotlinx.coroutines.Dispatchers
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -65,6 +66,7 @@ object AppModule {
             DecluttrDatabase.MIGRATION_3_4,
             DecluttrDatabase.MIGRATION_4_5
         )
+            .setQueryCoroutineContext(Dispatchers.IO)
             .build()
     }
 

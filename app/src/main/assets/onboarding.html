@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Decluttr Onboarding</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <style>
+    html, body, #root {
+      margin: 0;
+      width: 100%;
+      min-height: 100%;
+      background: #0a0b0f;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="file:///android_asset/onboarding.js"></script>
+  <script>
+    window.setAuthLoading = function (loading) {
+      var button = document.querySelector('.get-started-btn');
+      if (!button) return;
+      button.disabled = !!loading;
+      button.style.opacity = loading ? '0.65' : '1';
+      button.style.pointerEvents = loading ? 'none' : 'auto';
+    };
+
+    document.addEventListener('click', function (event) {
+      var button = event.target && event.target.closest ? event.target.closest('.get-started-btn') : null;
+      if (!button) return;
+      event.preventDefault();
+      if (window.AndroidAuth && typeof window.AndroidAuth.startGoogleSignIn === 'function') {
+        window.AndroidAuth.startGoogleSignIn();
+      }
+    }, true);
+
+    // Boot
+    try {
+      window.__decluttrRoot = ReactDOM.createRoot(document.getElementById("root"));
+      window.__decluttrRoot.render(React.createElement(DecluttrOnboarding.default));
+    } catch (error) {
+      document.body.innerHTML = '<div style="color:#fff;padding:24px;font-family:sans-serif">Unable to load onboarding.</div>';
+    }
+  </script>
+</body>
+</html>

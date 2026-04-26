@@ -95,33 +95,36 @@ jobs:
       if: github.event_name == 'pull_request'
       run: |
         if [ ! -f gradlew ]; then
-          gradle wrapper
+          gradle --version
+          gradle wrapper --gradle-version 8.10.2
         fi
         chmod +x gradlew
         ./gradlew :app:assembleDebug
 
-    - name: Build Release AAB
+    - name: Build Release APK
       if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'release')
       run: |
         if [ ! -f gradlew ]; then
-          gradle wrapper
+          gradle --version
+          gradle wrapper --gradle-version 8.10.2
         fi
         chmod +x gradlew
-        ./gradlew :app:bundleRelease
+        ./gradlew :app:assembleRelease
 
-    - name: Build Debug AAB
+    - name: Build Debug APK
       if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'debug'
       run: |
         if [ ! -f gradlew ]; then
-          gradle wrapper
+          gradle --version
+          gradle wrapper --gradle-version 8.10.2
         fi
         chmod +x gradlew
-        ./gradlew :app:bundleDebug
+        ./gradlew :app:assembleDebug
 
-    - name: Upload AAB
+    - name: Upload APK
       if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
       uses: actions/upload-artifact@v4
       with:
-        name: decluttr-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_type || 'release' }}-aab
-        path: app/build/outputs/bundle/${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_type || 'release' }}/app-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_type || 'release' }}.aab
+        name: decluttr-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_type || 'release' }}-apk
+        path: app/build/outputs/apk/${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_type || 'release' }}/app-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_type || 'release' }}.apk
         if-no-files-found: error
