@@ -21,6 +21,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -715,7 +716,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                     true
                 }
                 R.id.menu_wishlist -> {
-                    androidx.navigation.fragment.findNavController(this).navigate(R.id.action_archive_to_wishlist)
+                    findNavController().navigate(R.id.action_archive_to_wishlist)
                     true
                 }
                 else -> false
