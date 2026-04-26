@@ -534,34 +534,38 @@ class ArchivedAppsAdapter(
             endingView.scaleX = 1f
             endingView.scaleY = 1f
 
-            val dragSource = draggingViewRef?.get()
             var foundSourceView: View? = null
-            if (dragSource != null && dragSource.visibility != View.VISIBLE) {
-                android.util.Log.d(
-                    TAG,
-                    "session=$activeDragSessionId FINALIZE restore source=weakRef view=${describeView(dragSource)}"
-                )
-                foundSourceView = dragSource
-            } else {
-                val draggingPkg = draggingPackageId
-                if (draggingPkg != null && recyclerView != null) {
-                    for (i in 0 until recyclerView.childCount) {
-                        val child = recyclerView.getChildAt(i)
-                        val tagged = child.tag as? ArchivedItem.App
-                        if (tagged?.app?.packageId == draggingPkg && child.visibility != View.VISIBLE) {
-                            android.util.Log.d(
-                                TAG,
-                                "session=$activeDragSessionId FINALIZE restore source=scan pkg=$draggingPkg child=${describeView(child)}"
-                            )
-                            foundSourceView = child
-                            break
+            if (dropAction == null) {
+                val dragSource = draggingViewRef?.get()
+                if (dragSource != null && dragSource.visibility != View.VISIBLE) {
+                    android.util.Log.d(
+                        TAG,
+                        "session=$activeDragSessionId FINALIZE restore source=weakRef view=${describeView(dragSource)}"
+                    )
+                    foundSourceView = dragSource
+                } else {
+                    val draggingPkg = draggingPackageId
+                    if (draggingPkg != null && recyclerView != null) {
+                        for (i in 0 until recyclerView.childCount) {
+                            val child = recyclerView.getChildAt(i)
+                            val tagged = child.tag as? ArchivedItem.App
+                            if (tagged?.app?.packageId == draggingPkg && child.visibility != View.VISIBLE) {
+                                android.util.Log.d(
+                                    TAG,
+                                    "session=$activeDragSessionId FINALIZE restore source=scan pkg=$draggingPkg child=${describeView(child)}"
+                                )
+                                foundSourceView = child
+                                break
+                            }
                         }
                     }
                 }
+                foundSourceView?.let { restoreDraggedSourceView(it) }
+            } else {
+                android.util.Log.d(TAG, "session=$activeDragSessionId FINALIZE skip restore because dropAction exists")
             }
 
             if (dropAction != null) {
-                foundSourceView?.let { restoreDraggedSourceView(it) }
                 android.util.Log.d(TAG, "session=$activeDragSessionId FINALIZE execute drop action")
                 runCatching { dropAction.invoke() }
                     .onFailure {
