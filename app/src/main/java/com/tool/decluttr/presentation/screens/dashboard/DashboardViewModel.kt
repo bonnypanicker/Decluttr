@@ -141,9 +141,6 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             authRepository.isUserLoggedIn.collect { loggedIn ->
                 _isLoggedIn.value = loggedIn
-                if (loggedIn == true) {
-                    launch { wishlistRepository.syncFromFirestore() }
-                }
                 if (loggedIn == true && _unusedApps.value.isEmpty() && discoveryJob?.isActive != true) {
                     loadDiscoveryData()
                 } else if (loggedIn == false) {

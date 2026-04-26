@@ -24,4 +24,7 @@ interface WishlistDao {
 
     @Query("DELETE FROM wishlist WHERE packageId = :packageId")
     suspend fun delete(packageId: String)
+
+    @Query("DELETE FROM wishlist")
+    suspend fun deleteAll()
 }

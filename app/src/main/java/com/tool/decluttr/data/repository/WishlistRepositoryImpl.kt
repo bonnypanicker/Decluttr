@@ -7,9 +7,13 @@ import com.tool.decluttr.data.local.dao.WishlistDao
 import com.tool.decluttr.data.local.entity.WishlistEntity
 import com.tool.decluttr.domain.model.WishlistApp
 import com.tool.decluttr.domain.repository.WishlistRepository
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -21,6 +25,21 @@ class WishlistRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val auth: FirebaseAuth,
 ) : WishlistRepository {
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    init {
+        auth.addAuthStateListener { firebaseAuth ->
+            scope.launch {
+                val uid = firebaseAuth.currentUser?.uid
+                if (uid != null) {
+                    syncFromFirestore()
+                } else {
+                    dao.deleteAll()
+                }
+            }
+        }
+    }
 
     // \u2500\u2500 Local reads \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
@@ -90,24 +109,43 @@ class WishlistRepositoryImpl @Inject constructor(
     // \u2500\u2500 One-shot sync on login \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
     override suspend fun syncFromFirestore() = withContext(Dispatchers.IO) {
-        val uid = auth.currentUser?.uid ?: return@withContext
-        runCatching {
-            val snapshot = firestore
-                .collection("users").document(uid)
-                .collection("wishlist")
-                .get()
-                .await()
+        val uid = auth.currentUser?.uid
+        if (uid == null) {
+            android.util.Log.w("WishlistRepo", "syncFromFirestore: skipped - no user")
+            return@withContext
+        }
 
-            val remoteApps = snapshot.documents.mapNotNull { it.toWishlistAppOrNull() }
-            val localApps = dao.getAllSnapshot().associateBy { it.packageId }
+        repeat(3) { attempt ->
+            val result = runCatching {
+                val snapshot = firestore
+                    .collection("users").document(uid)
+                    .collection("wishlist")
+                    .get()
+                    .await()
 
-            remoteApps.forEach { remote ->
-                val local = localApps[remote.packageId]
-                if (local == null || remote.lastModified >= local.lastModified) {
-                    dao.insert(remote.toEntity())
+                val remoteApps = snapshot.documents.mapNotNull { it.toWishlistAppOrNull() }
+                val localApps = dao.getAllSnapshot().associateBy { it.packageId }
+
+                remoteApps.forEach { remote ->
+                    val local = localApps[remote.packageId]
+                    if (local == null || remote.lastModified >= local.lastModified) {
+                        dao.insert(remote.toEntity())
+                    }
                 }
+
+                android.util.Log.d("WishlistRepo", "syncFromFirestore: restored ${remoteApps.size} items")
             }
-        }.onFailure { it.printStackTrace() }
+
+            if (result.isSuccess) return@withContext
+
+            result.exceptionOrNull()?.let {
+                android.util.Log.e("WishlistRepo", "syncFromFirestore attempt ${attempt + 1} failed", it)
+            }
+
+            if (attempt < 2) {
+                delay(1500L * (attempt + 1))
+            }
+        }
     }
 
     // \u2500\u2500 Mappers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
