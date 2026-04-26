@@ -70,6 +70,8 @@ class DashboardViewModel @Inject constructor(
 
     val startDiscoveryInRarelyUsed = MutableStateFlow(false)
 
+    private val _isLoggedIn = MutableStateFlow<Boolean?>(null)
+
     private val _unusedApps = MutableStateFlow<List<GetInstalledAppsUseCase.InstalledAppInfo>>(emptyList())
     val unusedApps = _unusedApps.asStateFlow()
 
@@ -140,7 +142,6 @@ class DashboardViewModel @Inject constructor(
             authRepository.isUserLoggedIn.collect { loggedIn ->
                 _isLoggedIn.value = loggedIn
                 if (loggedIn == true) {
-                    launch { appRepository.syncFromFirestore() }
                     launch { wishlistRepository.syncFromFirestore() }
                 }
                 if (loggedIn == true && _unusedApps.value.isEmpty() && discoveryJob?.isActive != true) {

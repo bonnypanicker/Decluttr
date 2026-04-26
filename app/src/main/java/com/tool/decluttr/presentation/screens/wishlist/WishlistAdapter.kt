@@ -48,8 +48,8 @@ class WishlistAdapter(
                 notesView.visibility = View.GONE
             }
 
-            if (item.iconUrl.isNotBlank()) {
-                iconView.load(item.iconUrl) {
+            if (app.iconUrl.isNotBlank()) {
+                iconView.load(app.iconUrl) {
                     crossfade(true)
                     transformations(RoundedCornersTransformation(radius = 24f))
                     placeholder(R.drawable.ic_app_placeholder)
