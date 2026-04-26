@@ -24,7 +24,4 @@ interface WishlistDao {
 
     @Query("DELETE FROM wishlist WHERE packageId = :packageId")
     suspend fun delete(packageId: String)
-
-    @Query("SELECT EXISTS(SELECT 1 FROM wishlist WHERE packageId = :packageId)")
-    suspend fun exists(packageId: String): Boolean
 }

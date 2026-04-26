@@ -1,7 +1,6 @@
 package com.tool.decluttr.presentation.screens.wishlist
 
 import android.os.Bundle
-import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -54,7 +53,7 @@ class WishlistFragment : Fragment(R.layout.fragment_wishlist) {
         ViewCompat.setOnApplyWindowInsetsListener(recyclerView) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.updatePadding(bottom = systemBars.bottom)
-            v.clipToPadding = false
+            (v as RecyclerView).clipToPadding = false
             insets
         }
 
