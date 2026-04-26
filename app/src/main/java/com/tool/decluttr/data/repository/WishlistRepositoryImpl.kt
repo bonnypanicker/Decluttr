@@ -1,165 +1,310 @@
 package com.tool.decluttr.data.repository
 
+import android.content.Context
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.tool.decluttr.data.local.dao.WishlistDao
 import com.tool.decluttr.data.local.entity.WishlistEntity
 import com.tool.decluttr.domain.model.WishlistApp
 import com.tool.decluttr.domain.repository.WishlistRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class WishlistRepositoryImpl @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val dao: WishlistDao,
     private val firestore: FirebaseFirestore,
     private val auth: FirebaseAuth,
 ) : WishlistRepository {
 
+    companion object {
+        private const val MAX_SYNC_RETRIES = 3
+        private const val SYNC_RETRY_BASE_DELAY_MS = 1500L
+    }
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val syncMutex = Mutex()
+    private val syncStateLock = Any()
+    private val pendingUpserts = LinkedHashMap<String, WishlistApp>()
+    private val pendingDeletes = LinkedHashSet<String>()
+    
+    @Volatile
+    private var pendingSyncJob: Job? = null
+    
+    @Volatile
+    private var currentUserId: String? = null
 
     init {
         auth.addAuthStateListener { firebaseAuth ->
             scope.launch {
                 val uid = firebaseAuth.currentUser?.uid
                 if (uid != null) {
+                    if (currentUserId != uid) {
+                        clearPendingSyncState()
+                        currentUserId = uid
+                    }
                     syncFromFirestore()
+                    schedulePendingSync()
                 } else {
+                    clearPendingSyncState()
+                    currentUserId?.let {
+                        context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
+                            .edit()
+                            .remove("last_sync_time_wishlist_$it")
+                            .apply()
+                    }
+                    currentUserId = null
                     dao.deleteAll()
                 }
             }
         }
     }
 
-    // \u2500\u2500 Local reads \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    // ── Local reads ──────────────────────────────────────────────────────────
 
     override fun getAll(): Flow<List<WishlistApp>> =
         dao.getAll().map { it.map { e -> e.toDomain() } }
 
     override suspend fun exists(packageId: String) = dao.exists(packageId)
 
-    // \u2500\u2500 Writes: local first, then cloud \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    // ── Writes: local first, then queue ─────────────────────────────────────
 
     override suspend fun add(app: WishlistApp) {
-        dao.insert(app.toEntity())
-        syncToFirestore(app)
+        val updatedApp = app.copy(lastModified = System.currentTimeMillis())
+        dao.insert(updatedApp.toEntity())
+        enqueueUpsert(updatedApp)
     }
 
     override suspend fun remove(packageId: String) {
         dao.delete(packageId)
-        deleteFromFirestore(packageId)
+        enqueueDelete(packageId)
     }
 
     override suspend fun updateNotes(packageId: String, notes: String) {
         dao.getById(packageId)?.let { existing ->
             val updated = existing.copy(notes = notes, lastModified = System.currentTimeMillis())
             dao.insert(updated)
-            syncToFirestore(updated.toDomain())
+            enqueueUpsert(updated.toDomain())
         }
     }
 
-    // \u2500\u2500 Firestore write \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    // ── Sync Queueing ────────────────────────────────────────────────────────
 
-    private suspend fun syncToFirestore(app: WishlistApp) =
-        withContext(Dispatchers.IO) {
-            val uid = auth.currentUser?.uid
-            if (uid == null) {
-                android.util.Log.e("WishlistRepo", "syncToFirestore: FAILED - User ID is null")
-                return@withContext
-            }
-            android.util.Log.d("WishlistRepo", "syncToFirestore: Starting upload for ${app.packageId} under user $uid")
-            
-            runCatching {
-                val dataMap = app.toFirestoreMap()
-                android.util.Log.d("WishlistRepo", "syncToFirestore: Data map prepared: $dataMap")
-                
-                firestore
-                    .collection("users").document(uid)
-                    .collection("wishlist").document(app.packageId)
-                    .set(dataMap)
-                    .await()
-                android.util.Log.d("WishlistRepo", "syncToFirestore: SUCCESS - Document written")
-            }.onFailure { 
-                android.util.Log.e("WishlistRepo", "syncToFirestore: ERROR writing to Firestore", it)
+    private fun enqueueUpsert(app: WishlistApp) {
+        synchronized(syncStateLock) {
+            pendingUpserts[app.packageId] = app
+            pendingDeletes.remove(app.packageId)
+        }
+        schedulePendingSync()
+    }
+
+    private fun enqueueDelete(packageId: String) {
+        synchronized(syncStateLock) {
+            pendingUpserts.remove(packageId)
+            pendingDeletes.add(packageId)
+        }
+        schedulePendingSync()
+    }
+
+    private fun schedulePendingSync(delayMs: Long = 0L) {
+        synchronized(syncStateLock) {
+            val existing = pendingSyncJob
+            if (existing?.isActive == true) return
+            pendingSyncJob = scope.launch {
+                if (delayMs > 0L) {
+                    delay(delayMs)
+                }
+                flushPendingSyncs()
             }
         }
+    }
 
-    private suspend fun deleteFromFirestore(packageId: String) =
-        withContext(Dispatchers.IO) {
-            val uid = auth.currentUser?.uid ?: return@withContext
-            runCatching {
-                firestore
-                    .collection("users").document(uid)
-                    .collection("wishlist").document(packageId)
-                    .delete()
-                    .await()
-            }.onFailure { it.printStackTrace() }
+    private fun clearPendingSyncState() {
+        synchronized(syncStateLock) {
+            pendingUpserts.clear()
+            pendingDeletes.clear()
         }
+    }
 
-    // \u2500\u2500 One-shot sync on login \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    private suspend fun flushPendingSyncs() {
+        syncMutex.withLock {
+            while (true) {
+                val nextDelete = synchronized(syncStateLock) { pendingDeletes.firstOrNull() }
+                if (nextDelete != null) {
+                    if (performDeleteWithRetry(nextDelete)) {
+                        synchronized(syncStateLock) { pendingDeletes.remove(nextDelete) }
+                        continue
+                    }
+                    synchronized(syncStateLock) {
+                        pendingSyncJob = scope.launch {
+                            delay(SYNC_RETRY_BASE_DELAY_MS * (MAX_SYNC_RETRIES + 1))
+                            flushPendingSyncs()
+                        }
+                    }
+                    return
+                }
+
+                val nextUpsert = synchronized(syncStateLock) {
+                    val entry = pendingUpserts.entries.firstOrNull()
+                    if (entry == null) {
+                        pendingSyncJob = null
+                        null
+                    } else {
+                        entry.toPair()
+                    }
+                } ?: return
+
+                val packageId = nextUpsert.first
+                val app = nextUpsert.second
+                if (performUpsertWithRetry(app)) {
+                    synchronized(syncStateLock) {
+                        pendingUpserts.remove(packageId)
+                    }
+                    continue
+                }
+                synchronized(syncStateLock) {
+                    pendingSyncJob = scope.launch {
+                        delay(SYNC_RETRY_BASE_DELAY_MS * (MAX_SYNC_RETRIES + 1))
+                        flushPendingSyncs()
+                    }
+                }
+                return
+            }
+        }
+    }
+
+    private suspend fun performUpsertWithRetry(app: WishlistApp): Boolean {
+        repeat(MAX_SYNC_RETRIES) { attempt ->
+            val ok = runCatching { performUpsert(app) }
+                .onFailure { android.util.Log.e("WishlistRepo", "Upsert fail", it) }
+                .isSuccess
+            if (ok) return true
+            if (attempt < MAX_SYNC_RETRIES - 1) delay(SYNC_RETRY_BASE_DELAY_MS * (attempt + 1))
+        }
+        return false
+    }
+
+    private suspend fun performDeleteWithRetry(packageId: String): Boolean {
+        repeat(MAX_SYNC_RETRIES) { attempt ->
+            val ok = runCatching { performDelete(packageId) }
+                .onFailure { android.util.Log.e("WishlistRepo", "Delete fail", it) }
+                .isSuccess
+            if (ok) return true
+            if (attempt < MAX_SYNC_RETRIES - 1) delay(SYNC_RETRY_BASE_DELAY_MS * (attempt + 1))
+        }
+        return false
+    }
+
+    private suspend fun performUpsert(app: WishlistApp) {
+        val user = auth.currentUser ?: error("No signed-in user")
+        val dataMap = app.toFirestoreMap()
+        firestore.collection("users").document(user.uid)
+            .collection("wishlist").document(app.packageId)
+            .set(dataMap, SetOptions.merge())
+            .await()
+    }
+
+    private suspend fun performDelete(packageId: String) {
+        val user = auth.currentUser ?: error("No signed-in user")
+        val update = mapOf(
+            "isDeleted" to true,
+            "lastModified" to System.currentTimeMillis()
+        )
+        firestore.collection("users").document(user.uid)
+            .collection("wishlist").document(packageId)
+            .set(update, SetOptions.merge())
+            .await()
+    }
+
+    // ── Sync from Firestore ──────────────────────────────────────────────────
 
     override suspend fun syncFromFirestore() = withContext(Dispatchers.IO) {
-        val uid = auth.currentUser?.uid
-        if (uid == null) {
+        val user = auth.currentUser
+        if (user == null) {
             android.util.Log.w("WishlistRepo", "syncFromFirestore: skipped - no user")
             return@withContext
         }
 
-        repeat(3) { attempt ->
-            val result = runCatching {
-                val snapshot = firestore
-                    .collection("users").document(uid)
-                    .collection("wishlist")
-                    .get()
-                    .await()
+        try {
+            val prefs = context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
+            val lastSyncTimeKey = "last_sync_time_wishlist_${user.uid}"
+            val lastSyncTime = prefs.getLong(lastSyncTimeKey, 0L)
 
-                val remoteApps = snapshot.documents.mapNotNull { it.toWishlistAppOrNull() }
-                val localApps = dao.getAllSnapshot().associateBy { it.packageId }
+            var query: com.google.firebase.firestore.Query = firestore.collection("users").document(user.uid).collection("wishlist")
+            if (lastSyncTime > 0L) {
+                query = query.whereGreaterThan("lastModified", lastSyncTime)
+            }
 
-                remoteApps.forEach { remote ->
-                    val local = localApps[remote.packageId]
-                    if (local == null || remote.lastModified >= local.lastModified) {
-                        dao.insert(remote.toEntity())
-                    }
+            val snapshot = query.get().await()
+            val localApps = dao.getAllSnapshot().associateBy { it.packageId }
+
+            var maxModified = lastSyncTime
+
+            for (doc in snapshot.documents) {
+                val remoteLastModified = doc.getLong("lastModified") ?: 0L
+                if (remoteLastModified > maxModified) {
+                    maxModified = remoteLastModified
                 }
 
-                android.util.Log.d("WishlistRepo", "syncFromFirestore: restored ${remoteApps.size} items")
+                val packageId = doc.getString("packageId") ?: doc.id
+                val isDeleted = doc.getBoolean("isDeleted") ?: false
+
+                if (isDeleted) {
+                    val localApp = localApps[packageId]
+                    if (localApp != null && localApp.lastModified > remoteLastModified) {
+                        enqueueUpsert(localApp.toDomain())
+                    } else {
+                        dao.delete(packageId)
+                    }
+                    continue
+                }
+
+                val remoteApp = doc.toWishlistAppOrNull() ?: continue
+                val localApp = localApps[remoteApp.packageId]?.toDomain()
+                
+                when {
+                    localApp == null -> dao.insert(remoteApp.toEntity())
+                    remoteApp.lastModified >= localApp.lastModified -> dao.insert(remoteApp.toEntity())
+                    else -> enqueueUpsert(localApp)
+                }
             }
 
-            if (result.isSuccess) return@withContext
-
-            result.exceptionOrNull()?.let {
-                android.util.Log.e("WishlistRepo", "syncFromFirestore attempt ${attempt + 1} failed", it)
+            if (maxModified > lastSyncTime) {
+                prefs.edit().putLong(lastSyncTimeKey, maxModified).apply()
             }
-
-            if (attempt < 2) {
-                delay(1500L * (attempt + 1))
-            }
+        } catch (e: Exception) {
+            android.util.Log.e("WishlistRepo", "syncFromFirestore failed", e)
         }
     }
 
-    // \u2500\u2500 Mappers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    // ── Mappers ──────────────────────────────────────────────────────────────
 
     private fun WishlistApp.toFirestoreMap() = mapOf(
-        "packageId"    to packageId,
-        "name"         to name,
-        "iconUrl"      to iconUrl,       // store URL, not bytes \u2014 avoids 1MB doc limit
-        "description"  to description,
-        "playStoreUrl" to playStoreUrl,
-        "category"     to (category ?: ""),
-        "notes"        to notes,
+        "packageId"    to packageId.take(200),
+        "name"         to name.take(200),
+        "iconUrl"      to iconUrl.take(1000),       // Store URL, heavily truncated to avoid any size limits
+        "description"  to description.take(2000),   // Truncate overly long descriptions
+        "playStoreUrl" to playStoreUrl.take(1000),
+        "category"     to (category?.take(100) ?: ""),
+        "notes"        to notes.take(1000),
         "addedAt"      to addedAt,
-        "lastModified" to (lastModified),
+        "lastModified" to lastModified,
+        "isDeleted"    to false
     )
 
     private fun DocumentSnapshot.toWishlistAppOrNull(): WishlistApp? {
