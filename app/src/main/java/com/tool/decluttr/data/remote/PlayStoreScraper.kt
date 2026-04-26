@@ -32,9 +32,8 @@ class PlayStoreScraper @Inject constructor() {
                 val name = rawTitle.substringBefore(" - ").trim().ifBlank { rawTitle }
 
                 // og:image is the app icon on play-lh.googleusercontent.com
-                // Replace the size suffix for a clean 256 × 256 px icon
+                // Removed size conversion/compression regex per user request
                 val iconUrl = doc.select("meta[property=og:image]").attr("content")
-                    .replace(Regex("=w\\d+-h\\d+.*$"), "=w256-h256")
 
                 val description = doc
                     .select("meta[property=og:description]")
@@ -54,11 +53,14 @@ class PlayStoreScraper @Inject constructor() {
         /**
          * Pulls the package ID out of any Play Store share URL.
          * Handles:
-         *   https://play.google.com/store/apps/details?id=com.example.app
+         *   Check out this app! https://play.google.com/store/apps/details?id=com.example.app
          *   https://market.android.com/details?id=com.example.app
          *   market://details?id=com.example.app
          */
-        fun extractPackageId(sharedUrl: String): String? =
-            Uri.parse(sharedUrl).getQueryParameter("id")
+        fun extractPackageId(sharedText: String): String? {
+            val regex = Regex("""id=([a-zA-Z0-9_.]+)""")
+            val match = regex.find(sharedText)
+            return match?.groupValues?.get(1)
+        }
     }
 }

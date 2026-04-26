@@ -51,7 +51,10 @@ class WishlistViewModel @Inject constructor(
     fun setSortOption(option: WishlistSortOption) { sortOption.value = option }
     fun setCategory(category: String) { selectedCategory.value = category }
 
-    fun add(app: WishlistApp) = viewModelScope.launch { repository.add(app) }
+    suspend fun add(app: WishlistApp) {
+        repository.add(app)
+    }
+
     fun remove(packageId: String) = viewModelScope.launch { repository.remove(packageId) }
     suspend fun exists(packageId: String) = repository.exists(packageId)
     fun updateNotes(packageId: String, notes: String) =
