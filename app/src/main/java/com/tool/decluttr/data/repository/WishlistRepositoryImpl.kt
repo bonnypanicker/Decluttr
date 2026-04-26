@@ -53,14 +53,26 @@ class WishlistRepositoryImpl @Inject constructor(
 
     private suspend fun syncToFirestore(app: WishlistApp) =
         withContext(Dispatchers.IO) {
-            val uid = auth.currentUser?.uid ?: return@withContext
+            val uid = auth.currentUser?.uid
+            if (uid == null) {
+                android.util.Log.e("WishlistRepo", "syncToFirestore: FAILED - User ID is null")
+                return@withContext
+            }
+            android.util.Log.d("WishlistRepo", "syncToFirestore: Starting upload for ${app.packageId} under user $uid")
+            
             runCatching {
+                val dataMap = app.toFirestoreMap()
+                android.util.Log.d("WishlistRepo", "syncToFirestore: Data map prepared: $dataMap")
+                
                 firestore
                     .collection("users").document(uid)
                     .collection("wishlist").document(app.packageId)
-                    .set(app.toFirestoreMap())
+                    .set(dataMap)
                     .await()
-            }.onFailure { it.printStackTrace() }
+                android.util.Log.d("WishlistRepo", "syncToFirestore: SUCCESS - Document written")
+            }.onFailure { 
+                android.util.Log.e("WishlistRepo", "syncToFirestore: ERROR writing to Firestore", it)
+            }
         }
 
     private suspend fun deleteFromFirestore(packageId: String) =
