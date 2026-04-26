@@ -2,12 +2,14 @@ package com.tool.decluttr.receiver
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import coil.load
+import coil.request.CachePolicy
 import com.tool.decluttr.R
 import com.tool.decluttr.data.remote.PlayStoreAppInfo
 import com.tool.decluttr.data.remote.PlayStoreScraper
@@ -34,57 +36,71 @@ class ShareReceiverActivity : AppCompatActivity() {
     }
 
     private fun handleIntent(intent: Intent) {
-        if (intent.action == Intent.ACTION_SEND && intent.type == "text/plain") {
-            val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT) ?: run {
-                finish(); return
-            }
-
-            val packageId = PlayStoreScraper.extractPackageId(sharedText) ?: run {
-                Toast.makeText(this, "Not a valid Play Store link", Toast.LENGTH_SHORT).show()
-                finish(); return
-            }
-
-            val playStoreUrl = "https://play.google.com/store/apps/details?id=$packageId"
-
-            lifecycleScope.launch {
-                // Already on wishlist? Skip
-                if (viewModel.exists(packageId)) {
-                    Toast.makeText(
-                        this@ShareReceiverActivity,
-                        "Already in your wishlist",
-                        Toast.LENGTH_SHORT
-                    ).show()
+        when (intent.action) {
+            Intent.ACTION_SEND -> {
+                val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT) ?: run { finish(); return }
+                // Reject non-Play Store text immediately — don't show Decluttr for WhatsApp messages etc.
+                if (!isPlayStoreUrl(sharedText)) {
                     finish()
-                    return@launch
+                    return
                 }
+                val packageId = PlayStoreScraper.extractPackageId(sharedText) ?: run { finish(); return }
+                processPackageId(packageId, sharedText)
+            }
+            Intent.ACTION_VIEW -> {
+                val url = intent.dataString ?: run { finish(); return }
+                val packageId = PlayStoreScraper.extractPackageId(url) ?: run { finish(); return }
+                processPackageId(packageId, url)
+            }
+            else -> finish()
+        }
+    }
 
-                // 1. Try local PackageManager first — instant, no network
-                val info = getLocalAppInfo(packageId)
-                    ?: scraper.fetch(packageId)   // 2. Fall back to Play Store HTML
+    private fun isPlayStoreUrl(text: String): Boolean {
+        return text.contains("play.google.com/store/apps/details") ||
+               text.contains("market://details") ||
+               text.contains("market://search")
+    }
 
-                if (info != null) {
-                    showConfirmDialog(info, playStoreUrl)
-                } else {
-                    // Offline and not installed — save with package ID only
-                    viewModel.add(
-                        WishlistApp(
-                            packageId    = packageId,
-                            name         = packageId,
-                            iconUrl      = "",
-                            description  = "",
-                            playStoreUrl = playStoreUrl,
-                        )
+    private fun processPackageId(packageId: String, sharedText: String) {
+        val playStoreUrl = "https://play.google.com/store/apps/details?id=$packageId"
+
+        lifecycleScope.launch {
+            // Already on wishlist? Skip
+            if (viewModel.exists(packageId)) {
+                Toast.makeText(
+                    this@ShareReceiverActivity,
+                    "Already in your wishlist",
+                    Toast.LENGTH_SHORT
+                ).show()
+                finish()
+                return@launch
+            }
+
+            // 1. Try local PackageManager first — instant, no network
+            val info = getLocalAppInfo(packageId)
+                ?: scraper.fetch(packageId)   // 2. Fall back to Play Store HTML
+
+            if (info != null) {
+                showConfirmDialog(info, playStoreUrl)
+            } else {
+                // Offline and not installed — save with package ID only
+                viewModel.add(
+                    WishlistApp(
+                        packageId    = packageId,
+                        name         = packageId,
+                        iconUrl      = "",
+                        description  = "",
+                        playStoreUrl = playStoreUrl,
                     )
-                    Toast.makeText(
-                        this@ShareReceiverActivity,
-                        "Saved to wishlist (details unavailable offline)",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    finish()
-                }
+                )
+                Toast.makeText(
+                    this@ShareReceiverActivity,
+                    "Saved to wishlist (details unavailable offline)",
+                    Toast.LENGTH_SHORT
+                ).show()
+                finish()
             }
-        } else {
-            finish()
         }
     }
 
@@ -113,16 +129,23 @@ class ShareReceiverActivity : AppCompatActivity() {
         nameView.text = info.name
         descView.text = info.description.ifBlank { "No description available" }
 
+        val placeholderColor = generateColorFromString(info.name)
+        val placeholder = ColorDrawable(placeholderColor)
+
         if (info.iconUrl.isNotBlank()) {
             iconView.load(info.iconUrl) {
                 crossfade(true)
-                placeholder(R.drawable.ic_app_placeholder)
-                error(R.drawable.ic_app_placeholder)
+                placeholder(placeholder)
+                error(placeholder)
+                memoryCachePolicy(CachePolicy.ENABLED)
+                diskCachePolicy(CachePolicy.ENABLED)
             }
         } else {
             // App is installed — load icon from PackageManager
             runCatching {
                 iconView.setImageDrawable(packageManager.getApplicationIcon(info.packageId))
+            }.onFailure {
+                iconView.setImageDrawable(placeholder)
             }
         }
 
@@ -137,6 +160,7 @@ class ShareReceiverActivity : AppCompatActivity() {
                             iconUrl      = info.iconUrl,
                             description  = info.description,
                             playStoreUrl = playStoreUrl,
+                            category     = info.category
                         )
                     )
                     Toast.makeText(
@@ -150,5 +174,11 @@ class ShareReceiverActivity : AppCompatActivity() {
             .setNegativeButton("Cancel") { _, _ -> finish() }
             .setOnCancelListener { finish() }
             .show()
+    }
+
+    private fun generateColorFromString(input: String): Int {
+        val hash = input.fold(0) { acc, c -> acc * 31 + c.code }
+        val hue = (Math.abs(hash) % 360).toFloat()
+        return android.graphics.Color.HSVToColor(floatArrayOf(hue, 0.45f, 0.55f))
     }
 }

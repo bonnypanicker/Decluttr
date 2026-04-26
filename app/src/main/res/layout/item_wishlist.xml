@@ -17,11 +17,12 @@
         android:padding="16dp"
         android:gravity="center_vertical">
 
-        <ImageView
+        <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/iv_icon"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:scaleType="centerCrop"
+            app:shapeAppearanceOverlay="@style/SquircleIconShape"
             android:background="@drawable/ic_app_placeholder" />
 
         <LinearLayout

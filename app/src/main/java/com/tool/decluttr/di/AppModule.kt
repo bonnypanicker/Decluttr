@@ -22,8 +22,8 @@ import com.tool.decluttr.domain.repository.AuthRepository
 import com.tool.decluttr.domain.repository.BillingRepository
 
 import com.tool.decluttr.data.local.dao.WishlistDao
-import com.tool.decluttr.data.repository.WishlistRepositoryImpl
 import com.tool.decluttr.domain.repository.WishlistRepository
+import com.tool.decluttr.data.repository.WishlistRepositoryImpl
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -87,7 +87,9 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideWishlistRepository(impl: WishlistRepositoryImpl): WishlistRepository = impl
+    fun provideWishlistRepository(impl: WishlistRepositoryImpl): WishlistRepository {
+        return impl
+    }
 
     @Provides
     @Singleton

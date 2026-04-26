@@ -8,10 +8,11 @@
     android:gravity="center_vertical"
     android:background="?attr/colorSurface">
 
-    <ImageView
+    <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/iv_app_icon"
         android:layout_width="56dp"
         android:layout_height="56dp"
+        app:shapeAppearanceOverlay="@style/SquircleIconShape"
         android:scaleType="centerCrop"
         android:background="@drawable/ic_app_placeholder" />
 

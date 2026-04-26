@@ -11,5 +11,7 @@ data class WishlistEntity(
     val description: String,
     val playStoreUrl: String,
     val addedAt: Long,
+    val lastModified: Long,
     val notes: String,
+    val category: String?
 )

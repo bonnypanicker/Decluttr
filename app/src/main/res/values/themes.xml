@@ -45,4 +45,9 @@
         <!-- Set the theme of the Activity that directly follows your splash screen. -->
         <item name="postSplashScreenTheme">@style/Theme.Decluttr</item>
     </style>
+
+    <style name="SquircleIconShape">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">22%</item>
+    </style>
 </resources>

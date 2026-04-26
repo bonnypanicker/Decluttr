@@ -12,11 +12,13 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
+import coil.transform.RoundedCornersTransformation
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.WishlistApp
 
 class WishlistAdapter(
-    private val onDeleteClick: (WishlistApp) -> Unit
+    private val onDeleteClick: (WishlistApp) -> Unit,
+    private val onPlayStoreClick: (WishlistApp) -> Unit
 ) : ListAdapter<WishlistApp, WishlistAdapter.ViewHolder>(WishlistDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -46,9 +48,10 @@ class WishlistAdapter(
                 notesView.visibility = View.GONE
             }
 
-            if (app.iconUrl.isNotBlank()) {
-                iconView.load(app.iconUrl) {
+            if (item.iconUrl.isNotBlank()) {
+                iconView.load(item.iconUrl) {
                     crossfade(true)
+                    transformations(RoundedCornersTransformation(radius = 24f))
                     placeholder(R.drawable.ic_app_placeholder)
                     error(R.drawable.ic_app_placeholder)
                 }
@@ -67,17 +70,7 @@ class WishlistAdapter(
             }
 
             itemView.setOnClickListener {
-                val intent = Intent(Intent.ACTION_VIEW).apply {
-                    data = Uri.parse(app.playStoreUrl)
-                    setPackage("com.android.vending")
-                }
-                runCatching {
-                    itemView.context.startActivity(intent)
-                }.onFailure {
-                    // Fallback to browser
-                    val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse(app.playStoreUrl))
-                    itemView.context.startActivity(webIntent)
-                }
+                onPlayStoreClick(app)
             }
         }
     }

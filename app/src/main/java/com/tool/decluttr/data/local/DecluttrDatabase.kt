@@ -40,13 +40,15 @@ abstract class DecluttrDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS wishlist (
-                        packageId TEXT NOT NULL PRIMARY KEY,
-                        name TEXT NOT NULL,
-                        iconUrl TEXT NOT NULL,
-                        description TEXT NOT NULL,
+                        packageId    TEXT NOT NULL PRIMARY KEY,
+                        name         TEXT NOT NULL,
+                        iconUrl      TEXT NOT NULL,
+                        description  TEXT NOT NULL,
                         playStoreUrl TEXT NOT NULL,
-                        addedAt INTEGER NOT NULL,
-                        notes TEXT NOT NULL
+                        addedAt      INTEGER NOT NULL,
+                        lastModified INTEGER NOT NULL DEFAULT 0,
+                        notes        TEXT NOT NULL DEFAULT '',
+                        category     TEXT
                     )
                 """.trimIndent())
             }

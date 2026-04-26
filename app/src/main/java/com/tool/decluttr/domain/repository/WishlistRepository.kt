@@ -9,4 +9,5 @@ interface WishlistRepository {
     suspend fun remove(packageId: String)
     suspend fun exists(packageId: String): Boolean
     suspend fun updateNotes(packageId: String, notes: String)
+    suspend fun syncFromFirestore()
 }

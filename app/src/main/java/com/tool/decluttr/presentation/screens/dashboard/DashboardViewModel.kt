@@ -15,6 +15,7 @@ import com.tool.decluttr.domain.usecase.ArchiveQuotaService
 import com.tool.decluttr.domain.usecase.GetAppDetailsUseCase
 import com.tool.decluttr.domain.usecase.GetInstalledAppsUseCase
 import com.tool.decluttr.domain.usecase.GetUnusedAppsUseCase
+import com.tool.decluttr.domain.repository.WishlistRepository
 import com.tool.decluttr.presentation.util.AppIconModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -49,6 +50,7 @@ class DashboardViewModel @Inject constructor(
     private val checkUsagePermissionUseCase: com.tool.decluttr.domain.usecase.CheckUsagePermissionUseCase,
     private val uninstallAppUseCase: com.tool.decluttr.domain.usecase.UninstallAppUseCase,
     private val authRepository: com.tool.decluttr.domain.repository.AuthRepository,
+    private val wishlistRepository: WishlistRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     companion object {
@@ -136,6 +138,11 @@ class DashboardViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             authRepository.isUserLoggedIn.collect { loggedIn ->
+                _isLoggedIn.value = loggedIn
+                if (loggedIn == true) {
+                    launch { appRepository.syncFromFirestore() }
+                    launch { wishlistRepository.syncFromFirestore() }
+                }
                 if (loggedIn == true && _unusedApps.value.isEmpty() && discoveryJob?.isActive != true) {
                     loadDiscoveryData()
                 } else if (loggedIn == false) {

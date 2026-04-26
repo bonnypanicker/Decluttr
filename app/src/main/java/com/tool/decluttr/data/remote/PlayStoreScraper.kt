@@ -12,6 +12,7 @@ data class PlayStoreAppInfo(
     val name: String,
     val iconUrl: String,
     val description: String,
+    val category: String? = null
 )
 
 @Singleton
@@ -39,7 +40,11 @@ class PlayStoreScraper @Inject constructor() {
                     .select("meta[property=og:description]")
                     .attr("content")
 
-                PlayStoreAppInfo(packageId, name, iconUrl, description)
+                // Category sits in an itemprop="genre" element
+                val category = doc.select("[itemprop=genre]").first()?.text()
+                    ?: doc.select("a[href*='/store/apps/category/']").first()?.text()
+
+                PlayStoreAppInfo(packageId, name, iconUrl, description, category)
             }
             .onFailure { it.printStackTrace() }
             .getOrNull()

@@ -45,11 +45,32 @@
             android:exported="true"
             android:excludeFromRecents="true"
             android:taskAffinity=""
-            android:theme="@style/Theme.Decluttr.Transparent">
-            <intent-filter>
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+
+            <!-- ✅ Filter 1: play.google.com URLs shared as text/plain -->
+            <intent-filter android:priority="100">
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
+            </intent-filter>
+
+            <!-- ✅ Filter 2: Deep link — tapping a Play Store URL directly opens Decluttr -->
+            <intent-filter android:autoVerify="true" android:priority="100">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="play.google.com"
+                    android:pathPrefix="/store/apps/details" />
+            </intent-filter>
+
+            <!-- ✅ Filter 3: market:// URI (some older Play Store versions share this format) -->
+            <intent-filter android:priority="100">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="market" />
             </intent-filter>
         </activity>
 

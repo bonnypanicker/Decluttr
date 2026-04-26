@@ -7,19 +7,81 @@
     android:orientation="vertical"
     android:background="?attr/colorSurface">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
+    <!-- Header -->
+    <LinearLayout
+        android:id="@+id/header_container"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        app:title="Wishlist"
-        app:navigationIcon="@drawable/ic_arrow_back" />
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_arrow_back"
+            android:contentDescription="Back"
+            android:tint="?attr/colorOnSurface" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:text="Wishlist"
+            android:textAppearance="?attr/textAppearanceHeadlineSmall"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <!-- Sort row -->
+    <LinearLayout
+        android:id="@+id/sort_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="4dp"
+        android:gravity="center_vertical">
+
+        <!-- Category chip scroll -->
+        <HorizontalScrollView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:scrollbars="none">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chip_group_categories"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:singleSelection="true"
+                app:selectionRequired="true" />
+
+        </HorizontalScrollView>
+
+        <!-- Sort button -->
+        <ImageButton
+            android:id="@+id/btn_sort"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@drawable/ic_sort"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Sort"
+            android:tint="?attr/colorOnSurface" />
+
+    </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler_view"
+        android:id="@+id/rv_wishlist"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:clipToPadding="false"
-        android:padding="16dp" />
+        android:paddingHorizontal="16dp"
+        android:paddingTop="8dp" />
 
     <TextView
         android:id="@+id/tv_empty"

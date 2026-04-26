@@ -7,5 +7,7 @@ data class WishlistApp(
     val description: String,
     val playStoreUrl: String,
     val addedAt: Long = System.currentTimeMillis(),
+    val lastModified: Long = System.currentTimeMillis(),
     val notes: String = "",
+    val category: String? = null
 )
