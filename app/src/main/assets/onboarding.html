@@ -4,8 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Decluttr Onboarding</title>
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <style>
     html, body, #root {
       margin: 0;
@@ -42,7 +40,10 @@
       window.__decluttrRoot = ReactDOM.createRoot(document.getElementById("root"));
       window.__decluttrRoot.render(React.createElement(DecluttrOnboarding.default));
     } catch (error) {
-      document.body.innerHTML = '<div style="color:#fff;padding:24px;font-family:sans-serif">Unable to load onboarding.</div>';
+      document.body.innerHTML =
+        '<div style="color:#fff;padding:24px;font-family:sans-serif">' +
+        '<b>Unable to load onboarding</b><br><pre style="font-size:11px;opacity:0.6;margin-top:12px">' +
+        error.toString() + '</pre></div>';
     }
   </script>
 </body>

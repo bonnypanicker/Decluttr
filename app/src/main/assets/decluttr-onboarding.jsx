@@ -1,4 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import ReactDOM from "react-dom/client";
+window.React = React;
+window.ReactDOM = ReactDOM;
 
 const slides = [
   {
