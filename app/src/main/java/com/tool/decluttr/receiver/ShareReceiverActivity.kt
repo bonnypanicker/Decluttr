@@ -10,6 +10,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import coil.load
 import coil.request.CachePolicy
+import com.google.firebase.auth.FirebaseAuth
+import com.tool.decluttr.MainActivity
 import com.tool.decluttr.R
 import com.tool.decluttr.data.remote.PlayStoreAppInfo
 import com.tool.decluttr.data.remote.PlayStoreScraper
@@ -29,6 +31,7 @@ class ShareReceiverActivity : AppCompatActivity() {
     }
 
     @Inject lateinit var scraper: PlayStoreScraper
+    @Inject lateinit var firebaseAuth: FirebaseAuth
     private val viewModel: WishlistViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,6 +83,10 @@ class ShareReceiverActivity : AppCompatActivity() {
         android.util.Log.d(TAG, "processPackageId: pkg=$packageId")
 
         lifecycleScope.launch {
+            if (!ensureLoggedInOrRedirect()) {
+                return@launch
+            }
+
             if (viewModel.exists(packageId)) {
                 android.util.Log.d(TAG, "processPackageId: already exists pkg=$packageId")
                 Toast.makeText(
@@ -175,6 +182,9 @@ class ShareReceiverActivity : AppCompatActivity() {
             .setView(view)
             .setPositiveButton("Add to Wishlist") { _, _ ->
                 lifecycleScope.launch {
+                    if (!ensureLoggedInOrRedirect()) {
+                        return@launch
+                    }
                     android.util.Log.d(TAG, "confirmAdd: start pkg=${info.packageId}")
                     runCatching {
                         withContext(NonCancellable) {
@@ -193,7 +203,7 @@ class ShareReceiverActivity : AppCompatActivity() {
                         android.util.Log.e(TAG, "confirmAdd: failed pkg=${info.packageId}", error)
                         Toast.makeText(
                             this@ShareReceiverActivity,
-                            "Saved locally. Cloud sync pending.",
+                            "Couldn't save right now. Please try again.",
                             Toast.LENGTH_SHORT
                         ).show()
                     }.onSuccess {
@@ -210,6 +220,26 @@ class ShareReceiverActivity : AppCompatActivity() {
             .setNegativeButton("Cancel") { _, _ -> finish() }
             .setOnCancelListener { finish() }
             .show()
+    }
+
+    private fun ensureLoggedInOrRedirect(): Boolean {
+        if (firebaseAuth.currentUser != null) {
+            return true
+        }
+        android.util.Log.d(TAG, "loginRequired: share blocked because user is logged out")
+        Toast.makeText(
+            this,
+            "Please log in first to add to wishlist.",
+            Toast.LENGTH_LONG
+        ).show()
+        startActivity(
+            Intent(this, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+        )
+        finish()
+        return false
     }
 
     private fun generateColorFromString(input: String): Int {

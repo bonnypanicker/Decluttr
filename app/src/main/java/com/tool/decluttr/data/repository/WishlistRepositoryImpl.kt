@@ -332,7 +332,6 @@ class WishlistRepositoryImpl @Inject constructor(
             val remoteModifiedByPackage = HashMap<String, Long>(snapshot.documents.size)
 
             var maxModified = lastSyncTime
-            var enqueuedLocalReconciliation = false
 
             for (doc in snapshot.documents) {
                 val remoteLastModified = doc.getLong("lastModified") ?: 0L
@@ -349,7 +348,6 @@ class WishlistRepositoryImpl @Inject constructor(
                     val localApp = localApps[packageId]
                     if (localApp != null && localApp.lastModified > remoteLastModified) {
                         enqueueUpsert(localApp.toDomain())
-                        enqueuedLocalReconciliation = true
                     } else {
                         dao.delete(packageId)
                     }
@@ -362,10 +360,7 @@ class WishlistRepositoryImpl @Inject constructor(
                 when {
                     localApp == null -> dao.insert(remoteApp.toEntity())
                     remoteApp.lastModified >= localApp.lastModified -> dao.insert(remoteApp.toEntity())
-                    else -> {
-                        enqueueUpsert(localApp)
-                        enqueuedLocalReconciliation = true
-                    }
+                    else -> enqueueUpsert(localApp)
                 }
             }
 
@@ -376,7 +371,6 @@ class WishlistRepositoryImpl @Inject constructor(
                     .filter { localApp -> localApp.packageId !in remotePackageIds }
                     .forEach { localOnlyApp ->
                         enqueueUpsert(localOnlyApp)
-                        enqueuedLocalReconciliation = true
                     }
             } else {
                 localApps.values
@@ -387,17 +381,16 @@ class WishlistRepositoryImpl @Inject constructor(
                         val remoteModified = remoteModifiedByPackage[localRecentlyChanged.packageId]
                         if (remoteModified == null || localRecentlyChanged.lastModified > remoteModified) {
                             enqueueUpsert(localRecentlyChanged)
-                            enqueuedLocalReconciliation = true
                         }
                     }
             }
 
-            if (!enqueuedLocalReconciliation && maxModified > lastSyncTime) {
-                prefs.edit().putLong(lastSyncTimeKey, maxModified).apply()
-            }
+            // Match archive sync behavior: always advance checkpoint so full pull runs only once.
+            val newSyncTime = if (maxModified > 0L) maxModified else System.currentTimeMillis()
+            prefs.edit().putLong(lastSyncTimeKey, newSyncTime).apply()
             android.util.Log.d(
                 TAG,
-                "syncFromFirestore: complete user=${uid.take(8)} newMax=$maxModified queuedReconcile=$enqueuedLocalReconciliation"
+                "syncFromFirestore: complete user=${uid.take(8)} lastSync->$newSyncTime fetched=${snapshot.documents.size}"
             )
         } catch (e: Exception) {
             android.util.Log.e(TAG, "syncFromFirestore failed", e)
