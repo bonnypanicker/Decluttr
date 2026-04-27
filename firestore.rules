@@ -1,0 +1,34 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      // Top-level user doc is not written by this client.
+      allow read: if isOwner(userId);
+      allow write: if false;
+
+      // Archive sync path used by AppRepositoryImpl.
+      match /apps/{appId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Wishlist sync path used by WishlistRepositoryImpl.
+      match /wishlist/{itemId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Entitlements are read by client and written by trusted backend (Admin SDK bypasses rules).
+      match /entitlements/{entitlementId} {
+        allow read: if isOwner(userId);
+        allow write: if false;
+      }
+    }
+  }
+}
