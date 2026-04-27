@@ -20,6 +20,13 @@ class WishlistViewModel @Inject constructor(
     private val repository: WishlistRepository,
 ) : ViewModel() {
 
+    init {
+        // Defensive sync trigger: ensures wishlist reconciliation runs whenever this VM is created.
+        viewModelScope.launch {
+            repository.syncFromFirestore()
+        }
+    }
+
     val sortOption = MutableStateFlow(WishlistSortOption.DATE_ADDED)
     val selectedCategory = MutableStateFlow("All")
 
@@ -54,6 +61,8 @@ class WishlistViewModel @Inject constructor(
     suspend fun add(app: WishlistApp) {
         repository.add(app)
     }
+
+    fun syncNow() = viewModelScope.launch { repository.syncFromFirestore() }
 
     fun remove(packageId: String) = viewModelScope.launch { repository.remove(packageId) }
     suspend fun exists(packageId: String) = repository.exists(packageId)

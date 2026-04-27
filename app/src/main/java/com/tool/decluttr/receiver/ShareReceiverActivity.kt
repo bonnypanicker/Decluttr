@@ -16,11 +16,17 @@ import com.tool.decluttr.data.remote.PlayStoreScraper
 import com.tool.decluttr.domain.model.WishlistApp
 import com.tool.decluttr.presentation.screens.wishlist.WishlistViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class ShareReceiverActivity : AppCompatActivity() {
+
+    companion object {
+        private const val TAG = "WishlistShare"
+    }
 
     @Inject lateinit var scraper: PlayStoreScraper
     private val viewModel: WishlistViewModel by viewModels()
@@ -36,38 +42,46 @@ class ShareReceiverActivity : AppCompatActivity() {
     }
 
     private fun handleIntent(intent: Intent) {
+        android.util.Log.d(TAG, "handleIntent: action=${intent.action}")
         when (intent.action) {
             Intent.ACTION_SEND -> {
                 val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT) ?: run { finish(); return }
-                // Reject non-Play Store text immediately — don't show Decluttr for WhatsApp messages etc.
+                android.util.Log.d(TAG, "ACTION_SEND: textLen=${sharedText.length}")
+                // Reject non-Play Store text immediately so normal messages are ignored.
                 if (!isPlayStoreUrl(sharedText)) {
+                    android.util.Log.d(TAG, "ACTION_SEND: ignored non-playstore text")
                     finish()
                     return
                 }
                 val packageId = PlayStoreScraper.extractPackageId(sharedText) ?: run { finish(); return }
-                processPackageId(packageId, sharedText)
+                android.util.Log.d(TAG, "ACTION_SEND: extracted pkg=$packageId")
+                processPackageId(packageId)
             }
+
             Intent.ACTION_VIEW -> {
                 val url = intent.dataString ?: run { finish(); return }
                 val packageId = PlayStoreScraper.extractPackageId(url) ?: run { finish(); return }
-                processPackageId(packageId, url)
+                android.util.Log.d(TAG, "ACTION_VIEW: extracted pkg=$packageId")
+                processPackageId(packageId)
             }
+
             else -> finish()
         }
     }
 
     private fun isPlayStoreUrl(text: String): Boolean {
         return text.contains("play.google.com/store/apps/details") ||
-               text.contains("market://details") ||
-               text.contains("market://search")
+            text.contains("market://details") ||
+            text.contains("market://search")
     }
 
-    private fun processPackageId(packageId: String, sharedText: String) {
+    private fun processPackageId(packageId: String) {
         val playStoreUrl = "https://play.google.com/store/apps/details?id=$packageId"
+        android.util.Log.d(TAG, "processPackageId: pkg=$packageId")
 
         lifecycleScope.launch {
-            // Already on wishlist? Skip
             if (viewModel.exists(packageId)) {
+                android.util.Log.d(TAG, "processPackageId: already exists pkg=$packageId")
                 Toast.makeText(
                     this@ShareReceiverActivity,
                     "Already in your wishlist",
@@ -77,23 +91,34 @@ class ShareReceiverActivity : AppCompatActivity() {
                 return@launch
             }
 
-            // 1. Try local PackageManager first — instant, no network
-            val info = getLocalAppInfo(packageId)
-                ?: scraper.fetch(packageId)   // 2. Fall back to Play Store HTML
+            // Try installed app metadata first, then Play Store scrape.
+            val info = getLocalAppInfo(packageId) ?: scraper.fetch(packageId)
 
             if (info != null) {
+                android.util.Log.d(
+                    TAG,
+                    "processPackageId: metadata resolved pkg=${info.packageId} name=${info.name.take(60)}"
+                )
                 showConfirmDialog(info, playStoreUrl)
             } else {
-                // Offline and not installed — save with package ID only
-                viewModel.add(
-                    WishlistApp(
-                        packageId    = packageId,
-                        name         = packageId,
-                        iconUrl      = "",
-                        description  = "",
-                        playStoreUrl = playStoreUrl,
-                    )
-                )
+                runCatching {
+                    withContext(NonCancellable) {
+                        viewModel.add(
+                            WishlistApp(
+                                packageId = packageId,
+                                name = packageId,
+                                iconUrl = "",
+                                description = "",
+                                playStoreUrl = playStoreUrl,
+                            )
+                        )
+                    }
+                }.onFailure {
+                    android.util.Log.e(TAG, "processPackageId: fallback add failed pkg=$packageId", it)
+                }.onSuccess {
+                    android.util.Log.d(TAG, "processPackageId: fallback add completed pkg=$packageId")
+                }
+
                 Toast.makeText(
                     this@ShareReceiverActivity,
                     "Saved to wishlist (details unavailable offline)",
@@ -104,14 +129,12 @@ class ShareReceiverActivity : AppCompatActivity() {
         }
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
     private fun getLocalAppInfo(packageId: String): PlayStoreAppInfo? = try {
         val appInfo = packageManager.getApplicationInfo(packageId, 0)
         PlayStoreAppInfo(
-            packageId   = packageId,
-            name        = packageManager.getApplicationLabel(appInfo).toString(),
-            iconUrl     = "",          // load from PackageManager directly in the dialog
+            packageId = packageId,
+            name = packageManager.getApplicationLabel(appInfo).toString(),
+            iconUrl = "",
             description = "",
         )
     } catch (e: PackageManager.NameNotFoundException) {
@@ -119,12 +142,12 @@ class ShareReceiverActivity : AppCompatActivity() {
     }
 
     private fun showConfirmDialog(info: PlayStoreAppInfo, playStoreUrl: String) {
-        // Inflate a simple dialog view — create res/layout/dialog_wishlist_confirm.xml
+        android.util.Log.d(TAG, "showConfirmDialog: pkg=${info.packageId}")
         val view = layoutInflater.inflate(R.layout.dialog_wishlist_confirm, null)
 
-        val iconView  = view.findViewById<android.widget.ImageView>(R.id.iv_app_icon)
-        val nameView  = view.findViewById<android.widget.TextView>(R.id.tv_app_name)
-        val descView  = view.findViewById<android.widget.TextView>(R.id.tv_app_desc)
+        val iconView = view.findViewById<android.widget.ImageView>(R.id.iv_app_icon)
+        val nameView = view.findViewById<android.widget.TextView>(R.id.tv_app_name)
+        val descView = view.findViewById<android.widget.TextView>(R.id.tv_app_desc)
 
         nameView.text = info.name
         descView.text = info.description.ifBlank { "No description available" }
@@ -141,7 +164,6 @@ class ShareReceiverActivity : AppCompatActivity() {
                 diskCachePolicy(CachePolicy.ENABLED)
             }
         } else {
-            // App is installed — load icon from PackageManager
             runCatching {
                 iconView.setImageDrawable(packageManager.getApplicationIcon(info.packageId))
             }.onFailure {
@@ -153,21 +175,35 @@ class ShareReceiverActivity : AppCompatActivity() {
             .setView(view)
             .setPositiveButton("Add to Wishlist") { _, _ ->
                 lifecycleScope.launch {
-                    viewModel.add(
-                        WishlistApp(
-                            packageId    = info.packageId,
-                            name         = info.name,
-                            iconUrl      = info.iconUrl,
-                            description  = info.description,
-                            playStoreUrl = playStoreUrl,
-                            category     = info.category
-                        )
-                    )
-                    Toast.makeText(
-                        this@ShareReceiverActivity,
-                        "${info.name} added to wishlist",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    android.util.Log.d(TAG, "confirmAdd: start pkg=${info.packageId}")
+                    runCatching {
+                        withContext(NonCancellable) {
+                            viewModel.add(
+                                WishlistApp(
+                                    packageId = info.packageId,
+                                    name = info.name,
+                                    iconUrl = info.iconUrl,
+                                    description = info.description,
+                                    playStoreUrl = playStoreUrl,
+                                    category = info.category
+                                )
+                            )
+                        }
+                    }.onFailure { error ->
+                        android.util.Log.e(TAG, "confirmAdd: failed pkg=${info.packageId}", error)
+                        Toast.makeText(
+                            this@ShareReceiverActivity,
+                            "Saved locally. Cloud sync pending.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }.onSuccess {
+                        android.util.Log.d(TAG, "confirmAdd: completed pkg=${info.packageId}")
+                        Toast.makeText(
+                            this@ShareReceiverActivity,
+                            "${info.name} added to wishlist",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                     finish()
                 }
             }

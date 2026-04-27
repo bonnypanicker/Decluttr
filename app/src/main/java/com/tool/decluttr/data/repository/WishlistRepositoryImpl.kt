@@ -3,6 +3,7 @@ package com.tool.decluttr.data.repository
 import android.content.Context
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
@@ -38,6 +39,8 @@ class WishlistRepositoryImpl @Inject constructor(
         private const val TAG = "WishlistRepo"
         private const val MAX_SYNC_RETRIES = 3
         private const val SYNC_RETRY_BASE_DELAY_MS = 1500L
+        private const val AUTH_WAIT_TIMEOUT_MS = 4000L
+        private const val AUTH_WAIT_POLL_MS = 200L
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -57,14 +60,17 @@ class WishlistRepositoryImpl @Inject constructor(
             scope.launch {
                 val uid = firebaseAuth.currentUser?.uid
                 if (uid != null) {
+                    android.util.Log.d(TAG, "authState: user=${uid.take(8)}")
                     if (currentUserId != null && currentUserId != uid) {
                         clearPendingSyncState()
                         dao.deleteAll()
+                        android.util.Log.w(TAG, "authState: switched account, cleared local wishlist")
                     }
                     currentUserId = uid
                     syncFromFirestore()
                     schedulePendingSync()
                 } else {
+                    android.util.Log.d(TAG, "authState: user=null, clearing in-memory pending queue")
                     clearPendingSyncState()
                     currentUserId = null
                 }
@@ -84,8 +90,10 @@ class WishlistRepositoryImpl @Inject constructor(
     override suspend fun add(app: WishlistApp) {
         val updatedApp = app.copy(lastModified = System.currentTimeMillis())
         dao.insert(updatedApp.toEntity())
-        if (auth.currentUser == null) {
-            android.util.Log.d(TAG, "add: queued ${updatedApp.packageId}; auth not ready")
+        android.util.Log.d(TAG, "add: local insert ok pkg=${updatedApp.packageId}")
+        val uid = awaitAuthenticatedUid()
+        if (uid == null) {
+            android.util.Log.w(TAG, "add: auth not ready within timeout; queued pkg=${updatedApp.packageId}")
             enqueueUpsert(updatedApp)
             return
         }
@@ -93,10 +101,13 @@ class WishlistRepositoryImpl @Inject constructor(
             .onFailure {
                 android.util.Log.w(
                     TAG,
-                    "add: immediate upsert failed for ${updatedApp.packageId}; queued for retry",
+                    "add: immediate upsert failed for ${updatedApp.packageId}; queued for retry. ${it.describeSyncFailure()}",
                     it
                 )
                 enqueueUpsert(updatedApp)
+            }
+            .onSuccess {
+                android.util.Log.d(TAG, "add: immediate upsert success pkg=${updatedApp.packageId} user=${uid.take(8)}")
             }
     }
 
@@ -116,18 +127,24 @@ class WishlistRepositoryImpl @Inject constructor(
     // ── Sync Queueing ────────────────────────────────────────────────────────
 
     private fun enqueueUpsert(app: WishlistApp) {
+        val upsertCount: Int
         synchronized(syncStateLock) {
             pendingUpserts[app.packageId] = app
             pendingDeletes.remove(app.packageId)
+            upsertCount = pendingUpserts.size
         }
+        android.util.Log.d(TAG, "enqueueUpsert: pkg=${app.packageId} pendingUpserts=$upsertCount")
         schedulePendingSync()
     }
 
     private fun enqueueDelete(packageId: String) {
+        val deleteCount: Int
         synchronized(syncStateLock) {
             pendingUpserts.remove(packageId)
             pendingDeletes.add(packageId)
+            deleteCount = pendingDeletes.size
         }
+        android.util.Log.d(TAG, "enqueueDelete: pkg=$packageId pendingDeletes=$deleteCount")
         schedulePendingSync()
     }
 
@@ -136,6 +153,7 @@ class WishlistRepositoryImpl @Inject constructor(
             val existing = pendingSyncJob
             if (existing?.isActive == true) return
             pendingSyncJob = scope.launch {
+                android.util.Log.d(TAG, "schedulePendingSync: start delayMs=$delayMs")
                 if (delayMs > 0L) {
                     delay(delayMs)
                 }
@@ -152,7 +170,20 @@ class WishlistRepositoryImpl @Inject constructor(
     }
 
     private suspend fun flushPendingSyncs() {
+        val currentUid = auth.currentUser?.uid
+        if (currentUid == null) {
+            android.util.Log.d(TAG, "flushPendingSyncs: skipped, user null")
+            synchronized(syncStateLock) { pendingSyncJob = null }
+            return
+        }
         syncMutex.withLock {
+            val pendingCounts = synchronized(syncStateLock) {
+                pendingUpserts.size to pendingDeletes.size
+            }
+            android.util.Log.d(
+                TAG,
+                "flushPendingSyncs: begin user=${currentUid.take(8)} upserts=${pendingCounts.first} deletes=${pendingCounts.second}"
+            )
             while (true) {
                 val nextDelete = synchronized(syncStateLock) { pendingDeletes.firstOrNull() }
                 if (nextDelete != null) {
@@ -201,7 +232,13 @@ class WishlistRepositoryImpl @Inject constructor(
     private suspend fun performUpsertWithRetry(app: WishlistApp): Boolean {
         repeat(MAX_SYNC_RETRIES) { attempt ->
             val ok = runCatching { performUpsert(app) }
-                .onFailure { android.util.Log.e(TAG, "Upsert fail", it) }
+                .onFailure {
+                    android.util.Log.e(
+                        TAG,
+                        "Upsert fail pkg=${app.packageId} attempt=${attempt + 1}/$MAX_SYNC_RETRIES ${it.describeSyncFailure()}",
+                        it
+                    )
+                }
                 .isSuccess
             if (ok) return true
             if (attempt < MAX_SYNC_RETRIES - 1) delay(SYNC_RETRY_BASE_DELAY_MS * (attempt + 1))
@@ -212,7 +249,13 @@ class WishlistRepositoryImpl @Inject constructor(
     private suspend fun performDeleteWithRetry(packageId: String): Boolean {
         repeat(MAX_SYNC_RETRIES) { attempt ->
             val ok = runCatching { performDelete(packageId) }
-                .onFailure { android.util.Log.e(TAG, "Delete fail", it) }
+                .onFailure {
+                    android.util.Log.e(
+                        TAG,
+                        "Delete fail pkg=$packageId attempt=${attempt + 1}/$MAX_SYNC_RETRIES ${it.describeSyncFailure()}",
+                        it
+                    )
+                }
                 .isSuccess
             if (ok) return true
             if (attempt < MAX_SYNC_RETRIES - 1) delay(SYNC_RETRY_BASE_DELAY_MS * (attempt + 1))
@@ -222,17 +265,18 @@ class WishlistRepositoryImpl @Inject constructor(
 
     private suspend fun performUpsert(app: WishlistApp) = withContext(Dispatchers.IO) {
         runCatching { auth.currentUser?.getIdToken(false)?.await() }
-        val uid = auth.currentUser?.uid ?: error("No authenticated user")
+        val uid = awaitAuthenticatedUid() ?: error("No authenticated user")
         val dataMap = app.toFirestoreMap()
         firestore.collection("users").document(uid)
             .collection("wishlist").document(app.packageId)
             .set(dataMap, SetOptions.merge())
             .await()
+        android.util.Log.d(TAG, "performUpsert: success pkg=${app.packageId} user=${uid.take(8)}")
     }
 
     private suspend fun performDelete(packageId: String) = withContext(Dispatchers.IO) {
         runCatching { auth.currentUser?.getIdToken(false)?.await() }
-        val uid = auth.currentUser?.uid ?: error("No authenticated user")
+        val uid = awaitAuthenticatedUid() ?: error("No authenticated user")
         val update = mapOf(
             "isDeleted" to true,
             "lastModified" to System.currentTimeMillis()
@@ -241,6 +285,7 @@ class WishlistRepositoryImpl @Inject constructor(
             .collection("wishlist").document(packageId)
             .set(update, SetOptions.merge())
             .await()
+        android.util.Log.d(TAG, "performDelete: success pkg=$packageId user=${uid.take(8)}")
     }
 
     // ── Sync from Firestore ──────────────────────────────────────────────────
@@ -258,19 +303,20 @@ class WishlistRepositoryImpl @Inject constructor(
     }
 
     override suspend fun syncFromFirestore() = withContext(Dispatchers.IO) {
-        val user = auth.currentUser
-        if (user == null) {
+        val uid = awaitAuthenticatedUid()
+        if (uid == null) {
             android.util.Log.w(TAG, "syncFromFirestore: skipped - no user")
             return@withContext
         }
 
         try {
             val prefs = context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
-            val lastSyncTimeKey = "last_sync_time_wishlist_${user.uid}"
+            val lastSyncTimeKey = "last_sync_time_wishlist_$uid"
             val lastSyncTime = prefs.getLong(lastSyncTimeKey, 0L)
+            android.util.Log.d(TAG, "syncFromFirestore: start user=${uid.take(8)} lastSync=$lastSyncTime")
 
             var query: Query = firestore.collection("users")
-                .document(user.uid)
+                .document(uid)
                 .collection("wishlist")
             if (lastSyncTime > 0L) {
                 query = query.whereGreaterThan("lastModified", lastSyncTime)
@@ -278,6 +324,10 @@ class WishlistRepositoryImpl @Inject constructor(
 
             val snapshot = query.get().await()
             val localApps = dao.getAllSnapshot().associateBy { it.packageId }
+            android.util.Log.d(
+                TAG,
+                "syncFromFirestore: fetched remote=${snapshot.documents.size} local=${localApps.size}"
+            )
             val remotePackageIds = linkedSetOf<String>()
             val remoteModifiedByPackage = HashMap<String, Long>(snapshot.documents.size)
 
@@ -345,8 +395,35 @@ class WishlistRepositoryImpl @Inject constructor(
             if (!enqueuedLocalReconciliation && maxModified > lastSyncTime) {
                 prefs.edit().putLong(lastSyncTimeKey, maxModified).apply()
             }
+            android.util.Log.d(
+                TAG,
+                "syncFromFirestore: complete user=${uid.take(8)} newMax=$maxModified queuedReconcile=$enqueuedLocalReconciliation"
+            )
         } catch (e: Exception) {
             android.util.Log.e(TAG, "syncFromFirestore failed", e)
+        }
+    }
+
+    private suspend fun awaitAuthenticatedUid(timeoutMs: Long = AUTH_WAIT_TIMEOUT_MS): String? {
+        auth.currentUser?.uid?.let { return it }
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            delay(AUTH_WAIT_POLL_MS)
+            auth.currentUser?.uid?.let { return it }
+        }
+        return null
+    }
+
+    private fun Throwable.describeSyncFailure(): String {
+        val firestoreCode = (this as? FirebaseFirestoreException)?.code?.name
+        val messageText = message?.take(240)?.replace('\n', ' ')
+        return buildString {
+            if (!messageText.isNullOrBlank()) append(messageText)
+            if (!firestoreCode.isNullOrBlank()) {
+                if (isNotEmpty()) append(" | ")
+                append("firestoreCode=").append(firestoreCode)
+            }
+            if (isEmpty()) append(this@describeSyncFailure.javaClass.simpleName)
         }
     }
 
