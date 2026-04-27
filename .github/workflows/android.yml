@@ -91,7 +91,7 @@ jobs:
           exit 1
         fi
 
-    - name: Build Debug APK (PR validation)
+    - name: Build Debug AAB (PR validation)
       if: github.event_name == 'pull_request'
       run: |
         if [ ! -f gradlew ]; then
@@ -99,9 +99,9 @@ jobs:
           gradle wrapper --gradle-version 8.10.2
         fi
         chmod +x gradlew
-        ./gradlew :app:assembleDebug
+        ./gradlew :app:bundleDebug
 
-    - name: Build Release APK
+    - name: Build Release AAB
       if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'release')
       run: |
         if [ ! -f gradlew ]; then
@@ -109,9 +109,9 @@ jobs:
           gradle wrapper --gradle-version 8.10.2
         fi
         chmod +x gradlew
-        ./gradlew :app:assembleRelease
+        ./gradlew :app:bundleRelease
 
-    - name: Build Debug APK
+    - name: Build Debug AAB
       if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'debug'
       run: |
         if [ ! -f gradlew ]; then
@@ -119,12 +119,12 @@ jobs:
           gradle wrapper --gradle-version 8.10.2
         fi
         chmod +x gradlew
-        ./gradlew :app:assembleDebug
+        ./gradlew :app:bundleDebug
 
-    - name: Upload APK
+    - name: Upload AAB
       if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
       uses: actions/upload-artifact@v4
       with:
-        name: decluttr-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_type || 'release' }}-apk
-        path: app/build/outputs/apk/${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_type || 'release' }}/app-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_type || 'release' }}.apk
+        name: decluttr-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_type || 'release' }}-aab
+        path: app/build/outputs/bundle/${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_type || 'release' }}/app-${{ github.event_name == 'workflow_dispatch' && github.event.inputs.build_type || 'release' }}.aab
         if-no-files-found: error
