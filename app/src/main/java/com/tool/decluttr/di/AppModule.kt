@@ -16,6 +16,7 @@ import javax.inject.Provider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.tool.decluttr.data.repository.AuthRepositoryImpl
 import com.tool.decluttr.data.repository.BillingRepositoryImpl
 import com.tool.decluttr.domain.repository.AuthRepository
@@ -38,7 +39,11 @@ object AppModule {
     @Provides
     @Singleton
     fun provideFirebaseFirestore(): FirebaseFirestore {
-        return FirebaseFirestore.getInstance()
+        val db = FirebaseFirestore.getInstance()
+        db.firestoreSettings = FirebaseFirestoreSettings.Builder()
+            .setPersistenceEnabled(true)
+            .build()
+        return db
     }
 
     @Provides

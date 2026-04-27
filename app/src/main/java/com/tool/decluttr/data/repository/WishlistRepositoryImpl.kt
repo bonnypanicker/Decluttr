@@ -55,22 +55,16 @@ class WishlistRepositoryImpl @Inject constructor(
             scope.launch {
                 val uid = firebaseAuth.currentUser?.uid
                 if (uid != null) {
-                    if (currentUserId != uid) {
+                    if (currentUserId != null && currentUserId != uid) {
                         clearPendingSyncState()
-                        currentUserId = uid
+                        dao.deleteAll()
                     }
+                    currentUserId = uid
                     syncFromFirestore()
                     schedulePendingSync()
                 } else {
                     clearPendingSyncState()
-                    currentUserId?.let {
-                        context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
-                            .edit()
-                            .remove("last_sync_time_wishlist_$it")
-                            .apply()
-                    }
                     currentUserId = null
-                    dao.deleteAll()
                 }
             }
         }
@@ -88,7 +82,8 @@ class WishlistRepositoryImpl @Inject constructor(
     override suspend fun add(app: WishlistApp) {
         val updatedApp = app.copy(lastModified = System.currentTimeMillis())
         dao.insert(updatedApp.toEntity())
-        enqueueUpsert(updatedApp)
+        runCatching { performUpsert(updatedApp) }
+            .onFailure { enqueueUpsert(updatedApp) }
     }
 
     override suspend fun remove(packageId: String) {
@@ -211,28 +206,36 @@ class WishlistRepositoryImpl @Inject constructor(
         return false
     }
 
-    private suspend fun performUpsert(app: WishlistApp) {
-        val user = auth.currentUser ?: error("No signed-in user")
+    private suspend fun performUpsert(app: WishlistApp) = withContext(Dispatchers.IO) {
+        runCatching { auth.currentUser?.getIdToken(false)?.await() }
+        val uid = auth.currentUser?.uid ?: error("No authenticated user")
         val dataMap = app.toFirestoreMap()
-        firestore.collection("users").document(user.uid)
+        firestore.collection("users").document(uid)
             .collection("wishlist").document(app.packageId)
             .set(dataMap, SetOptions.merge())
             .await()
     }
 
-    private suspend fun performDelete(packageId: String) {
-        val user = auth.currentUser ?: error("No signed-in user")
+    private suspend fun performDelete(packageId: String) = withContext(Dispatchers.IO) {
+        runCatching { auth.currentUser?.getIdToken(false)?.await() }
+        val uid = auth.currentUser?.uid ?: error("No authenticated user")
         val update = mapOf(
             "isDeleted" to true,
             "lastModified" to System.currentTimeMillis()
         )
-        firestore.collection("users").document(user.uid)
+        firestore.collection("users").document(uid)
             .collection("wishlist").document(packageId)
             .set(update, SetOptions.merge())
             .await()
     }
 
     // ── Sync from Firestore ──────────────────────────────────────────────────
+
+    override suspend fun clearLocalData() {
+        clearPendingSyncState()
+        dao.deleteAll()
+        currentUserId = null
+    }
 
     override suspend fun syncFromFirestore() = withContext(Dispatchers.IO) {
         val user = auth.currentUser

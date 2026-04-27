@@ -2,7 +2,9 @@ package com.tool.decluttr.presentation.screens.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tool.decluttr.domain.repository.AppRepository
 import com.tool.decluttr.domain.repository.AuthRepository
+import com.tool.decluttr.domain.repository.WishlistRepository
 import com.tool.decluttr.domain.usecase.ExportArchiveUseCase
 import com.tool.decluttr.domain.usecase.ImportArchiveUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +21,9 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     private val exportArchiveUseCase: ExportArchiveUseCase,
     private val importArchiveUseCase: ImportArchiveUseCase,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val appRepository: AppRepository,
+    private val wishlistRepository: WishlistRepository
 ) : ViewModel() {
 
     val isLoggedIn: StateFlow<Boolean?> = authRepository.isUserLoggedIn
@@ -69,6 +73,8 @@ class SettingsViewModel @Inject constructor(
 
     fun signOut() {
         viewModelScope.launch {
+            runCatching { appRepository.clearLocalData() }
+            runCatching { wishlistRepository.clearLocalData() }
             authRepository.signOut()
         }
     }

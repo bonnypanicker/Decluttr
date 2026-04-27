@@ -17,4 +17,6 @@ interface AppRepository {
     suspend fun deleteAppById(packageId: String)
     
     suspend fun updateApp(app: ArchivedApp)
+    
+    suspend fun clearLocalData()
 }

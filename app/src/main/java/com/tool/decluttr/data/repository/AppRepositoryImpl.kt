@@ -70,22 +70,16 @@ class AppRepositoryImpl(
             scope.launch {
                 val uid = firebaseAuth.currentUser?.uid
                 if (uid != null) {
-                    if (currentUserId != uid) {
+                    if (currentUserId != null && currentUserId != uid) {
                         clearPendingSyncState()
-                        currentUserId = uid
+                        dao.deleteAllApps()
                     }
+                    currentUserId = uid
                     syncFromFirestore()
                     schedulePendingSync()
                 } else {
                     clearPendingSyncState()
-                    currentUserId?.let {
-                        context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
-                            .edit()
-                            .remove("last_sync_time_$it")
-                            .apply()
-                    }
                     currentUserId = null
-                    dao.deleteAllApps()
                 }
             }
         }
@@ -565,6 +559,18 @@ class AppRepositoryImpl(
         if (FirebaseApp.getApps(context).isNotEmpty()) {
             runCatching { FirebaseCrashlytics.getInstance().recordException(throwable) }
         }
+    }
+
+    override suspend fun clearLocalData() {
+        clearPendingSyncState()
+        dao.deleteAllApps()
+        currentUserId?.let {
+            context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
+                .edit()
+                .remove("last_sync_time_$it")
+                .apply()
+        }
+        currentUserId = null
     }
 
     override fun getAllArchivedApps(): Flow<List<ArchivedApp>> {
