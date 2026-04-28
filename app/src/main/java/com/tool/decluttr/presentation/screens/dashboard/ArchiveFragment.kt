@@ -201,7 +201,16 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             }
         )
 
-        recyclerView.layoutManager = GridLayoutManager(requireContext(), 4)
+        recyclerView.layoutManager = GridLayoutManager(requireContext(), 4).also { glm ->
+            glm.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+                override fun getSpanSize(position: Int): Int {
+                    return when (adapter.getItemViewType(position)) {
+                        1 -> 4
+                        else -> 1
+                    }
+                }
+            }
+        }
         recyclerView.adapter = adapter
         recyclerView.setHasFixedSize(false)
 
@@ -330,17 +339,35 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
 
         btnViewSwitch.setOnClickListener {
             isListMode = !isListMode
-            adapter.setListMode(isListMode)
-            btnSort.visibility = if (isListMode) View.VISIBLE else View.GONE
+            val previousAnimator = recyclerView.itemAnimator
+            recyclerView.itemAnimator = null
+            recyclerView.layoutAnimation = null
+
             recyclerView.layoutManager = if (isListMode) {
                 LinearLayoutManager(requireContext())
             } else {
-                GridLayoutManager(requireContext(), 4)
+                GridLayoutManager(requireContext(), 4).also { glm ->
+                    glm.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+                        override fun getSpanSize(position: Int): Int {
+                            return when (adapter.getItemViewType(position)) {
+                                1 -> 4
+                                else -> 1
+                            }
+                        }
+                    }
+                }
             }
+
+            adapter.setListModeQuiet(isListMode)
             btnViewSwitch.setImageResource(
                 if (isListMode) R.drawable.ic_grid_view else R.drawable.ic_list
             )
+            btnSort.visibility = if (isListMode) View.VISIBLE else View.GONE
             updateUI(viewModel.archivedApps.value)
+
+            recyclerView.post {
+                recyclerView.itemAnimator = previousAnimator
+            }
         }
 
         btnSort.setOnClickListener { showSortMenu() }

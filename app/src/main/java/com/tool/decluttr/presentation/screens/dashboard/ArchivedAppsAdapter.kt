@@ -84,6 +84,10 @@ class ArchivedAppsAdapter(
         }
     }
 
+    fun setListModeQuiet(enabled: Boolean) {
+        isListMode = enabled
+    }
+
     override fun getItemViewType(position: Int): Int {
         return when(getItem(position)) {
             is ArchivedItem.App -> if (isListMode) 2 else 0
