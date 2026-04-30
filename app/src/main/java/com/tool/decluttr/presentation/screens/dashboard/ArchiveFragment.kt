@@ -38,7 +38,6 @@ import coil.load
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.chip.Chip
 import com.google.android.material.color.MaterialColors
-import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.snackbar.Snackbar
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.EntitlementState
@@ -79,9 +78,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private lateinit var btnReinstalledApps: ImageView
     private lateinit var btnSort: ImageView
     private lateinit var btnViewSwitch: ImageView
-    private lateinit var creditsCard: View
-    private lateinit var tvArchiveCredits: TextView
-    private lateinit var progressArchiveCredits: LinearProgressIndicator
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyStateContainer: View
     private lateinit var tvEmptyMessage: TextView
@@ -152,9 +148,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         btnReinstalledApps = v.findViewById(R.id.btn_reinstalled_apps)
         btnSort = v.findViewById(R.id.btn_sort)
         btnViewSwitch = v.findViewById(R.id.btn_view_switch)
-        creditsCard = v.findViewById(R.id.archive_credits_card)
-        tvArchiveCredits = v.findViewById(R.id.tv_archive_credits)
-        progressArchiveCredits = v.findViewById(R.id.progress_archive_credits)
         recyclerView = v.findViewById(R.id.archive_recycler_view)
         emptyStateContainer = v.findViewById(R.id.empty_state_container)
         tvEmptyMessage = v.findViewById(R.id.tv_empty_message)
@@ -417,15 +410,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                     }
                 }
                 launch {
-                    billingViewModel.archiveCreditsUi.collect { credits ->
-                        updatePremiumIndicator(credits.isPremium, credits.isVisible)
-                        if (!credits.isPremium) {
-                            tvArchiveCredits.text = credits.label
-                            progressArchiveCredits.setProgressCompat(credits.progress, true)
-                        }
-                    }
-                }
-                launch {
                     billingViewModel.entitlementState.collect { entitlement ->
                         if (shouldShowPremiumNotice(entitlement)) {
                             Snackbar.make(
@@ -456,19 +440,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         premiumNoticePrefs.edit()
             .putBoolean(PREF_KEY_PREMIUM_NOTICE_SHOWN, true)
             .commit()
-    }
-
-    private fun updatePremiumIndicator(isPremium: Boolean, isVisible: Boolean = true) {
-        if (!isVisible) {
-            creditsCard.visibility = View.GONE
-            return
-        }
-
-        if (isPremium) {
-            creditsCard.visibility = View.GONE
-        } else {
-            creditsCard.visibility = View.VISIBLE
-        }
     }
 
     private fun showPaywall(reason: String) {
@@ -740,7 +711,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             searchBar.visibility = View.GONE
             btnSort.visibility = View.GONE
             btnViewSwitch.visibility = View.GONE
-            creditsCard.visibility = View.GONE
             categoryBar.visibility = View.GONE
             infoCardsContainer.visibility = View.GONE
 

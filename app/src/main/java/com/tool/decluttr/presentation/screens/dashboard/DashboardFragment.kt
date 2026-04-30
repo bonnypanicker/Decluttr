@@ -3,6 +3,7 @@ package com.tool.decluttr.presentation.screens.dashboard
 import android.os.Bundle
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
@@ -29,6 +30,8 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
     private val viewModel: DashboardViewModel by activityViewModels()
     private val billingViewModel: BillingViewModel by activityViewModels()
     private var selectedTabIndex = 0
+    private var lastArchivedBytes: Long = 0L
+    private var lastCredits: BillingViewModel.ArchiveCreditsUi? = null
     private val onboardingPrefs by lazy {
         requireContext().getSharedPreferences("decluttr_prefs", android.content.Context.MODE_PRIVATE)
     }
@@ -53,12 +56,14 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
                     true
                 }
                 R.id.action_get_pro -> {
-                    showPaywall(reason = "toolbar_get_pro", used = null, limit = null)
+                    val credits = lastCredits ?: billingViewModel.archiveCreditsUi.value
+                    showPaywall(reason = "toolbar_get_pro", used = credits.used, limit = credits.limit)
                     true
                 }
                 else -> false
             }
         }
+        toolbar.post { updateToolbarActions(toolbar) }
 
         // Apply our custom unique production-ready Navigation Bar styling natively
         bottomNav.isItemActiveIndicatorEnabled = false
@@ -134,25 +139,21 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
                     }
                 }
                 launch {
-                    billingViewModel.entitlementState.collect { entitlement ->
-                        val getProItem = toolbar.menu.findItem(R.id.action_get_pro)
-                        getProItem?.isVisible = !entitlement.isPremium && selectedTabIndex == 1
+                    billingViewModel.entitlementState.collect {
+                        updateToolbarActions(toolbar)
                     }
                 }
                 launch {
                     viewModel.archivedApps.collect { apps ->
-                        val pill = view.findViewById<android.widget.TextView>(R.id.toolbar_reclaimed_pill)
                         val totalBytes = apps.sumOf { it.archivedSizeBytes ?: 0L }
-                        val mb = totalBytes / (1024.0 * 1024.0)
-                        val formatted = if (mb < 1.0) String.format(java.util.Locale.US, "%.1f MB freed", mb)
-                                        else String.format(java.util.Locale.US, "%.0f MB freed", mb)
-                        pill.text = formatted
-
-                        if (selectedTabIndex == 1 && totalBytes > 0) {
-                            pill.visibility = View.VISIBLE
-                        } else {
-                            pill.visibility = View.GONE
-                        }
+                        lastArchivedBytes = totalBytes
+                        updateToolbarActions(toolbar)
+                    }
+                }
+                launch {
+                    billingViewModel.archiveCreditsUi.collect { credits ->
+                        lastCredits = credits
+                        updateToolbarActions(toolbar)
                     }
                 }
             }
@@ -161,14 +162,6 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
 
     private fun switchTab(index: Int) {
         selectedTabIndex = index
-        
-        val pill = view?.findViewById<android.widget.TextView>(R.id.toolbar_reclaimed_pill)
-        val totalBytes = viewModel.archivedApps.value.sumOf { it.archivedSizeBytes ?: 0L }
-        if (index == 1 && totalBytes > 0) {
-            pill?.visibility = View.VISIBLE
-        } else {
-            pill?.visibility = View.GONE
-        }
 
         val fragment = when (index) {
             0 -> DiscoveryFragment()
@@ -178,10 +171,44 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         childFragmentManager.beginTransaction()
             .replace(R.id.content_container, fragment)
             .commit()
-        
-        view?.findViewById<MaterialToolbar>(R.id.toolbar)?.let { toolbar ->
-            val getProItem = toolbar.menu.findItem(R.id.action_get_pro)
-            getProItem?.isVisible = !billingViewModel.entitlementState.value.isPremium && selectedTabIndex == 1
+        view?.findViewById<MaterialToolbar>(R.id.toolbar)?.let { toolbar -> updateToolbarActions(toolbar) }
+    }
+
+    private fun updateToolbarActions(toolbar: MaterialToolbar) {
+        val isArchiveTab = selectedTabIndex == 1
+        val credits = lastCredits ?: billingViewModel.archiveCreditsUi.value
+        val isPremium = billingViewModel.entitlementState.value.isPremium
+
+        val reclaimedItem = toolbar.menu.findItem(R.id.action_reclaimed)
+        val reclaimedText = reclaimedItem?.actionView?.findViewById<TextView>(R.id.toolbar_reclaimed_action)
+        if (reclaimedItem != null && reclaimedText != null) {
+            val totalBytes = lastArchivedBytes.coerceAtLeast(0L)
+            val mb = totalBytes / (1024.0 * 1024.0)
+            val formatted = if (mb < 1.0) {
+                String.format(java.util.Locale.US, "%.1f MB freed", mb)
+            } else {
+                String.format(java.util.Locale.US, "%.0f MB freed", mb)
+            }
+            reclaimedText.text = formatted
+            reclaimedItem.isVisible = isArchiveTab && totalBytes > 0L
+            reclaimedText.visibility = if (reclaimedItem.isVisible) View.VISIBLE else View.GONE
+        }
+
+        val getProItem = toolbar.menu.findItem(R.id.action_get_pro)
+        val getProText = getProItem?.actionView?.findViewById<TextView>(R.id.toolbar_get_pro_action)
+        if (getProItem != null && getProText != null) {
+            val canShow = isArchiveTab && !isPremium && credits.isVisible
+            getProItem.isVisible = canShow
+            if (canShow) {
+                getProText.text = "Get Pro · ${credits.used}/${credits.limit}"
+                getProText.visibility = View.VISIBLE
+                getProItem.actionView?.setOnClickListener {
+                    showPaywall(reason = "toolbar_get_pro", used = credits.used, limit = credits.limit)
+                }
+            } else {
+                getProText.visibility = View.GONE
+                getProItem.actionView?.setOnClickListener(null)
+            }
         }
     }
 

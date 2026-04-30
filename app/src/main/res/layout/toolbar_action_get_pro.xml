@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/toolbar_get_pro_action"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginEnd="8dp"
+    android:background="@drawable/bg_get_pro_chip"
+    android:paddingHorizontal="10dp"
+    android:paddingVertical="6dp"
+    android:text="Get Pro · 0/50"
+    android:textAppearance="?attr/textAppearanceLabelSmall"
+    android:textColor="?attr/colorOnPrimaryContainer"
+    android:textStyle="bold"
+    android:visibility="gone" />
