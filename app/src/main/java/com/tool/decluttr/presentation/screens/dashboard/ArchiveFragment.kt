@@ -1,9 +1,6 @@
 package com.tool.decluttr.presentation.screens.dashboard
 
 import android.content.ClipDescription
-import android.content.Intent
-import android.net.Uri
-import android.content.res.ColorStateList
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -13,13 +10,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
 import android.view.animation.LayoutAnimationController
-import android.view.animation.OvershootInterpolator
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.activity.addCallback
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.fragment.app.activityViewModels
@@ -27,17 +22,13 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import androidx.appcompat.widget.PopupMenu
-import coil.load
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.chip.Chip
-import com.google.android.material.color.MaterialColors
 import com.google.android.material.snackbar.Snackbar
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.EntitlementState
@@ -45,9 +36,10 @@ import com.tool.decluttr.domain.model.ArchivedApp
 import com.tool.decluttr.presentation.screens.auth.AuthViewModel
 import com.tool.decluttr.presentation.screens.billing.BillingViewModel
 import com.tool.decluttr.presentation.screens.billing.PaywallBottomSheet
-import com.tool.decluttr.presentation.util.AppIconModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.text.DateFormat
@@ -58,6 +50,13 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     companion object {
         private const val TAG = "DecluttrDragDbg"
         private const val PREF_KEY_PREMIUM_NOTICE_SHOWN = "premium_notice_shown"
+        private const val PREF_KEY_ARCHIVE_LIST_MODE = "archive_list_mode"
+        private const val PREF_KEY_TIP_DRAG_SHOWN = "archive_tip_drag_shown"
+        private const val PREF_KEY_TIP_VIEW_SHOWN = "archive_tip_view_shown"
+        private const val PREF_KEY_TIP_LAST_SHOWN_AT = "archive_tip_last_shown_at"
+        private const val TIP_MIN_GAP_MS = 8_000L
+        private const val TIP_INITIAL_DELAY_MS = 700L
+        private const val TIP_SECONDARY_DELAY_MS = 1_300L
     }
 
     private val viewModel: DashboardViewModel by activityViewModels()
@@ -72,6 +71,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private lateinit var searchBar: View
     private lateinit var searchInput: EditText
     private lateinit var searchClear: ImageView
+    private lateinit var btnSearch: ImageView
     private lateinit var categoryBar: View
     private lateinit var chipContainerScrollView: View
     private lateinit var chipContainer: LinearLayout
@@ -83,28 +83,20 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private lateinit var tvEmptyMessage: TextView
     private lateinit var btnFindApps: Button
     private lateinit var btnArchiveLogin: Button
-    private lateinit var reinstalledPageContainer: View
-    private lateinit var btnReinstalledBack: ImageView
-    private lateinit var reinstalledRecyclerView: RecyclerView
-    private lateinit var tvReinstalledEmpty: TextView
+    private lateinit var tipOverlayContainer: View
+    private lateinit var tipOverlayText: TextView
+    private lateinit var btnTipOverlayClose: ImageView
 
     private lateinit var adapter: ArchivedAppsAdapter
-    private lateinit var reinstalledAdapter: ReinstalledAppsAdapter
     private var isListMode = false
-    private var isReinstalledPageVisible = false
+    private var isSearchExpanded = false
     private var sortOption: ArchiveSortOption = ArchiveSortOption.UNINSTALLED_DATE
     
     private val prefs by lazy { requireContext().getSharedPreferences("archive_info_prefs", android.content.Context.MODE_PRIVATE) }
-    private var isDragInfoDismissed = false
-    private var isViewSwitchInfoDismissed = false
-    
-    private lateinit var infoCardsContainer: View
-    private lateinit var cardDragInfo: View
-    private lateinit var cardViewSwitchInfo: View
-    private lateinit var btnDismissDragInfo: ImageView
-    private lateinit var btnDismissViewSwitchInfo: ImageView
+    private var activeTipKey: String? = null
+    private var tipSessionStarted = false
+    private var tipScheduleJob: Job? = null
     private var sizeMap: Map<String, Long?> = emptyMap()
-    private var reinstatedApps: List<ArchivedApp> = emptyList()
     private var installedPackagesCache: Set<String> = emptySet()
     private var installedPackagesCacheAt: Long = 0L
     private val installedPackagesCacheTtlMs: Long = 8_000L
@@ -134,14 +126,17 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         billingViewModel.refreshBilling()
         initViews(view)
         setupRecyclerView()
+        applyViewMode()
         setupListeners()
         observeViewModel()
+        scheduleTipsIfNeeded()
     }
 
     private fun initViews(v: View) {
         searchBar = v.findViewById(R.id.archive_search_bar)
         searchInput = searchBar.findViewById(R.id.search_edit_text)
         searchClear = searchBar.findViewById(R.id.clear_button)
+        btnSearch = v.findViewById(R.id.btn_search)
         categoryBar = v.findViewById(R.id.category_bar)
         chipContainerScrollView = v.findViewById(R.id.category_scroll_view)
         chipContainer = v.findViewById(R.id.chip_container)
@@ -153,21 +148,13 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         tvEmptyMessage = v.findViewById(R.id.tv_empty_message)
         btnFindApps = v.findViewById(R.id.btn_find_apps)
         btnArchiveLogin = v.findViewById(R.id.btn_archive_login)
-        reinstalledPageContainer = v.findViewById(R.id.reinstalled_page_container)
-        btnReinstalledBack = v.findViewById(R.id.btn_reinstalled_back)
-        reinstalledRecyclerView = v.findViewById(R.id.reinstalled_recycler_view)
-        tvReinstalledEmpty = v.findViewById(R.id.tv_reinstalled_empty)
-
-        infoCardsContainer = v.findViewById(R.id.info_cards_container)
-        cardDragInfo = v.findViewById(R.id.card_drag_info)
-        cardViewSwitchInfo = v.findViewById(R.id.card_view_switch_info)
-        btnDismissDragInfo = v.findViewById(R.id.btn_dismiss_drag_info)
-        btnDismissViewSwitchInfo = v.findViewById(R.id.btn_dismiss_view_switch_info)
-
-        isDragInfoDismissed = prefs.getBoolean("drag_info_dismissed", false)
-        isViewSwitchInfoDismissed = prefs.getBoolean("view_switch_info_dismissed", false)
+        tipOverlayContainer = v.findViewById(R.id.tip_overlay_container)
+        tipOverlayText = v.findViewById(R.id.tv_tip_overlay_text)
+        btnTipOverlayClose = v.findViewById(R.id.btn_tip_overlay_close)
+        isListMode = prefs.getBoolean(PREF_KEY_ARCHIVE_LIST_MODE, false)
 
         searchInput.hint = "Search"
+        updateSearchUi()
     }
 
     private fun setupRecyclerView() {
@@ -209,13 +196,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             moveDuration = 300
             changeDuration = 200
         }
-
-        reinstalledAdapter = ReinstalledAppsAdapter { app ->
-            openPlayStore(app.packageId)
-        }
-        reinstalledRecyclerView.layoutManager = LinearLayoutManager(requireContext())
-        reinstalledRecyclerView.adapter = reinstalledAdapter
-        reinstalledRecyclerView.setHasFixedSize(true)
 
         recyclerView.setOnDragListener { rv, event ->
             try {
@@ -319,10 +299,28 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 }
             }
         })
-        searchClear.setOnClickListener { searchInput.setText("") }
+        searchClear.setOnClickListener {
+            searchInput.setText("")
+            if (!searchInput.isFocused) {
+                isSearchExpanded = false
+                updateSearchUi()
+            }
+        }
+
+        btnSearch.setOnClickListener {
+            if (!isSearchExpanded) {
+                isSearchExpanded = true
+                updateSearchUi()
+                searchInput.requestFocus()
+            } else if (searchQuery.isEmpty()) {
+                isSearchExpanded = false
+                updateSearchUi()
+            }
+        }
 
         btnViewSwitch.setOnClickListener {
             isListMode = !isListMode
+            prefs.edit().putBoolean(PREF_KEY_ARCHIVE_LIST_MODE, isListMode).apply()
             adapter.setListMode(isListMode)
             btnSort.visibility = if (isListMode) View.VISIBLE else View.GONE
             recyclerView.layoutManager = if (isListMode) {
@@ -334,27 +332,15 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 if (isListMode) R.drawable.ic_grid_view else R.drawable.ic_list
             )
             updateUI(viewModel.archivedApps.value)
+            scheduleTipsIfNeeded(forceImmediate = true)
         }
 
         btnSort.setOnClickListener { showSortMenu() }
         btnSort.visibility = if (isListMode) View.VISIBLE else View.GONE
-
-        btnDismissDragInfo.setOnClickListener {
-            isDragInfoDismissed = true
-            prefs.edit().putBoolean("drag_info_dismissed", true).apply()
-            updateInfoCardsVisibility()
-        }
-        btnDismissViewSwitchInfo.setOnClickListener {
-            isViewSwitchInfoDismissed = true
-            prefs.edit().putBoolean("view_switch_info_dismissed", true).apply()
-            updateInfoCardsVisibility()
-        }
+        btnTipOverlayClose.setOnClickListener { dismissActiveTip(markShown = true) }
 
         btnReinstalledApps.setOnClickListener {
             showReinstalledAppsMenu()
-        }
-        btnReinstalledBack.setOnClickListener {
-            setReinstalledPageVisible(false)
         }
 
         btnFindApps.setOnClickListener {
@@ -362,15 +348,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             requireActivity().findViewById<BottomNavigationView>(R.id.bottom_nav)?.selectedItemId = R.id.nav_discover
         }
         btnArchiveLogin.setOnClickListener { startGoogleSignIn() }
-
-        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
-            if (isReinstalledPageVisible) {
-                setReinstalledPageVisible(false)
-            } else {
-                isEnabled = false
-                requireActivity().onBackPressedDispatcher.onBackPressed()
-            }
-        }
     }
 
     private fun observeViewModel() {
@@ -467,30 +444,92 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         }
     }
 
-    private fun updateInfoCardsVisibility() {
-        val showDragCard = !isListMode && !isDragInfoDismissed
-        val showSwitchCard = !isViewSwitchInfoDismissed
-        
-        cardDragInfo.visibility = if (showDragCard) View.VISIBLE else View.GONE
-        cardViewSwitchInfo.visibility = if (showSwitchCard) View.VISIBLE else View.GONE
-        infoCardsContainer.visibility = if (showDragCard || showSwitchCard) View.VISIBLE else View.GONE
+    private fun applyViewMode() {
+        adapter.setListMode(isListMode)
+        recyclerView.layoutManager = if (isListMode) {
+            LinearLayoutManager(requireContext())
+        } else {
+            GridLayoutManager(requireContext(), 4)
+        }
+        btnSort.visibility = if (isListMode) View.VISIBLE else View.GONE
+        btnViewSwitch.setImageResource(if (isListMode) R.drawable.ic_grid_view else R.drawable.ic_list)
+    }
+
+    private fun updateSearchUi() {
+        val shouldShowSearch = isSearchExpanded || searchQuery.isNotEmpty()
+        searchBar.visibility = if (shouldShowSearch) View.VISIBLE else View.GONE
+        if (!shouldShowSearch) {
+            searchInput.clearFocus()
+        }
+    }
+
+    private fun scheduleTipsIfNeeded(forceImmediate: Boolean = false) {
+        if (!isAdded) return
+        if (activeTipKey != null) return
+        val dragShown = prefs.getBoolean(PREF_KEY_TIP_DRAG_SHOWN, false)
+        val viewShown = prefs.getBoolean(PREF_KEY_TIP_VIEW_SHOWN, false)
+        val nextTip = when {
+            !dragShown && !isListMode -> PREF_KEY_TIP_DRAG_SHOWN to "Tip: Long press and drag one app onto another to create a folder."
+            !viewShown -> PREF_KEY_TIP_VIEW_SHOWN to "Tip: Switch to list view to sort by size, date, category, or name."
+            else -> null
+        } ?: return
+
+        val now = System.currentTimeMillis()
+        val lastShownAt = prefs.getLong(PREF_KEY_TIP_LAST_SHOWN_AT, 0L)
+        val minGapRemaining = (lastShownAt + TIP_MIN_GAP_MS - now).coerceAtLeast(0L)
+        val baseDelay = if (!tipSessionStarted) TIP_INITIAL_DELAY_MS else TIP_SECONDARY_DELAY_MS
+        tipSessionStarted = true
+        val delayMs = if (forceImmediate) 150L else maxOf(baseDelay, minGapRemaining)
+
+        tipScheduleJob?.cancel()
+        tipScheduleJob = viewLifecycleOwner.lifecycleScope.launch {
+            delay(delayMs)
+            if (!isAdded || view == null || activeTipKey != null) return@launch
+            showTip(nextTip.first, nextTip.second)
+        }
+    }
+
+    private fun showTip(tipKey: String, message: String) {
+        activeTipKey = tipKey
+        tipOverlayText.text = message
+        tipOverlayContainer.alpha = 0f
+        tipOverlayContainer.visibility = View.VISIBLE
+        tipOverlayContainer.animate().alpha(1f).setDuration(180L).start()
+        prefs.edit()
+            .putLong(PREF_KEY_TIP_LAST_SHOWN_AT, System.currentTimeMillis())
+            .putBoolean(tipKey, true)
+            .apply()
+        android.util.Log.v("ArchiveTips", "show key=$tipKey message=$message")
+    }
+
+    private fun dismissActiveTip(markShown: Boolean) {
+        val key = activeTipKey ?: return
+        activeTipKey = null
+        tipOverlayContainer.animate().alpha(0f).setDuration(140L).withEndAction {
+            tipOverlayContainer.visibility = View.GONE
+            tipOverlayContainer.alpha = 1f
+        }.start()
+        if (markShown) {
+            prefs.edit().putBoolean(key, true).apply()
+        }
+        android.util.Log.v("ArchiveTips", "dismiss key=$key marked=$markShown")
+        scheduleTipsIfNeeded()
+    }
+
+    override fun onDestroyView() {
+        tipScheduleJob?.cancel()
+        tipScheduleJob = null
+        activeTipKey = null
+        super.onDestroyView()
     }
 
     private fun updateUI(apps: List<ArchivedApp>) {
-        updateInfoCardsVisibility()
         android.util.Log.v(
             TAG,
             "updateUI input=${apps.size} query='$searchQuery' category='$selectedCategory' listMode=$isListMode"
         )
         val installedPackages = getInstalledPackageIds()
-        reinstatedApps = apps
-            .filter { it.packageId in installedPackages }
-            .sortedBy { it.name.lowercase() }
         val visibleArchiveApps = apps.filterNot { it.packageId in installedPackages }
-        if (isReinstalledPageVisible) {
-            reinstalledAdapter.submitArchivedApps(reinstatedApps)
-            tvReinstalledEmpty.visibility = if (reinstatedApps.isEmpty()) View.VISIBLE else View.GONE
-        }
 
         val categories = listOf("All") + visibleArchiveApps
             .mapNotNull { it.category }
@@ -683,7 +722,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.menu_reinstalled_apps -> {
-                    setReinstalledPageVisible(true)
+                    findNavController().navigate(R.id.action_archive_to_reinstalled)
                     true
                 }
                 R.id.menu_wishlist -> {
@@ -699,49 +738,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private fun isDefaultFolderName(name: String): Boolean {
         if (name == "New Folder") return true
         return name.matches(Regex("New Folder \\d+"))
-    }
-
-    private fun setReinstalledPageVisible(visible: Boolean) {
-        isReinstalledPageVisible = visible
-        reinstalledPageContainer.visibility = if (visible) View.VISIBLE else View.GONE
-        recyclerView.isEnabled = !visible
-
-        // Hide main archive controls that don't apply to the reinstalled page
-        if (visible) {
-            searchBar.visibility = View.GONE
-            btnSort.visibility = View.GONE
-            btnViewSwitch.visibility = View.GONE
-            categoryBar.visibility = View.GONE
-            infoCardsContainer.visibility = View.GONE
-
-            reinstalledAdapter.submitArchivedApps(reinstatedApps)
-            tvReinstalledEmpty.visibility = if (reinstatedApps.isEmpty()) View.VISIBLE else View.GONE
-        } else {
-            recyclerView.isEnabled = true
-            // Restore archive controls
-            searchBar.visibility = View.VISIBLE
-            btnViewSwitch.visibility = View.VISIBLE
-            btnSort.visibility = if (isListMode) View.VISIBLE else View.GONE
-            // Premium & credits visibility will be refreshed by the next UI update
-            updateUI(viewModel.archivedApps.value)
-        }
-    }
-
-    private fun openPlayStore(packageId: String) {
-        val marketIntent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageId")).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        val webIntent = Intent(
-            Intent.ACTION_VIEW,
-            Uri.parse("https://play.google.com/store/apps/details?id=$packageId")
-        ).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        try {
-            startActivity(marketIntent)
-        } catch (_: Exception) {
-            startActivity(webIntent)
-        }
     }
 
     private fun getInstalledPackageIds(): Set<String> {
@@ -968,55 +964,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             },
             onDismissRequest = {}
         ).show()
-    }
-
-    private data class ReinstalledItem(
-        val packageId: String,
-        val name: String
-    )
-
-    private class ReinstalledDiff : DiffUtil.ItemCallback<ReinstalledItem>() {
-        override fun areItemsTheSame(oldItem: ReinstalledItem, newItem: ReinstalledItem): Boolean {
-            return oldItem.packageId == newItem.packageId
-        }
-
-        override fun areContentsTheSame(oldItem: ReinstalledItem, newItem: ReinstalledItem): Boolean {
-            return oldItem == newItem
-        }
-    }
-
-    private inner class ReinstalledAppsAdapter(
-        private val onOpenPlayStore: (ReinstalledItem) -> Unit
-    ) : ListAdapter<ReinstalledItem, ReinstalledAppsAdapter.ReinstalledVH>(ReinstalledDiff()) {
-
-        inner class ReinstalledVH(view: View) : RecyclerView.ViewHolder(view) {
-            private val appIcon = view.findViewById<ImageView>(R.id.app_icon)
-            private val appName = view.findViewById<TextView>(R.id.app_name)
-            private val appMeta = view.findViewById<TextView>(R.id.app_meta)
-
-            fun bind(item: ReinstalledItem) {
-                appName.text = item.name
-                appMeta.text = "Tap to open in Play Store"
-                appIcon.load(AppIconModel(item.packageId)) {
-                    memoryCacheKey(item.packageId)
-                    crossfade(false)
-                }
-                itemView.setOnClickListener { onOpenPlayStore(item) }
-            }
-        }
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ReinstalledVH {
-            val view = layoutInflater.inflate(R.layout.item_archived_app_list, parent, false)
-            return ReinstalledVH(view)
-        }
-
-        override fun onBindViewHolder(holder: ReinstalledVH, position: Int) {
-            holder.bind(getItem(position))
-        }
-
-        fun submitArchivedApps(apps: List<ArchivedApp>) {
-            submitList(apps.map { ReinstalledItem(it.packageId, it.name) })
-        }
     }
 
     private fun startGoogleSignIn() {

@@ -38,6 +38,11 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
 
     companion object {
         private const val TAG = "DashboardFragment"
+        private const val KEY_SELECTED_TAB = "selected_tab_index"
+        private const val PREFS_DASHBOARD_UI = "dashboard_ui_prefs"
+        private const val PREF_SELECTED_TAB = "selected_tab_index"
+        private const val TAG_DISCOVER = "tab_discover"
+        private const val TAG_ARCHIVE = "tab_archive"
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -117,9 +122,15 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
             }
         }
 
-        // Initial tab
-        if (savedInstanceState == null) {
-            switchTab(0)
+        val prefs = requireContext().getSharedPreferences(PREFS_DASHBOARD_UI, android.content.Context.MODE_PRIVATE)
+        selectedTabIndex = savedInstanceState?.getInt(KEY_SELECTED_TAB)
+            ?: prefs.getInt(PREF_SELECTED_TAB, 0)
+
+        val targetNavItem = if (selectedTabIndex == 1) R.id.nav_archive else R.id.nav_discover
+        if (bottomNav.selectedItemId != targetNavItem) {
+            bottomNav.selectedItemId = targetNavItem
+        } else {
+            switchTab(selectedTabIndex)
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -161,16 +172,29 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
     }
 
     private fun switchTab(index: Int) {
+        if (index !in 0..1) return
         selectedTabIndex = index
+        requireContext()
+            .getSharedPreferences(PREFS_DASHBOARD_UI, android.content.Context.MODE_PRIVATE)
+            .edit()
+            .putInt(PREF_SELECTED_TAB, selectedTabIndex)
+            .apply()
 
-        val fragment = when (index) {
-            0 -> DiscoveryFragment()
-            1 -> ArchiveFragment()
-            else -> return
+        val discover = childFragmentManager.findFragmentByTag(TAG_DISCOVER)
+        val archive = childFragmentManager.findFragmentByTag(TAG_ARCHIVE)
+        val tx = childFragmentManager.beginTransaction()
+        discover?.let { tx.hide(it) }
+        archive?.let { tx.hide(it) }
+
+        val targetTag = if (index == 0) TAG_DISCOVER else TAG_ARCHIVE
+        val existing = childFragmentManager.findFragmentByTag(targetTag)
+        if (existing != null) {
+            tx.show(existing)
+        } else {
+            val fragment = if (index == 0) DiscoveryFragment() else ArchiveFragment()
+            tx.add(R.id.content_container, fragment, targetTag)
         }
-        childFragmentManager.beginTransaction()
-            .replace(R.id.content_container, fragment)
-            .commit()
+        tx.commit()
         view?.findViewById<MaterialToolbar>(R.id.toolbar)?.let { toolbar -> updateToolbarActions(toolbar) }
     }
 
@@ -185,9 +209,9 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
             val totalBytes = lastArchivedBytes.coerceAtLeast(0L)
             val mb = totalBytes / (1024.0 * 1024.0)
             val formatted = if (mb < 1.0) {
-                String.format(java.util.Locale.US, "%.1f MB freed", mb)
+                String.format(java.util.Locale.US, "Storage freed %.1f MB", mb)
             } else {
-                String.format(java.util.Locale.US, "%.0f MB freed", mb)
+                String.format(java.util.Locale.US, "Storage freed %.0f MB", mb)
             }
             reclaimedText.text = formatted
             reclaimedItem.isVisible = isArchiveTab && totalBytes > 0L
@@ -200,7 +224,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
             val canShow = isArchiveTab && !isPremium && credits.isVisible
             getProItem.isVisible = canShow
             if (canShow) {
-                getProText.text = "Get Pro · ${credits.used}/${credits.limit}"
+                getProText.text = "Get Pro - ${credits.used}/${credits.limit}"
                 getProText.visibility = View.VISIBLE
                 getProItem.actionView?.setOnClickListener {
                     showPaywall(reason = "toolbar_get_pro", used = credits.used, limit = credits.limit)
@@ -250,6 +274,11 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
             used = used,
             limit = limit
         ).show(childFragmentManager, tag)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt(KEY_SELECTED_TAB, selectedTabIndex)
     }
 
 }

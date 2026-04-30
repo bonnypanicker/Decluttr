@@ -22,6 +22,9 @@
         <action
             android:id="@+id/action_archive_to_wishlist"
             app:destination="@id/wishlistFragment" />
+        <action
+            android:id="@+id/action_archive_to_reinstalled"
+            app:destination="@id/reinstalledFragment" />
     </fragment>
 
     <fragment
@@ -33,4 +36,9 @@
         android:id="@+id/wishlistFragment"
         android:name="com.tool.decluttr.presentation.screens.wishlist.WishlistFragment"
         android:label="Wishlist" />
+
+    <fragment
+        android:id="@+id/reinstalledFragment"
+        android:name="com.tool.decluttr.presentation.screens.reinstalled.ReinstalledFragment"
+        android:label="Reinstalled Apps" />
 </navigation>
