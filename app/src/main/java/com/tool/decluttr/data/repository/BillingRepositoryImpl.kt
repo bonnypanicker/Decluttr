@@ -57,6 +57,7 @@ class BillingRepositoryImpl(
         private const val ENTITLEMENT_SOURCE_DEVICE_FALLBACK = "PLAY_BILLING_DEVICE_FALLBACK"
         private const val PLAN_TYPE = "ONE_TIME"
         private const val VERIFY_FUNCTION_NAME = "verifyPremiumPurchase"
+        private const val REVOKE_FUNCTION_NAME = "revokePremiumEntitlement"
         private const val ENTITLEMENT_GRACE_MS = 24L * 60L * 60L * 1000L
         private const val ENTITLEMENT_FALLBACK_GRACE_MS = 30L * 24L * 60L * 60L * 1000L
 
@@ -217,12 +218,11 @@ class BillingRepositoryImpl(
             )
 
             if (matchingItems.isEmpty()) {
-                refreshEntitlement()
+                clearCachedEntitlement()
+                runCatching { revokePremiumEntitlementOnServer() }
+                runCatching { refreshEntitlement() }
                 if (entitlementState.value.isPremium) {
-                    purchaseState.value = PurchaseState.Success(
-                        "Premium restored from your cloud account."
-                    )
-                    return@runCatching
+                    clearCachedEntitlement()
                 }
                 purchaseState.value = PurchaseState.Error(
                     code = BILLING_ERROR_NOT_OWNED,
@@ -412,22 +412,26 @@ class BillingRepositoryImpl(
             productId = matchedProductId
         )
 
-        val syncResult = syncEntitlementWithServer(
-            purchaseToken = token,
-            productId = matchedProductId
-        )
-
-        if (syncResult.isFailure) {
-            val errorMessage = syncResult.exceptionOrNull()?.message.orEmpty()
-            Log.w(
-                TAG,
-                "processPurchase: cloud verify failed; keeping local premium active. error=$errorMessage"
-            )
-            purchaseState.value = PurchaseState.Success(
-                "Premium active on this device. Cloud sync will retry automatically."
-            )
+        if (BuildConfig.DEBUG) {
+            purchaseState.value = PurchaseState.Success("Premium active on this device.")
         } else {
-            purchaseState.value = PurchaseState.Success("Premium unlocked successfully.")
+            val syncResult = syncEntitlementWithServer(
+                purchaseToken = token,
+                productId = matchedProductId
+            )
+
+            if (syncResult.isFailure) {
+                val errorMessage = syncResult.exceptionOrNull()?.message.orEmpty()
+                Log.w(
+                    TAG,
+                    "processPurchase: cloud verify failed; keeping local premium active. error=$errorMessage"
+                )
+                purchaseState.value = PurchaseState.Success(
+                    "Premium active on this device. Cloud sync will retry automatically."
+                )
+            } else {
+                purchaseState.value = PurchaseState.Success("Premium unlocked successfully.")
+            }
         }
 
         // In debug builds, consume the one-time purchase so it can be re-bought
@@ -666,13 +670,23 @@ class BillingRepositoryImpl(
             scope.launch {
                 if (firebaseAuth.currentUser == null) {
                     purchaseState.value = PurchaseState.Idle
-                    entitlementState.value = loadCachedEntitlement().copy(isPremium = false)
+                    clearCachedEntitlement()
                 } else {
                     refreshEntitlement()
                     restorePurchases()
                 }
             }
         }
+    }
+
+    private suspend fun revokePremiumEntitlementOnServer(): Result<Unit> {
+        val functions = functionsOrNull()
+            ?: return Result.failure(IllegalStateException("Firebase Functions unavailable"))
+        return runCatching {
+            functions.getHttpsCallable(REVOKE_FUNCTION_NAME)
+                .call(emptyMap<String, Any?>())
+                .await()
+        }.map { Unit }
     }
 
     private fun loadCachedEntitlement(): EntitlementState {
@@ -706,6 +720,23 @@ class BillingRepositoryImpl(
             .putString(KEY_SOURCE, state.source)
             .putString(KEY_PURCHASE_HASH, state.purchaseTokenHash)
             .apply()
+    }
+
+    private fun clearCachedEntitlement() {
+        prefs.edit()
+            .remove(KEY_IS_PREMIUM)
+            .remove(KEY_LAST_VERIFIED)
+            .remove(KEY_PRODUCT_ID)
+            .remove(KEY_SOURCE)
+            .remove(KEY_PURCHASE_HASH)
+            .apply()
+        entitlementState.value = EntitlementState(
+            isPremium = false,
+            source = "CACHE",
+            lastVerifiedAt = 0L,
+            productId = PRODUCT_ID,
+            purchaseTokenHash = null
+        )
     }
 
     private fun hashPurchaseToken(token: String): String {

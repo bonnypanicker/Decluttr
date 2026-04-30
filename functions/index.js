@@ -45,11 +45,37 @@ exports.verifyPremiumPurchase = onCall(
       const purchaseData = purchaseResponse.data || {};
       const purchaseState = Number(purchaseData.purchaseState ?? -1);
       if (purchaseState !== 0) {
+        const now = Date.now();
+        const purchaseTokenHash = crypto
+            .createHash("sha256")
+            .update(purchaseToken)
+            .digest("hex");
+
+        await admin
+            .firestore()
+            .collection("users")
+            .doc(request.auth.uid)
+            .collection("entitlements")
+            .doc("archive")
+            .set(
+                {
+                  isPremium: false,
+                  productId,
+                  source: "PLAY_BILLING",
+                  purchaseTokenHash,
+                  verifiedAt: now,
+                  revokedAt: now,
+                  revocationReason: `purchaseState=${purchaseState}`,
+                  updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                },
+                {merge: true},
+            );
+
         return {
           verified: false,
           isPremium: false,
           message: `Invalid purchase state: ${purchaseState}`,
-          verifiedAt: Date.now(),
+          verifiedAt: now,
           productId,
         };
       }
@@ -105,5 +131,36 @@ exports.verifyPremiumPurchase = onCall(
           "Purchase verification failed. Please retry in a moment.",
       );
     }
+  },
+);
+
+exports.revokePremiumEntitlement = onCall(
+  {
+    region: "asia-south1",
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    if (!request.auth || !request.auth.uid) {
+      throw new HttpsError("unauthenticated", "User must be authenticated.");
+    }
+
+    const now = Date.now();
+    await admin
+        .firestore()
+        .collection("users")
+        .doc(request.auth.uid)
+        .collection("entitlements")
+        .doc("archive")
+        .set(
+            {
+              isPremium: false,
+              revokedAt: now,
+              revocationReason: "client_restore_no_owned_purchase",
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            },
+            {merge: true},
+        );
+
+    return {ok: true, revokedAt: now};
   },
 );
