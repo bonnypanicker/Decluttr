@@ -41,6 +41,7 @@ import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Provider
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class BillingRepositoryImpl(
     @ApplicationContext private val app: Context,
@@ -267,7 +268,7 @@ class BillingRepositoryImpl(
                 entitlementState.value = fallback.copy(
                     isPremium = fallback.hasFreshVerification(
                         nowMs = System.currentTimeMillis(),
-                        graceWindowMs = ENTITLEMENT_GRACE_MS
+                        graceWindowMs = graceWindowForSource(fallback.source)
                     )
                 )
                 return
@@ -647,7 +648,13 @@ class BillingRepositoryImpl(
                         continuation.resume(purchases.orEmpty())
                     }
                 } else {
-                    if (continuation.isActive) continuation.resume(emptyList())
+                    if (continuation.isActive) {
+                        continuation.resumeWithException(
+                            IllegalStateException(
+                                "queryPurchases failed: code=${result.responseCode}, msg=${result.debugMessage}"
+                            )
+                        )
+                    }
                 }
             }
         }
@@ -697,11 +704,7 @@ class BillingRepositoryImpl(
         val hash = prefs.getString(KEY_PURCHASE_HASH, null)
 
         val now = System.currentTimeMillis()
-        val graceWindow = if (source == ENTITLEMENT_SOURCE_DEVICE_FALLBACK) {
-            ENTITLEMENT_FALLBACK_GRACE_MS
-        } else {
-            ENTITLEMENT_GRACE_MS
-        }
+        val graceWindow = graceWindowForSource(source)
         val premiumWithGrace = isPremium && (now - verifiedAt <= graceWindow)
         return EntitlementState(
             isPremium = premiumWithGrace,
@@ -737,6 +740,14 @@ class BillingRepositoryImpl(
             productId = PRODUCT_ID,
             purchaseTokenHash = null
         )
+    }
+
+    private fun graceWindowForSource(source: String): Long {
+        return if (source == ENTITLEMENT_SOURCE_DEVICE_FALLBACK) {
+            ENTITLEMENT_FALLBACK_GRACE_MS
+        } else {
+            ENTITLEMENT_GRACE_MS
+        }
     }
 
     private fun hashPurchaseToken(token: String): String {

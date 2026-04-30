@@ -114,7 +114,6 @@ class BillingViewModel @Inject constructor(
         viewModelScope.launch {
             _isBillingLoading.value = true
             billingRepository.refreshEntitlement()
-            billingRepository.restorePurchases()
             _isBillingLoading.value = false
         }
     }
