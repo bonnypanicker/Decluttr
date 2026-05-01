@@ -18,20 +18,48 @@
 
   <script src="file:///android_asset/onboarding.js"></script>
   <script>
+    (function ensureAuthLoadingStyles() {
+      var style = document.createElement('style');
+      style.textContent =
+        '.get-started-btn.auth-loading{position:relative;}' +
+        '.get-started-btn.auth-loading img,.get-started-btn.auth-loading svg,.get-started-btn.auth-loading .google-icon{visibility:hidden !important;}' +
+        '.get-started-btn .auth-loading-spinner{display:none;}' +
+        '.get-started-btn.auth-loading .auth-loading-spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,0.45);border-top-color:#ffffff;border-radius:50%;animation:authSpin .75s linear infinite;vertical-align:middle;}' +
+        '@keyframes authSpin{to{transform:rotate(360deg);}}';
+      document.head.appendChild(style);
+    })();
+
+    function ensureSpinner(button) {
+      if (!button) return;
+      var spinner = button.querySelector('.auth-loading-spinner');
+      if (!spinner) {
+        spinner = document.createElement('span');
+        spinner.className = 'auth-loading-spinner';
+        spinner.setAttribute('aria-hidden', 'true');
+        button.appendChild(spinner);
+      }
+    }
+
     window.setAuthLoading = function (loading) {
       var button = document.querySelector('.get-started-btn');
       if (!button) return;
+      ensureSpinner(button);
       button.disabled = !!loading;
       button.style.opacity = loading ? '0.65' : '1';
       button.style.pointerEvents = loading ? 'none' : 'auto';
+      if (loading) button.classList.add('auth-loading');
+      else button.classList.remove('auth-loading');
     };
 
     document.addEventListener('click', function (event) {
       var button = event.target && event.target.closest ? event.target.closest('.get-started-btn') : null;
       if (!button) return;
       event.preventDefault();
+      window.setAuthLoading(true);
       if (window.AndroidAuth && typeof window.AndroidAuth.startGoogleSignIn === 'function') {
         window.AndroidAuth.startGoogleSignIn();
+      } else {
+        window.setAuthLoading(false);
       }
     }, true);
 

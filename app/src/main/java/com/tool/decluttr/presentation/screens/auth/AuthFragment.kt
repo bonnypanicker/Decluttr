@@ -146,6 +146,10 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
     }
 
     private fun startGoogleSignIn() {
+        onboardingWebView?.evaluateJavascript(
+            "window.setAuthLoading && window.setAuthLoading(true);",
+            null
+        )
         val serverClientId = runCatching { getString(R.string.default_web_client_id) }.getOrNull()
         if (serverClientId.isNullOrBlank()) {
             Toast.makeText(
@@ -153,10 +157,15 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
                 "Google Sign-In is not configured for this build.",
                 Toast.LENGTH_LONG
             ).show()
+            onboardingWebView?.evaluateJavascript(
+                "window.setAuthLoading && window.setAuthLoading(false);",
+                null
+            )
             return
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
+            var authRequestStarted = false
             try {
                 val rawNonce = UUID.randomUUID().toString()
                 val bytes = rawNonce.toByteArray()
@@ -185,6 +194,7 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
                     credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
                 ) {
                     val googleCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                    authRequestStarted = true
                     viewModel.authenticateWithGoogleIdToken(googleCredential.idToken, rawNonce)
                 } else {
                     Toast.makeText(
@@ -211,6 +221,13 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
                     e.localizedMessage ?: "Google sign-in failed.",
                     Toast.LENGTH_LONG
                 ).show()
+            } finally {
+                if (!authRequestStarted) {
+                    onboardingWebView?.evaluateJavascript(
+                        "window.setAuthLoading && window.setAuthLoading(false);",
+                        null
+                    )
+                }
             }
         }
     }
