@@ -198,6 +198,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             removeDuration = 200
             moveDuration = 300
             changeDuration = 200
+            supportsChangeAnimations = false
         }
 
         recyclerView.setOnDragListener { rv, event ->
@@ -270,13 +271,15 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                             recyclerView.itemAnimator = savedItemAnimator
                             savedItemAnimator = null
                             isDragInProgress = false
-                            val latestApps = pendingAppsDuringDrag ?: viewModel.archivedApps.value
+                            val latestApps = pendingAppsDuringDrag
                             pendingAppsDuringDrag = null
                             android.util.Log.d(
                                 TAG,
-                                "RV DRAG_ENDED restore animator + render apps=${latestApps.size}"
+                                "RV DRAG_ENDED restore animator pendingRender=${latestApps?.size ?: 0}"
                             )
-                            renderArchivedApps(latestApps)
+                            if (latestApps != null) {
+                                renderArchivedApps(latestApps)
+                            }
                         }
                         true
                     }

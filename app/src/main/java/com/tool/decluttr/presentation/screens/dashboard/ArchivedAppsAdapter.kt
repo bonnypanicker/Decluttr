@@ -79,6 +79,11 @@ class ArchivedAppsAdapter(
     private val pulseAnimators = mutableMapOf<View, ObjectAnimator>()
     private var isListMode: Boolean = false
 
+    init {
+        // Stable IDs improve move/change interpolation when two app tiles collapse into one folder tile.
+        setHasStableIds(true)
+    }
+
     fun setListMode(enabled: Boolean) {
         if (isListMode != enabled) {
             isListMode = enabled
@@ -90,6 +95,13 @@ class ArchivedAppsAdapter(
         return when(getItem(position)) {
             is ArchivedItem.App -> if (isListMode) 2 else 0
             is ArchivedItem.Folder -> if (isListMode) 3 else 1
+        }
+    }
+
+    override fun getItemId(position: Int): Long {
+        return when (val item = getItem(position)) {
+            is ArchivedItem.App -> "app:${item.app.packageId}".hashCode().toLong()
+            is ArchivedItem.Folder -> "folder:${item.name}".hashCode().toLong()
         }
     }
 
@@ -162,12 +174,9 @@ class ArchivedAppsAdapter(
                 // 2. Build a scaled-up shadow from the icon (not the whole itemView)
                 val shadowBuilder = ScaledDragShadowBuilder(icon, 1.1f)
 
-                // 3. CRITICAL: Kill the ripple drawable BEFORE the next draw frame.
-                //    Setting isPressed = false is not enough because RippleDrawable
-                //    animates its exit and will render one "pressed" frame.
-                //    Nulling the background prevents any ripple from being drawn.
+                // 3. Keep source slot empty during drag; final list reflow happens after drop/end.
                 view.isPressed = false
-                view.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                view.animate().cancel()
                 view.visibility = View.INVISIBLE
 
                 // 4. Start drag
@@ -197,15 +206,12 @@ class ArchivedAppsAdapter(
                         android.view.HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
                     )
                 } else {
-                    // Drag failed – restore visibility and background
+                    // Drag failed – restore source visuals immediately
+                    view.animate().cancel()
                     view.visibility = View.VISIBLE
-                    view.setBackgroundResource(android.R.attr.selectableItemBackground.let {
-                        val attrs = intArrayOf(it)
-                        val ta = view.context.obtainStyledAttributes(attrs)
-                        val resId = ta.getResourceId(0, 0)
-                        ta.recycle()
-                        resId
-                    })
+                    view.alpha = 1f
+                    view.scaleX = 1f
+                    view.scaleY = 1f
                     android.util.Log.w(
                         TAG,
                         "session=$activeDragSessionId START_DRAG_FAILED pkg=${app.packageId} pos=${bindingAdapterPosition} view=${describeView(view)}"
@@ -510,14 +516,14 @@ class ArchivedAppsAdapter(
         android.util.Log.v(TAG, "session=$activeDragSessionId restoreDraggedSourceView view=${describeView(view)}")
         view.animate().cancel()
         view.visibility = View.VISIBLE
-        view.alpha = 0f
-        view.scaleX = 0.5f
-        view.scaleY = 0.5f
+        view.alpha = 0.35f
+        view.scaleX = 0.92f
+        view.scaleY = 0.92f
         view.animate()
             .alpha(1f)
             .scaleX(1f)
             .scaleY(1f)
-            .setDuration(250)
+            .setDuration(180)
             .setInterpolator(android.view.animation.OvershootInterpolator())
             .start()
     }
@@ -565,7 +571,7 @@ class ArchivedAppsAdapter(
             var foundSourceView: View? = null
             if (dropAction == null) {
                 val dragSource = draggingViewRef?.get()
-                if (dragSource != null && dragSource.visibility != View.VISIBLE) {
+                if (dragSource != null) {
                     android.util.Log.d(
                         TAG,
                         "session=$activeDragSessionId FINALIZE restore source=weakRef view=${describeView(dragSource)}"
@@ -577,7 +583,7 @@ class ArchivedAppsAdapter(
                         for (i in 0 until recyclerView.childCount) {
                             val child = recyclerView.getChildAt(i)
                             val tagged = child.tag as? ArchivedItem.App
-                            if (tagged?.app?.packageId == draggingPkg && child.visibility != View.VISIBLE) {
+                            if (tagged?.app?.packageId == draggingPkg) {
                                 android.util.Log.d(
                                     TAG,
                                     "session=$activeDragSessionId FINALIZE restore source=scan pkg=$draggingPkg child=${describeView(child)}"
