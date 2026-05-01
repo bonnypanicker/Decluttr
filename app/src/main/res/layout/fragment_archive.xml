@@ -15,37 +15,18 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <ImageButton
-            android:id="@+id/btn_search"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Search archived apps"
-            android:padding="8dp"
-            android:src="@drawable/ic_search"
-            android:tint="?attr/colorOnSurfaceVariant" />
-
-        <View
+        <include
+            android:id="@+id/archive_search_bar"
+            layout="@layout/item_search_bar_inline"
             android:layout_width="0dp"
-            android:layout_height="1dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1" />
-
-        <ImageButton
-            android:id="@+id/btn_sort"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginStart="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Sort archived apps"
-            android:padding="8dp"
-            android:src="@drawable/ic_sort"
-            android:tint="?attr/colorOnSurfaceVariant" />
 
         <ImageButton
             android:id="@+id/btn_view_switch"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_marginStart="4dp"
+            android:layout_marginStart="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Switch archive view"
             android:padding="8dp"
@@ -64,14 +45,6 @@
             android:tint="?attr/colorOnSurfaceVariant" />
     </LinearLayout>
 
-    <include
-        android:id="@+id/archive_search_bar"
-        layout="@layout/item_search_bar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:visibility="gone" />
-
     <LinearLayout
         android:id="@+id/category_bar"
         android:layout_width="match_parent"
@@ -83,11 +56,12 @@
 
         <HorizontalScrollView
             android:id="@+id/category_scroll_view"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:clipToPadding="false"
             android:paddingStart="16dp"
-            android:paddingEnd="16dp"
+            android:paddingEnd="4dp"
             android:scrollbars="none">
 
             <LinearLayout
@@ -96,6 +70,18 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal" />
         </HorizontalScrollView>
+
+        <ImageButton
+            android:id="@+id/btn_sort"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="12dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Sort archived apps"
+            android:padding="8dp"
+            android:src="@drawable/ic_sort"
+            android:tint="?attr/colorOnSurfaceVariant"
+            android:visibility="gone" />
     </LinearLayout>
 
     <FrameLayout

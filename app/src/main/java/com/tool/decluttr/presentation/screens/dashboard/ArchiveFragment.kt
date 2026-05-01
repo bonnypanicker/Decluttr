@@ -71,7 +71,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private lateinit var searchBar: View
     private lateinit var searchInput: EditText
     private lateinit var searchClear: ImageView
-    private lateinit var btnSearch: ImageView
     private lateinit var categoryBar: View
     private lateinit var chipContainerScrollView: View
     private lateinit var chipContainer: LinearLayout
@@ -89,7 +88,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
 
     private lateinit var adapter: ArchivedAppsAdapter
     private var isListMode = false
-    private var isSearchExpanded = false
     private var sortOption: ArchiveSortOption = ArchiveSortOption.UNINSTALLED_DATE
     
     private val prefs by lazy { requireContext().getSharedPreferences("archive_info_prefs", android.content.Context.MODE_PRIVATE) }
@@ -136,7 +134,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         searchBar = v.findViewById(R.id.archive_search_bar)
         searchInput = searchBar.findViewById(R.id.search_edit_text)
         searchClear = searchBar.findViewById(R.id.clear_button)
-        btnSearch = v.findViewById(R.id.btn_search)
         categoryBar = v.findViewById(R.id.category_bar)
         chipContainerScrollView = v.findViewById(R.id.category_scroll_view)
         chipContainer = v.findViewById(R.id.chip_container)
@@ -154,7 +151,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         isListMode = prefs.getBoolean(PREF_KEY_ARCHIVE_LIST_MODE, false)
 
         searchInput.hint = "Search"
-        updateSearchUi()
     }
 
     private fun setupRecyclerView() {
@@ -301,21 +297,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         })
         searchClear.setOnClickListener {
             searchInput.setText("")
-            if (!searchInput.isFocused) {
-                isSearchExpanded = false
-                updateSearchUi()
-            }
-        }
-
-        btnSearch.setOnClickListener {
-            if (!isSearchExpanded) {
-                isSearchExpanded = true
-                updateSearchUi()
-                searchInput.requestFocus()
-            } else if (searchQuery.isEmpty()) {
-                isSearchExpanded = false
-                updateSearchUi()
-            }
         }
 
         btnViewSwitch.setOnClickListener {
@@ -453,14 +434,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         }
         btnSort.visibility = if (isListMode) View.VISIBLE else View.GONE
         btnViewSwitch.setImageResource(if (isListMode) R.drawable.ic_grid_view else R.drawable.ic_list)
-    }
-
-    private fun updateSearchUi() {
-        val shouldShowSearch = isSearchExpanded || searchQuery.isNotEmpty()
-        searchBar.visibility = if (shouldShowSearch) View.VISIBLE else View.GONE
-        if (!shouldShowSearch) {
-            searchInput.clearFocus()
-        }
     }
 
     private fun scheduleTipsIfNeeded(forceImmediate: Boolean = false) {
