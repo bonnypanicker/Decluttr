@@ -8,9 +8,9 @@ import android.view.WindowManager
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
 import coil.load
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.ArchivedApp
 import com.tool.decluttr.presentation.util.AppIconModel
@@ -71,7 +71,7 @@ class NativeAppDetailsDialog(
             )
 
             btnDelete.setOnClickListener {
-                AlertDialog.Builder(context)
+                MaterialAlertDialogBuilder(context)
                     .setTitle(context.getString(R.string.archive_popup_delete_title))
                     .setMessage(context.getString(R.string.archive_popup_delete_message, app.name))
                     .setPositiveButton(context.getString(R.string.archive_popup_delete_action)) { _, _ ->

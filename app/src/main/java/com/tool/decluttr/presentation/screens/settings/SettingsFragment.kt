@@ -23,6 +23,7 @@ import androidx.navigation.fragment.findNavController
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.tool.decluttr.R
 import com.tool.decluttr.presentation.screens.billing.BillingViewModel
 import com.tool.decluttr.presentation.screens.billing.PaywallBottomSheet
@@ -152,7 +153,14 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         }
 
         btnSignout.setOnClickListener {
-            viewModel.signOut()
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Sign Out")
+                .setMessage("Are you sure you want to sign out?")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Sign Out") { _, _ ->
+                    viewModel.signOut()
+                }
+                .show()
         }
         btnManagePremium.setOnClickListener {
             showPaywall()
