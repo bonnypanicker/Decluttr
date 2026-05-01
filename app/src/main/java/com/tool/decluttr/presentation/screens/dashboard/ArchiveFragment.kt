@@ -312,13 +312,12 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         btnViewSwitch.setOnClickListener {
             isListMode = !isListMode
             prefs.edit().putBoolean(PREF_KEY_ARCHIVE_LIST_MODE, isListMode).apply()
-            adapter.setListMode(isListMode)
-            btnSort.visibility = if (isListMode) View.VISIBLE else View.GONE
             recyclerView.layoutManager = if (isListMode) {
                 LinearLayoutManager(requireContext())
             } else {
                 GridLayoutManager(requireContext(), 4)
             }
+            btnSort.visibility = if (isListMode) View.VISIBLE else View.GONE
             btnViewSwitch.setImageResource(
                 if (isListMode) R.drawable.ic_grid_view else R.drawable.ic_list
             )
@@ -440,7 +439,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     }
 
     private fun applyViewMode() {
-        adapter.setListMode(isListMode)
         recyclerView.layoutManager = if (isListMode) {
             LinearLayoutManager(requireContext())
         } else {
@@ -585,7 +583,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 app.packageId to (app.archivedSizeBytes ?: getInstalledApkSize(app.packageId))
             }
             val sortedApps = sortApps(filteredApps)
-            val listItems = sortedApps.map { ArchivedItem.App(it) }
+            val listItems = sortedApps.map { ArchivedItem.App(it, inListMode = true) }
             if (listItems.isEmpty()) {
                 recyclerView.visibility = View.GONE
                 emptyStateContainer.visibility = View.VISIBLE
@@ -633,13 +631,16 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         filteredApps.forEach { app ->
             val folderName = app.folderName
             if (folderName == null) {
-                groupedItems += ArchivedItem.App(app)
+                groupedItems += ArchivedItem.App(app, inListMode = false)
                 return@forEach
             }
             val folderApps = folderAppsByName[folderName].orEmpty()
             if (folderApps.size <= 1) {
                 if (emittedFolderNames.add(folderName)) {
-                    groupedItems += ArchivedItem.App(app.copy(folderName = null))
+                    groupedItems += ArchivedItem.App(
+                        app.copy(folderName = null),
+                        inListMode = false
+                    )
                 }
                 return@forEach
             }
@@ -676,6 +677,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         } else {
             recyclerView.visibility = View.VISIBLE
             emptyStateContainer.visibility = View.GONE
+            // Pre-warm icon cache so folder previews can synchronously bind any iconBytes-backed icons.
+            filteredApps
+                .filter { it.folderName != null && it.iconBytes != null }
+                .forEach { IconBitmapCache.getOrDecode(it) }
             android.util.Log.v(TAG, "updateUI submitList gridMode count=${groupedItems.size}")
             adapter.submitList(groupedItems)
         }
