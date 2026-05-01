@@ -110,6 +110,8 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private val singletonCollapseInFlight = mutableSetOf<String>()
     private val pendingFolderCreations = mutableMapOf<String, Long>()
     private val pendingFolderCreationWindowMs = 3_000L
+    private var isViewModeTransitionPending = false
+    private var savedAnimatorDuringViewModeSwitch: RecyclerView.ItemAnimator? = null
     /** In-memory guard: once true for this fragment instance, the notice will never re-show
      *  even if the entitlement flow re-emits (which it does on every tab switch). */
     private var premiumNoticeShownInMemory = false
@@ -312,6 +314,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         btnViewSwitch.setOnClickListener {
             isListMode = !isListMode
             prefs.edit().putBoolean(PREF_KEY_ARCHIVE_LIST_MODE, isListMode).apply()
+            beginViewModeTransition()
             recyclerView.layoutManager = if (isListMode) {
                 LinearLayoutManager(requireContext())
             } else {
@@ -448,6 +451,28 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         btnViewSwitch.setImageResource(if (isListMode) R.drawable.ic_grid_view else R.drawable.ic_list)
     }
 
+    private fun beginViewModeTransition() {
+        if (isViewModeTransitionPending) return
+        isViewModeTransitionPending = true
+        recyclerView.suppressLayout(true)
+        savedAnimatorDuringViewModeSwitch = recyclerView.itemAnimator
+        recyclerView.itemAnimator = null
+    }
+
+    private fun completeViewModeTransitionIfNeeded() {
+        if (!isViewModeTransitionPending) return
+        isViewModeTransitionPending = false
+        recyclerView.suppressLayout(false)
+        recyclerView.itemAnimator = savedAnimatorDuringViewModeSwitch
+        savedAnimatorDuringViewModeSwitch = null
+    }
+
+    private fun submitArchiveItems(items: List<ArchivedItem>) {
+        adapter.submitList(items) {
+            completeViewModeTransitionIfNeeded()
+        }
+    }
+
     private fun scheduleTipsIfNeeded(forceImmediate: Boolean = false) {
         if (!isAdded) return
         if (activeTipKey != null) return
@@ -516,6 +541,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     }
 
     override fun onDestroyView() {
+        completeViewModeTransitionIfNeeded()
         tipScheduleJob?.cancel()
         tipScheduleJob = null
         activeTipKey = null
@@ -587,6 +613,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             if (listItems.isEmpty()) {
                 recyclerView.visibility = View.GONE
                 emptyStateContainer.visibility = View.VISIBLE
+                completeViewModeTransitionIfNeeded()
                 if (visibleArchiveApps.isEmpty()) {
                     val loggedIn = viewModel.isLoggedIn.value
                     val isAuthLoading = isGoogleSignInLoading || authViewModel.isLoading.value
@@ -613,7 +640,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 recyclerView.visibility = View.VISIBLE
                 emptyStateContainer.visibility = View.GONE
                 android.util.Log.v(TAG, "updateUI submitList listMode count=${listItems.size}")
-                adapter.submitList(listItems)
+                submitArchiveItems(listItems)
             }
             return
         }
@@ -652,6 +679,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         if (groupedItems.isEmpty()) {
                 recyclerView.visibility = View.GONE
                 emptyStateContainer.visibility = View.VISIBLE
+                completeViewModeTransitionIfNeeded()
                 if (visibleArchiveApps.isEmpty()) {
                     val loggedIn = viewModel.isLoggedIn.value
                     val isAuthLoading = isGoogleSignInLoading || authViewModel.isLoading.value
@@ -682,7 +710,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 .filter { it.folderName != null && it.iconBytes != null }
                 .forEach { IconBitmapCache.getOrDecode(it) }
             android.util.Log.v(TAG, "updateUI submitList gridMode count=${groupedItems.size}")
-            adapter.submitList(groupedItems)
+            submitArchiveItems(groupedItems)
         }
     }
 
@@ -874,8 +902,9 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             }
             if (ready != null) {
                 expandedFolder = defaultName
-                // Try to find the folder view in the RecyclerView for animation origin
-                val folderAnchor = findFolderViewByName(defaultName)
+                // First-create edge case: DB state can update before RecyclerView has laid out
+                // the new folder tile. Wait briefly so overlay can anchor to the real folder view.
+                val folderAnchor = awaitFolderAnchorView(defaultName)
                 runCatching { showFolderOverlay(defaultName, folderAnchor) }
                     .onFailure { android.util.Log.e(TAG, "showFolderOverlay failed", it) }
             } else {
@@ -897,6 +926,27 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             }
         }
         return null
+    }
+
+    private suspend fun awaitFolderAnchorView(
+        folderName: String,
+        timeoutMs: Long = 450L
+    ): View? {
+        val start = System.currentTimeMillis()
+        while (isAdded && System.currentTimeMillis() - start < timeoutMs) {
+            val anchor = findFolderViewByName(folderName)
+            if (
+                anchor != null &&
+                anchor.isAttachedToWindow &&
+                anchor.isLaidOut &&
+                anchor.width > 0 &&
+                anchor.height > 0
+            ) {
+                return anchor
+            }
+            delay(16L)
+        }
+        return findFolderViewByName(folderName)
     }
 
     private fun nextDefaultFolderName(existingApps: List<ArchivedApp>): String {
