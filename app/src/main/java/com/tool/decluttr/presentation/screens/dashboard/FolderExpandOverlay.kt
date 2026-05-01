@@ -198,8 +198,7 @@ class FolderExpandOverlay(
                 // Compute pivot relative to card's bounds
                 val anchorWindowX = anchorLocation[0] + (anchorView?.width ?: 0) / 2
                 val anchorWindowY = anchorLocation[1] + (anchorView?.height ?: 0) / 2
-                card.pivotX = (anchorWindowX - cardLocation[0]).toFloat()
-                card.pivotY = (anchorWindowY - cardLocation[1]).toFloat()
+                setPivotFromAnchor(card, anchorWindowX, anchorWindowY, cardLocation)
             } else {
                 // No anchor (drag-created folder) — expand from center of card
                 card.pivotX = card.width / 2f
@@ -284,8 +283,10 @@ class FolderExpandOverlay(
             val anchorWindowX = anchorLocation[0] + anchorView.width / 2
             val anchorWindowY = anchorLocation[1] + anchorView.height / 2
 
-            card.pivotX = (anchorWindowX - cardLocation[0]).toFloat()
-            card.pivotY = (anchorWindowY - cardLocation[1]).toFloat()
+            setPivotFromAnchor(card, anchorWindowX, anchorWindowY, cardLocation)
+        } else {
+            card.pivotX = card.width / 2f
+            card.pivotY = card.height / 2f
         }
         // If no anchor, pivot stays where it was set during open (center or anchor)
 
@@ -436,7 +437,7 @@ class FolderExpandOverlay(
         )
 
         val verticalGap = dpToPx(10)
-        val safeTop = dpToPx(16)
+        val safeTop = findGridTopBoundary().coerceAtLeast(dpToPx(16))
         val safeHorizontal = dpToPx(12)
         val targetTop = (anchorRect.top - card.height - verticalGap).coerceAtLeast(safeTop)
         val desiredLeft = anchorRect.centerX() - card.width / 2
@@ -451,5 +452,44 @@ class FolderExpandOverlay(
 
     private fun dpToPx(dp: Int): Int {
         return (dp * context.resources.displayMetrics.density).toInt()
+    }
+
+    private fun findGridTopBoundary(): Int {
+        val anchor = anchorViewRef?.get() ?: return dpToPx(16)
+        val rv = findParentRecyclerView(anchor) ?: return dpToPx(16)
+        val rvLoc = IntArray(2)
+        val parentLoc = IntArray(2)
+        rv.getLocationInWindow(rvLoc)
+        parentView.getLocationInWindow(parentLoc)
+        return (rvLoc[1] - parentLoc[1]) + dpToPx(8)
+    }
+
+    private fun findParentRecyclerView(view: View): RecyclerView? {
+        var parent = view.parent
+        while (parent != null) {
+            if (parent is RecyclerView) return parent
+            parent = parent.parent
+        }
+        return null
+    }
+
+    private fun setPivotFromAnchor(
+        card: MaterialCardView,
+        anchorWindowX: Int,
+        anchorWindowY: Int,
+        cardLocation: IntArray
+    ) {
+        val rawPivotX = (anchorWindowX - cardLocation[0]).toFloat()
+        val rawPivotY = (anchorWindowY - cardLocation[1]).toFloat()
+        val insideX = rawPivotX in 0f..card.width.toFloat()
+        val insideY = rawPivotY in 0f..card.height.toFloat()
+        if (insideX && insideY) {
+            card.pivotX = rawPivotX
+            card.pivotY = rawPivotY
+        } else {
+            // When constrained by screen edges, fallback to center to avoid corner-origin expansion.
+            card.pivotX = card.width / 2f
+            card.pivotY = card.height / 2f
+        }
     }
 }

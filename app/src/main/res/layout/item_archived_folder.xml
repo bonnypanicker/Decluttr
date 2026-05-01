@@ -11,10 +11,10 @@
 
     <FrameLayout
         android:id="@+id/folder_preview_container"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
         android:background="@drawable/bg_folder_icon"
-        android:padding="5dp">
+        android:padding="4dp">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -29,20 +29,20 @@
 
                 <ImageView
                     android:id="@+id/folder_icon_1"
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:layout_margin="1dp" />
 
                 <ImageView
                     android:id="@+id/folder_icon_2"
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:layout_margin="1dp" />
 
                 <ImageView
                     android:id="@+id/folder_icon_3"
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:layout_margin="1dp" />
             </LinearLayout>
 
@@ -53,20 +53,20 @@
 
                 <ImageView
                     android:id="@+id/folder_icon_4"
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:layout_margin="1dp" />
 
                 <ImageView
                     android:id="@+id/folder_icon_5"
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:layout_margin="1dp" />
 
                 <ImageView
                     android:id="@+id/folder_icon_6"
-                    android:layout_width="14dp"
-                    android:layout_height="14dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:layout_margin="1dp" />
             </LinearLayout>
         </LinearLayout>

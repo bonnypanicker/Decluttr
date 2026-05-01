@@ -278,7 +278,7 @@ class ArchivedAppsAdapter(
                 loadIcon(slot, app)
             }
 
-            val targetDp = if (apps.size <= 2) 48f else 56f
+            val targetDp = if (apps.size <= 2) 56f else 64f
             val px = TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP,
                 targetDp,
