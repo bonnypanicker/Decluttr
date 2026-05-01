@@ -43,6 +43,11 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         private const val TAG_ARCHIVE = "tab_archive"
     }
 
+    override fun onResume() {
+        super.onResume()
+        syncTabContentWithBottomNav()
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -122,7 +127,11 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
 
         // Fresh app open should always land on Discover.
         // Keep only in-memory/saved-instance restoration for transient recreation.
-        selectedTabIndex = savedInstanceState?.getInt(KEY_SELECTED_TAB) ?: 0
+        selectedTabIndex = if (savedInstanceState == null) {
+            0 // Fresh app entry should always default to Discover.
+        } else {
+            savedInstanceState.getInt(KEY_SELECTED_TAB, 0)
+        }
 
         val targetNavItem = if (selectedTabIndex == 1) R.id.nav_archive else R.id.nav_discover
         if (bottomNav.selectedItemId != targetNavItem) {
@@ -189,6 +198,22 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         }
         tx.commit()
         view?.findViewById<MaterialToolbar>(R.id.toolbar)?.let { toolbar -> updateToolbarActions(toolbar) }
+    }
+
+    private fun syncTabContentWithBottomNav() {
+        val root = view ?: return
+        val bottomNav = root.findViewById<BottomNavigationView>(R.id.bottom_nav) ?: return
+        val expectedIndex = if (bottomNav.selectedItemId == R.id.nav_archive) 1 else 0
+        val visibleIndex = when {
+            childFragmentManager.findFragmentByTag(TAG_ARCHIVE)?.isVisible == true -> 1
+            childFragmentManager.findFragmentByTag(TAG_DISCOVER)?.isVisible == true -> 0
+            else -> -1
+        }
+        if (visibleIndex != expectedIndex) {
+            switchTab(expectedIndex)
+        } else {
+            selectedTabIndex = expectedIndex
+        }
     }
 
     private fun updateToolbarActions(toolbar: MaterialToolbar) {
