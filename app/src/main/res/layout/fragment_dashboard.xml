@@ -10,12 +10,15 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?attr/colorSurface"
+        android:stateListAnimator="@null"
+        app:liftOnScroll="false"
         app:elevation="0dp">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
+            android:stateListAnimator="@null"
             app:title=""
             app:menu="@menu/toolbar_dashboard">
 
