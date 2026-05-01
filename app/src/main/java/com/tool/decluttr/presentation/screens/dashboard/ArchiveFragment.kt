@@ -107,6 +107,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private var isDragInProgress = false
     private var pendingAppsDuringDrag: List<ArchivedApp>? = null
     private var isGoogleSignInLoading = false
+    private var snapToTopAfterNextSubmit = false
     private val singletonCollapseInFlight = mutableSetOf<String>()
     private val pendingFolderCreations = mutableMapOf<String, Long>()
     private val pendingFolderCreationWindowMs = 3_000L
@@ -132,6 +133,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         initViews(view)
         setupRecyclerView()
         applyViewMode()
+        snapToTopAfterNextSubmit = true
         setupListeners()
         observeViewModel()
         scheduleTipsIfNeeded()
@@ -312,6 +314,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         }
 
         btnViewSwitch.setOnClickListener {
+            val wasAtTop = !recyclerView.canScrollVertically(-1)
             isListMode = !isListMode
             prefs.edit().putBoolean(PREF_KEY_ARCHIVE_LIST_MODE, isListMode).apply()
             beginViewModeTransition()
@@ -324,6 +327,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             btnViewSwitch.setImageResource(
                 if (isListMode) R.drawable.ic_grid_view else R.drawable.ic_list
             )
+            snapToTopAfterNextSubmit = wasAtTop
             updateUI(viewModel.archivedApps.value)
             scheduleTipsIfNeeded(forceImmediate = true)
         }
@@ -470,6 +474,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private fun submitArchiveItems(items: List<ArchivedItem>) {
         adapter.submitList(items) {
             completeViewModeTransitionIfNeeded()
+            if (snapToTopAfterNextSubmit) {
+                snapToTopAfterNextSubmit = false
+                (recyclerView.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(0, 0)
+            }
         }
     }
 
