@@ -3,7 +3,9 @@ package com.tool.decluttr.presentation.screens.dashboard
 import android.content.ClipDescription
 import android.os.Bundle
 import android.text.Editable
+import android.text.SpannableString
 import android.text.TextWatcher
+import android.text.style.ForegroundColorSpan
 import android.view.DragEvent
 import android.view.MenuInflater
 import android.view.View
@@ -29,6 +31,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.appcompat.widget.PopupMenu
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.chip.Chip
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.snackbar.Snackbar
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.EntitlementState
@@ -83,6 +86,8 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private lateinit var btnFindApps: Button
     private lateinit var btnArchiveLogin: Button
     private lateinit var tipOverlayContainer: View
+    private lateinit var tipOverlayIcon: ImageView
+    private lateinit var tipOverlayTitle: TextView
     private lateinit var tipOverlayText: TextView
     private lateinit var btnTipOverlayClose: ImageView
 
@@ -146,6 +151,8 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         btnFindApps = v.findViewById(R.id.btn_find_apps)
         btnArchiveLogin = v.findViewById(R.id.btn_archive_login)
         tipOverlayContainer = v.findViewById(R.id.tip_overlay_container)
+        tipOverlayIcon = v.findViewById(R.id.iv_tip_overlay_icon)
+        tipOverlayTitle = v.findViewById(R.id.tv_tip_overlay_title)
         tipOverlayText = v.findViewById(R.id.tv_tip_overlay_text)
         btnTipOverlayClose = v.findViewById(R.id.btn_tip_overlay_close)
         isListMode = prefs.getBoolean(PREF_KEY_ARCHIVE_LIST_MODE, false)
@@ -319,6 +326,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         btnSort.setOnClickListener { showSortMenu() }
         btnSort.visibility = if (isListMode) View.VISIBLE else View.GONE
         btnTipOverlayClose.setOnClickListener { dismissActiveTip(markShown = true) }
+        tipOverlayContainer.setOnClickListener {
+            // Intentionally consume touches so underlying archive items are never tapped
+            // while the tip overlay is visible.
+        }
 
         btnReinstalledApps.setOnClickListener {
             showReinstalledAppsMenu()
@@ -464,6 +475,20 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
 
     private fun showTip(tipKey: String, message: String) {
         activeTipKey = tipKey
+        when (tipKey) {
+            PREF_KEY_TIP_DRAG_SHOWN -> {
+                tipOverlayTitle.text = "Create folders faster"
+                tipOverlayIcon.setImageResource(R.drawable.ic_broom)
+            }
+            PREF_KEY_TIP_VIEW_SHOWN -> {
+                tipOverlayTitle.text = "Sort smarter"
+                tipOverlayIcon.setImageResource(R.drawable.ic_sort)
+            }
+            else -> {
+                tipOverlayTitle.text = "Quick tip"
+                tipOverlayIcon.setImageResource(R.drawable.ic_broom)
+            }
+        }
         tipOverlayText.text = message
         tipOverlayContainer.alpha = 0f
         tipOverlayContainer.visibility = View.VISIBLE
@@ -733,13 +758,29 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private fun showSortMenu() {
         val popup = PopupMenu(requireContext(), btnSort)
         MenuInflater(requireContext()).inflate(R.menu.archive_sort_menu, popup.menu)
+        val primaryColor = MaterialColors.getColor(
+            requireContext(),
+            com.google.android.material.R.attr.colorPrimary,
+            0
+        )
         val selectedItemId = when (sortOption) {
             ArchiveSortOption.UNINSTALLED_DATE -> R.id.sort_uninstalled_date
             ArchiveSortOption.SIZE -> R.id.sort_size
             ArchiveSortOption.CATEGORY -> R.id.sort_category
             ArchiveSortOption.ALPHABETICAL -> R.id.sort_alphabetic
         }
-        popup.menu.findItem(selectedItemId)?.isChecked = true
+        for (i in 0 until popup.menu.size()) {
+            val menuItem = popup.menu.getItem(i)
+            val title = menuItem.title?.toString().orEmpty()
+            menuItem.isCheckable = false
+            menuItem.title = if (menuItem.itemId == selectedItemId) {
+                SpannableString(title).apply {
+                    setSpan(ForegroundColorSpan(primaryColor), 0, length, 0)
+                }
+            } else {
+                title
+            }
+        }
         popup.setOnMenuItemClickListener { item ->
             sortOption = when (item.itemId) {
                 R.id.sort_size -> ArchiveSortOption.SIZE

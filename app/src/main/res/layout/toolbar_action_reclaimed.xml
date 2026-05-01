@@ -4,7 +4,7 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_marginEnd="8dp"
-    android:text="Storage freed 0 MB"
+    android:text="~0MB freed"
     android:textAppearance="?attr/textAppearanceBodySmall"
     android:textColor="?attr/colorOnSurfaceVariant"
     android:visibility="gone" />

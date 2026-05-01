@@ -1,6 +1,8 @@
 package com.tool.decluttr.presentation.screens.wishlist
 
 import android.os.Bundle
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -21,6 +23,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
+import com.google.android.material.color.MaterialColors
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.WishlistSortOption
 import dagger.hilt.android.AndroidEntryPoint
@@ -63,10 +66,25 @@ class WishlistFragment : Fragment(R.layout.fragment_wishlist) {
 
         btnSort.setOnClickListener { anchor ->
             val popup = PopupMenu(requireContext(), anchor)
+            val primaryColor = MaterialColors.getColor(
+                requireContext(),
+                com.google.android.material.R.attr.colorPrimary,
+                0
+            )
             popup.menu.apply {
-                add(0, 0, 0, "Date Added").isChecked = viewModel.sortOption.value == WishlistSortOption.DATE_ADDED
-                add(0, 1, 1, "Alphabetical").isChecked = viewModel.sortOption.value == WishlistSortOption.ALPHABETICAL
-                add(0, 2, 2, "Category").isChecked = viewModel.sortOption.value == WishlistSortOption.CATEGORY
+                val selectedId = when (viewModel.sortOption.value) {
+                    WishlistSortOption.DATE_ADDED -> 0
+                    WishlistSortOption.ALPHABETICAL -> 1
+                    WishlistSortOption.CATEGORY -> 2
+                }
+                fun title(text: String, isSelected: Boolean): CharSequence {
+                    return if (!isSelected) text else SpannableString(text).apply {
+                        setSpan(ForegroundColorSpan(primaryColor), 0, length, 0)
+                    }
+                }
+                add(0, 0, 0, title("Date Added", selectedId == 0)).isCheckable = false
+                add(0, 1, 1, title("Alphabetical", selectedId == 1)).isCheckable = false
+                add(0, 2, 2, title("Category", selectedId == 2)).isCheckable = false
             }
             popup.setOnMenuItemClickListener { item ->
                 viewModel.setSortOption(

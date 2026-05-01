@@ -140,8 +140,10 @@
         <FrameLayout
             android:id="@+id/tip_overlay_container"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_gravity="top"
+            android:clickable="true"
+            android:focusable="true"
             android:paddingHorizontal="16dp"
             android:paddingTop="8dp"
             android:visibility="gone">
@@ -150,41 +152,65 @@
                 android:id="@+id/tip_overlay_card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
-                app:cardCornerRadius="14dp"
-                app:cardElevation="2dp"
-                app:strokeWidth="0dp">
+                android:clickable="true"
+                android:focusable="true"
+                app:cardBackgroundColor="?attr/colorSurfaceContainerHighest"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="4dp"
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
+                    android:gravity="top"
                     android:orientation="horizontal"
-                    android:padding="12dp">
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="12dp">
 
                     <ImageView
+                        android:id="@+id/iv_tip_overlay_icon"
                         android:layout_width="24dp"
                         android:layout_height="24dp"
-                        android:src="@android:drawable/ic_dialog_info"
+                        android:layout_marginTop="2dp"
+                        android:src="@drawable/ic_broom"
                         app:tint="?attr/colorPrimary" />
 
-                    <TextView
-                        android:id="@+id/tv_tip_overlay_text"
+                    <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="10dp"
                         android:layout_weight="1"
-                        android:text=""
-                        android:textAppearance="?attr/textAppearanceBodySmall"
-                        android:textColor="?attr/colorOnSurfaceVariant" />
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tv_tip_overlay_title"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Quick tip"
+                            android:textAppearance="?attr/textAppearanceTitleSmall"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_tip_overlay_text"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text=""
+                            android:textAppearance="?attr/textAppearanceBodySmall"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+                    </LinearLayout>
 
                     <ImageButton
                         android:id="@+id/btn_tip_overlay_close"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_marginStart="8dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:contentDescription="Dismiss tip"
-                        android:src="@android:drawable/ic_menu_close_clear_cancel"
+                        android:padding="4dp"
+                        android:src="@drawable/ic_close"
                         app:tint="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

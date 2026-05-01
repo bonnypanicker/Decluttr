@@ -39,8 +39,6 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
     companion object {
         private const val TAG = "DashboardFragment"
         private const val KEY_SELECTED_TAB = "selected_tab_index"
-        private const val PREFS_DASHBOARD_UI = "dashboard_ui_prefs"
-        private const val PREF_SELECTED_TAB = "selected_tab_index"
         private const val TAG_DISCOVER = "tab_discover"
         private const val TAG_ARCHIVE = "tab_archive"
     }
@@ -122,9 +120,9 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
             }
         }
 
-        val prefs = requireContext().getSharedPreferences(PREFS_DASHBOARD_UI, android.content.Context.MODE_PRIVATE)
-        selectedTabIndex = savedInstanceState?.getInt(KEY_SELECTED_TAB)
-            ?: prefs.getInt(PREF_SELECTED_TAB, 0)
+        // Fresh app open should always land on Discover.
+        // Keep only in-memory/saved-instance restoration for transient recreation.
+        selectedTabIndex = savedInstanceState?.getInt(KEY_SELECTED_TAB) ?: 0
 
         val targetNavItem = if (selectedTabIndex == 1) R.id.nav_archive else R.id.nav_discover
         if (bottomNav.selectedItemId != targetNavItem) {
@@ -174,11 +172,6 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
     private fun switchTab(index: Int) {
         if (index !in 0..1) return
         selectedTabIndex = index
-        requireContext()
-            .getSharedPreferences(PREFS_DASHBOARD_UI, android.content.Context.MODE_PRIVATE)
-            .edit()
-            .putInt(PREF_SELECTED_TAB, selectedTabIndex)
-            .apply()
 
         val discover = childFragmentManager.findFragmentByTag(TAG_DISCOVER)
         val archive = childFragmentManager.findFragmentByTag(TAG_ARCHIVE)
@@ -208,12 +201,12 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         if (reclaimedItem != null && reclaimedText != null) {
             val totalBytes = lastArchivedBytes.coerceAtLeast(0L)
             val mb = totalBytes / (1024.0 * 1024.0)
-            val formatted = if (mb < 1.0) {
-                String.format(java.util.Locale.US, "Storage freed %.1f MB", mb)
+            val compact = if (mb < 10.0) {
+                String.format(java.util.Locale.US, "~%.1fMB", mb)
             } else {
-                String.format(java.util.Locale.US, "Storage freed %.0f MB", mb)
+                String.format(java.util.Locale.US, "~%.0fMB", mb)
             }
-            reclaimedText.text = formatted
+            reclaimedText.text = "$compact freed"
             reclaimedItem.isVisible = isArchiveTab && totalBytes > 0L
             reclaimedText.visibility = if (reclaimedItem.isVisible) View.VISIBLE else View.GONE
         }
@@ -224,7 +217,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
             val canShow = isArchiveTab && !isPremium && credits.isVisible
             getProItem.isVisible = canShow
             if (canShow) {
-                getProText.text = "Get Pro - ${credits.used}/${credits.limit}"
+                getProText.text = "Unlock Premium - ${credits.used}/${credits.limit}"
                 getProText.visibility = View.VISIBLE
                 getProItem.actionView?.setOnClickListener {
                     showPaywall(reason = "toolbar_get_pro", used = credits.used, limit = credits.limit)
