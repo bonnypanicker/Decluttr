@@ -2,6 +2,8 @@ package com.tool.decluttr.presentation.screens.dashboard
 
 import android.content.Context
 import android.os.Build
+import android.graphics.Rect
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -45,6 +47,7 @@ class FolderExpandOverlay(
     private var overlayView: View? = null
     private var isExpanded = false
     private var anchorViewRef: WeakReference<View>? = null
+    private var folderAppCount: Int = 0
 
     /**
      * Show the folder expansion overlay.
@@ -72,6 +75,7 @@ class FolderExpandOverlay(
         )
         if (isExpanded) return
         isExpanded = true
+        folderAppCount = folderApps.size
         anchorViewRef = WeakReference(anchorView)
 
         val inflater = LayoutInflater.from(context)
@@ -103,7 +107,8 @@ class FolderExpandOverlay(
         // Keep keyboard closed on open. Folder title can still be edited manually.
 
         // Setup grid
-        grid.layoutManager = GridLayoutManager(context, 4)
+        val gridLayoutManager = GridLayoutManager(context, spanCountFor(folderApps.size))
+        grid.layoutManager = gridLayoutManager
         grid.adapter = FolderAppsAdapter(
             apps = folderApps,
             onAppClick = { packageId ->
@@ -141,6 +146,7 @@ class FolderExpandOverlay(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
         ))
+        applyAdaptiveCardLayout(card, grid, folderApps.size)
 
         animateAnchorFolderIcons(visible = false, animate = true)
 
@@ -184,6 +190,7 @@ class FolderExpandOverlay(
         contentLayout?.alpha = 0f
 
         card.post {
+            applyCardAnchorPosition(card)
             val cardLocation = IntArray(2)
             card.getLocationInWindow(cardLocation)
 
@@ -243,8 +250,14 @@ class FolderExpandOverlay(
     fun updateApps(newApps: List<ArchivedApp>) {
         android.util.Log.v(TAG, "FOLDER_OVERLAY updateApps size=${newApps.size} isExpanded=$isExpanded hasView=${overlayView != null}")
         val grid = overlayView?.findViewById<RecyclerView>(R.id.folder_grid)
+        val card = overlayView?.findViewById<MaterialCardView>(R.id.folder_card)
         val adapter = grid?.adapter as? FolderAppsAdapter
         adapter?.updateData(newApps)
+        if (grid != null && card != null && folderAppCount != newApps.size) {
+            folderAppCount = newApps.size
+            applyAdaptiveCardLayout(card, grid, newApps.size)
+            card.post { applyCardAnchorPosition(card) }
+        }
     }
 
     /**
@@ -329,7 +342,9 @@ class FolderExpandOverlay(
             R.id.folder_icon_1,
             R.id.folder_icon_2,
             R.id.folder_icon_3,
-            R.id.folder_icon_4
+            R.id.folder_icon_4,
+            R.id.folder_icon_5,
+            R.id.folder_icon_6
         )
         ids.forEachIndexed { index, id ->
             val iconView = anchor.findViewById<View>(id) ?: return@forEachIndexed
@@ -360,5 +375,81 @@ class FolderExpandOverlay(
                 iconView.scaleY = if (visible) 1f else 0.7f
             }
         }
+    }
+
+    private fun spanCountFor(count: Int): Int {
+        return when {
+            count <= 2 -> 2
+            count <= 4 -> 2
+            else -> 3
+        }
+    }
+
+    private fun applyAdaptiveCardLayout(
+        card: MaterialCardView,
+        grid: RecyclerView,
+        appCount: Int
+    ) {
+        val span = spanCountFor(appCount)
+        val layout = grid.layoutManager as? GridLayoutManager
+        if (layout == null) {
+            grid.layoutManager = GridLayoutManager(context, span)
+        } else {
+            layout.spanCount = span
+        }
+
+        val widthPercent = when {
+            appCount <= 2 -> 0.48f
+            appCount <= 4 -> 0.60f
+            else -> 0.72f
+        }
+        val minWidth = dpToPx(220)
+        val maxWidth = dpToPx(380)
+        val target = (parentView.width * widthPercent).toInt().coerceIn(minWidth, maxWidth)
+        card.layoutParams = (card.layoutParams as FrameLayout.LayoutParams).apply {
+            width = target
+        }
+        grid.overScrollMode = RecyclerView.OVER_SCROLL_NEVER
+    }
+
+    private fun applyCardAnchorPosition(card: MaterialCardView) {
+        val lp = card.layoutParams as FrameLayout.LayoutParams
+        val anchor = anchorViewRef?.get()
+        if (anchor == null || !anchor.isAttachedToWindow) {
+            lp.gravity = Gravity.CENTER
+            lp.topMargin = 0
+            lp.leftMargin = 0
+            card.layoutParams = lp
+            return
+        }
+
+        val anchorLoc = IntArray(2)
+        val parentLoc = IntArray(2)
+        anchor.getLocationInWindow(anchorLoc)
+        parentView.getLocationInWindow(parentLoc)
+
+        val anchorRect = Rect(
+            anchorLoc[0] - parentLoc[0],
+            anchorLoc[1] - parentLoc[1],
+            anchorLoc[0] - parentLoc[0] + anchor.width,
+            anchorLoc[1] - parentLoc[1] + anchor.height
+        )
+
+        val verticalGap = dpToPx(10)
+        val safeTop = dpToPx(16)
+        val safeHorizontal = dpToPx(12)
+        val targetTop = (anchorRect.top - card.height - verticalGap).coerceAtLeast(safeTop)
+        val desiredLeft = anchorRect.centerX() - card.width / 2
+        val maxLeft = (parentView.width - card.width - safeHorizontal).coerceAtLeast(safeHorizontal)
+        val targetLeft = desiredLeft.coerceIn(safeHorizontal, maxLeft)
+
+        lp.gravity = Gravity.TOP or Gravity.START
+        lp.topMargin = targetTop
+        lp.leftMargin = targetLeft
+        card.layoutParams = lp
+    }
+
+    private fun dpToPx(dp: Int): Int {
+        return (dp * context.resources.displayMetrics.density).toInt()
     }
 }

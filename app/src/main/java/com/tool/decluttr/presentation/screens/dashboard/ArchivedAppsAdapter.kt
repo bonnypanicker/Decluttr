@@ -10,6 +10,8 @@ import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.OvershootInterpolator
+import android.util.TypedValue
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
@@ -218,10 +220,13 @@ class ArchivedAppsAdapter(
 
     inner class FolderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val folderName = view.findViewById<TextView>(R.id.folder_name)
+        private val previewContainer = view.findViewById<FrameLayout>(R.id.folder_preview_container)
         private val icon1 = view.findViewById<ImageView>(R.id.folder_icon_1)
         private val icon2 = view.findViewById<ImageView>(R.id.folder_icon_2)
         private val icon3 = view.findViewById<ImageView>(R.id.folder_icon_3)
         private val icon4 = view.findViewById<ImageView>(R.id.folder_icon_4)
+        private val icon5 = view.findViewById<ImageView>(R.id.folder_icon_5)
+        private val icon6 = view.findViewById<ImageView>(R.id.folder_icon_6)
 
         fun bind(folderItem: ArchivedItem.Folder) {
             itemView.tag = folderItem
@@ -232,20 +237,18 @@ class ArchivedAppsAdapter(
             itemView.scaleX = 1f
             itemView.scaleY = 1f
             folderName.text = folderItem.name
-            
-            val apps = folderItem.apps.take(4)
-            val icons = listOf(icon1, icon2, icon3, icon4)
-            
-            icons.forEach {
+
+            val apps = folderItem.apps.take(6)
+            val allIcons = listOf(icon1, icon2, icon3, icon4, icon5, icon6)
+            allIcons.forEach {
                 it.animate().cancel()
                 it.alpha = 1f
                 it.scaleX = 1f
                 it.scaleY = 1f
+                it.visibility = View.INVISIBLE
                 it.setImageDrawable(null)
-            } // Clear previous and reset icon state
-            apps.forEachIndexed { index, app ->
-                loadIcon(icons[index], app)
             }
+            renderFolderPreview(apps)
 
             itemView.setOnClickListener { onFolderClick(folderItem.name, itemView) }
             itemView.setOnLongClickListener {
@@ -254,6 +257,31 @@ class ArchivedAppsAdapter(
                 true
             }
             itemView.setOnDragListener(DragListener())
+        }
+
+        private fun renderFolderPreview(apps: List<ArchivedApp>) {
+            val slots: List<ImageView> = when {
+                apps.size <= 2 -> listOf(icon1, icon2)
+                apps.size == 3 -> listOf(icon1, icon2, icon4)
+                apps.size == 4 -> listOf(icon1, icon2, icon4, icon5)
+                else -> listOf(icon1, icon2, icon3, icon4, icon5, icon6)
+            }
+            apps.forEachIndexed { index, app ->
+                val slot = slots.getOrNull(index) ?: return@forEachIndexed
+                slot.visibility = View.VISIBLE
+                loadIcon(slot, app)
+            }
+
+            val targetDp = if (apps.size <= 2) 48f else 56f
+            val px = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                targetDp,
+                itemView.resources.displayMetrics
+            ).toInt()
+            previewContainer.layoutParams = previewContainer.layoutParams.apply {
+                width = px
+                height = px
+            }
         }
     }
 
