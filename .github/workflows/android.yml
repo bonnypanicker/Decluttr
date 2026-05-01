@@ -91,7 +91,7 @@ jobs:
           exit 1
         fi
 
-    - name: Build Debug APK (PR validation)
+    - name: Build Debug AAB (PR validation)
       if: github.event_name == 'pull_request'
       run: |
         if [ ! -f gradlew ]; then
@@ -99,7 +99,15 @@ jobs:
           gradle wrapper --gradle-version 8.10.2
         fi
         chmod +x gradlew
-        ./gradlew :app:assembleDebug
+        ./gradlew :app:bundleDebug
+
+    - name: Upload Debug AAB (PR)
+      if: github.event_name == 'pull_request'
+      uses: actions/upload-artifact@v4
+      with:
+        name: decluttr-pr-debug-aab
+        path: app/build/outputs/bundle/debug/*.aab
+        if-no-files-found: error
 
     - name: Build Release APK
       if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'release')
