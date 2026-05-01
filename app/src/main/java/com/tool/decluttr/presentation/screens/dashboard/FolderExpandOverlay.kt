@@ -343,9 +343,7 @@ class FolderExpandOverlay(
             R.id.folder_icon_1,
             R.id.folder_icon_2,
             R.id.folder_icon_3,
-            R.id.folder_icon_4,
-            R.id.folder_icon_5,
-            R.id.folder_icon_6
+            R.id.folder_icon_4
         )
         ids.forEachIndexed { index, id ->
             val iconView = anchor.findViewById<View>(id) ?: return@forEachIndexed

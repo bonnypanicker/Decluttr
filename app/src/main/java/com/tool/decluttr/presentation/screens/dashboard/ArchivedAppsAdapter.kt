@@ -231,8 +231,6 @@ class ArchivedAppsAdapter(
         private val icon2 = view.findViewById<ImageView>(R.id.folder_icon_2)
         private val icon3 = view.findViewById<ImageView>(R.id.folder_icon_3)
         private val icon4 = view.findViewById<ImageView>(R.id.folder_icon_4)
-        private val icon5 = view.findViewById<ImageView>(R.id.folder_icon_5)
-        private val icon6 = view.findViewById<ImageView>(R.id.folder_icon_6)
 
         fun bind(folderItem: ArchivedItem.Folder) {
             itemView.tag = folderItem
@@ -244,8 +242,8 @@ class ArchivedAppsAdapter(
             itemView.scaleY = 1f
             folderName.text = folderItem.name
 
-            val apps = folderItem.apps.take(6)
-            val allIcons = listOf(icon1, icon2, icon3, icon4, icon5, icon6)
+            val apps = folderItem.apps.take(4)
+            val allIcons = listOf(icon1, icon2, icon3, icon4)
             allIcons.forEach {
                 it.animate().cancel()
                 it.alpha = 1f
@@ -269,8 +267,7 @@ class ArchivedAppsAdapter(
             val slots: List<ImageView> = when {
                 apps.size <= 2 -> listOf(icon1, icon2)
                 apps.size == 3 -> listOf(icon1, icon2, icon4)
-                apps.size == 4 -> listOf(icon1, icon2, icon4, icon5)
-                else -> listOf(icon1, icon2, icon3, icon4, icon5, icon6)
+                else -> listOf(icon1, icon2, icon3, icon4)
             }
             apps.forEachIndexed { index, app ->
                 val slot = slots.getOrNull(index) ?: return@forEachIndexed
