@@ -24,10 +24,15 @@
         '.get-started-btn.auth-loading{position:relative;}' +
         '.get-started-btn.auth-loading img,.get-started-btn.auth-loading svg,.get-started-btn.auth-loading .google-icon{visibility:hidden !important;}' +
         '.get-started-btn .auth-loading-spinner{display:none;}' +
-        '.get-started-btn.auth-loading .auth-loading-spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,0.45);border-top-color:#ffffff;border-radius:50%;animation:authSpin .75s linear infinite;vertical-align:middle;}' +
+        '.get-started-btn.auth-loading .auth-loading-spinner{display:block;position:absolute;width:18px;height:18px;border:2px solid rgba(255,255,255,0.45);border-top-color:#ffffff;border-radius:50%;animation:authSpin .75s linear infinite;pointer-events:none;z-index:2;}' +
         '@keyframes authSpin{to{transform:rotate(360deg);}}';
       document.head.appendChild(style);
     })();
+
+    function findAuthIcon(button) {
+      if (!button || !button.querySelector) return null;
+      return button.querySelector('.google-icon, img, svg');
+    }
 
     function ensureSpinner(button) {
       if (!button) return;
@@ -38,17 +43,41 @@
         spinner.setAttribute('aria-hidden', 'true');
         button.appendChild(spinner);
       }
+      return spinner;
+    }
+
+    function positionSpinnerOverIcon(button, spinner) {
+      if (!button || !spinner) return;
+      var icon = findAuthIcon(button);
+      var buttonRect = button.getBoundingClientRect();
+      if (!icon || !buttonRect || buttonRect.width <= 0 || buttonRect.height <= 0) {
+        spinner.style.left = '20px';
+        spinner.style.top = '50%';
+        spinner.style.transform = 'translateY(-50%)';
+        return;
+      }
+      var iconRect = icon.getBoundingClientRect();
+      var spinnerSize = 18;
+      var left = (iconRect.left - buttonRect.left) + ((iconRect.width - spinnerSize) / 2);
+      var top = (iconRect.top - buttonRect.top) + ((iconRect.height - spinnerSize) / 2);
+      spinner.style.left = Math.max(0, left) + 'px';
+      spinner.style.top = Math.max(0, top) + 'px';
+      spinner.style.transform = 'none';
     }
 
     window.setAuthLoading = function (loading) {
       var button = document.querySelector('.get-started-btn');
       if (!button) return;
-      ensureSpinner(button);
+      var spinner = ensureSpinner(button);
       button.disabled = !!loading;
       button.style.opacity = loading ? '0.65' : '1';
       button.style.pointerEvents = loading ? 'none' : 'auto';
-      if (loading) button.classList.add('auth-loading');
-      else button.classList.remove('auth-loading');
+      if (loading) {
+        positionSpinnerOverIcon(button, spinner);
+        button.classList.add('auth-loading');
+      } else {
+        button.classList.remove('auth-loading');
+      }
     };
 
     document.addEventListener('click', function (event) {
