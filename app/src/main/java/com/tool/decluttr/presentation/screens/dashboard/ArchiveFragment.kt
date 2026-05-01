@@ -481,7 +481,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         when (tipKey) {
             PREF_KEY_TIP_DRAG_SHOWN -> {
                 tipOverlayTitle.text = "Create folders faster"
-                tipOverlayIcon.setImageResource(R.drawable.ic_broom)
+                tipOverlayIcon.setImageResource(R.drawable.ic_archive_outlined)
             }
             PREF_KEY_TIP_VIEW_SHOWN -> {
                 tipOverlayTitle.text = "Sort smarter"
