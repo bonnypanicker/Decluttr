@@ -7,6 +7,9 @@
         <item name="colorTertiary">@color/Tertiary80</item>
         <item name="android:colorBackground">@color/DarkBackground</item>
         <item name="colorSurface">@color/DarkSurface</item>
+        <item name="colorSurfaceContainer">@color/DarkSurfaceContainer</item>
+        <item name="colorSurfaceContainerHigh">@color/DarkSurfaceContainerHigh</item>
+        <item name="colorSurfaceContainerHighest">@color/DarkSurfaceContainerHighest</item>
         <item name="colorOnPrimary">@color/DarkBackground</item>
         <item name="colorOnPrimaryContainer">@color/DarkBackground</item>
         <item name="colorOnSecondaryContainer">@color/DarkBackground</item>

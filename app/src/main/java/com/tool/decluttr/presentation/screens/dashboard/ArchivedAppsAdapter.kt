@@ -281,6 +281,7 @@ class ArchivedAppsAdapter(
     inner class AppListViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val icon = view.findViewById<ImageView>(R.id.app_icon)
         private val name = view.findViewById<TextView>(R.id.app_name)
+        private val category = view.findViewById<TextView>(R.id.app_category)
         private val meta = view.findViewById<TextView>(R.id.app_meta)
 
         fun bind(appItem: ArchivedItem.App) {
@@ -288,8 +289,9 @@ class ArchivedAppsAdapter(
             itemView.tag = appItem
             name.text = toDisplayName(app.name, app.packageId)
             val m = appMetaProvider(app)
-            val category = app.category ?: "Uncategorized"
-            meta.text = "${m.sizeLabel} • ${m.uninstallDateLabel} • $category"
+            val categoryLabel = app.category ?: "Uncategorized"
+            category.text = categoryLabel
+            meta.text = "${m.sizeLabel} • ${m.uninstallDateLabel}"
             loadIcon(icon, app)
             itemView.setOnClickListener { onAppClick(app.packageId) }
         }
