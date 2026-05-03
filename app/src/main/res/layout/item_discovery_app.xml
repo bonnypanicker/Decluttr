@@ -8,11 +8,12 @@
     android:layout_marginBottom="6dp"
     android:clickable="true"
     android:focusable="true"
-    app:cardBackgroundColor="@color/app_item_background"
+    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
     app:cardCornerRadius="12dp"
     app:cardElevation="0dp"
     app:rippleColor="?attr/colorControlHighlight"
-    app:strokeWidth="0dp"
+    app:strokeColor="?attr/colorOutlineVariant"
+    app:strokeWidth="1dp"
     style="@style/Widget.Material3.CardView.Filled">
 
     <LinearLayout
