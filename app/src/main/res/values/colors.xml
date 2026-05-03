@@ -15,6 +15,9 @@
 
     <color name="DarkBackground">#0D1117</color>
     <color name="DarkSurface">#161B22</color>
+    <color name="DarkSurfaceContainer">#1C222B</color>
+    <color name="DarkSurfaceContainerHigh">#202734</color>
+    <color name="DarkSurfaceContainerHighest">#263040</color>
     <color name="DarkPrimaryText">#E5E7EB</color>
     <color name="DarkSecondaryText">#9CA3AF</color>
     <color name="CreamBackground">#FFF8EF</color>
