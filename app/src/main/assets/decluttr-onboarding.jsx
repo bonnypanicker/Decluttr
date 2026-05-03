@@ -525,55 +525,228 @@ const DiscoverVisual = ({ accent, stats }) => {
   );
 };
 
-const CloudVisual = ({ accent, disclaimer }) => (
-  <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%" }}>
-    {/* Sync illustration */}
-    <div style={{
-      borderRadius: 14, border: `1px solid ${accent}25`,
-      background: `${accent}06`, padding: "14px 16px",
-    }}>
-      <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center", marginBottom: 10 }}>
-        {["📱 Phone A", "☁️ Cloud", "📱 Phone B"].map((label, i) => (
-          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 10,
-              background: i === 1 ? `${accent}25` : "rgba(255,255,255,0.06)",
-              border: `1px solid ${i === 1 ? accent + "50" : "rgba(255,255,255,0.1)"}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 18
-            }}>{label.split(" ")[0]}</div>
-            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", fontFamily: "'DM Sans', sans-serif" }}>{label.split(" ")[1]}</span>
+const CloudVisual = ({ accent, disclaimer }) => {
+  const wish = "#F472B6";
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
+      <div style={{
+        borderRadius: 16,
+        border: `1px solid ${accent}22`,
+        background: `linear-gradient(135deg, ${accent}16 0%, rgba(255,255,255,0.02) 60%)`,
+        padding: "10px 12px",
+        display: "flex",
+        alignItems: "center",
+        gap: 10
+      }}>
+        <div style={{
+          width: 44,
+          height: 44,
+          borderRadius: 14,
+          background: `radial-gradient(circle at 30% 30%, ${accent}55 0%, ${accent}18 55%, rgba(255,255,255,0.03) 100%)`,
+          border: `1px solid ${accent}35`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0
+        }}>
+          <img
+            src="file:///android_asset/icon_final.png"
+            alt="Decluttr"
+            style={{ width: 26, height: 26, objectFit: "contain" }}
+          />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: "rgba(255,255,255,0.85)",
+            fontFamily: "'DM Sans', sans-serif"
+          }}>
+            Your shelf syncs everywhere
           </div>
-        ))}
+          <div style={{
+            fontSize: 10,
+            color: "rgba(255,255,255,0.35)",
+            fontFamily: "'DM Sans', sans-serif",
+            marginTop: 2,
+            lineHeight: 1.4
+          }}>
+            Archive, notes, and categories follow your account
+          </div>
+        </div>
+        <div style={{
+          width: 34,
+          height: 34,
+          borderRadius: 12,
+          background: `${accent}14`,
+          border: `1px solid ${accent}24`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0
+        }}>
+          <span style={{ fontSize: 16 }}>☁️</span>
+        </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-        {["Archive", "Notes", "Categories", "Tags"].map((item, i) => (
-          <div key={i} style={{
-            flex: 1, padding: "4px 0", borderRadius: 6, textAlign: "center",
-            background: `${accent}15`, border: `1px solid ${accent}25`,
-            fontSize: 9, color: `${accent}cc`, fontFamily: "'DM Sans', sans-serif", fontWeight: 600
-          }}>{item}</div>
-        ))}
-      </div>
-    </div>
 
-    {/* Honest disclaimer */}
-    <div style={{
-      borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)",
-      background: "rgba(255,255,255,0.03)", padding: "12px 14px",
-    }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-        <div style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>💡</div>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.6)", fontFamily: "'DM Sans', sans-serif", marginBottom: 4, letterSpacing: "0.04em" }}>GOOD TO KNOW</div>
-          <p style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", margin: 0, fontFamily: "'DM Sans', sans-serif", lineHeight: 1.6 }}>
-            {disclaimer}
-          </p>
+      <div style={{
+        borderRadius: 14,
+        border: `1px solid ${accent}25`,
+        background: `${accent}06`,
+        padding: "14px 16px"
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center", marginBottom: 10 }}>
+          {["📱 Phone A", "☁️ Cloud", "📱 Phone B"].map((label, i) => (
+            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              <div style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: i === 1 ? `${accent}25` : "rgba(255,255,255,0.06)",
+                border: `1px solid ${i === 1 ? accent + "50" : "rgba(255,255,255,0.1)"}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 18
+              }}>{label.split(" ")[0]}</div>
+              <span style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", fontFamily: "'DM Sans', sans-serif" }}>
+                {label.split(" ")[1]}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          {["Archive", "Notes", "Categories", "Tags"].map((item, i) => (
+            <div key={i} style={{
+              flex: 1,
+              padding: "4px 0",
+              borderRadius: 6,
+              textAlign: "center",
+              background: `${accent}15`,
+              border: `1px solid ${accent}25`,
+              fontSize: 9,
+              color: `${accent}cc`,
+              fontFamily: "'DM Sans', sans-serif",
+              fontWeight: 600
+            }}>{item}</div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{
+        borderRadius: 12,
+        border: `1px solid ${wish}22`,
+        background: `${wish}06`,
+        padding: "11px 13px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 9
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ width: 4, height: 4, borderRadius: "50%", background: wish, opacity: 0.7 }} />
+            <span style={{
+              fontSize: 9,
+              fontWeight: 700,
+              color: `${wish}99`,
+              fontFamily: "'DM Sans', sans-serif",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase"
+            }}>ALSO INCLUDED • WISHLIST</span>
+          </div>
+          <span style={{
+            fontSize: 8,
+            fontWeight: 600,
+            color: `${wish}55`,
+            fontFamily: "'DM Sans', sans-serif",
+            letterSpacing: "0.06em"
+          }}>ADD-ON</span>
+        </div>
+
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 9,
+          padding: "8px 10px",
+          borderRadius: 9,
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.06)"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+            <div style={{
+              width: 28,
+              height: 28,
+              borderRadius: 7,
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 13
+            }}>▶</div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
+              <div style={{ width: 14, height: 1.5, background: `linear-gradient(to right,${wish}30,${wish}65)` }} />
+              <span style={{
+                fontSize: 7,
+                color: `${wish}55`,
+                fontFamily: "'DM Sans', sans-serif",
+                letterSpacing: "0.06em",
+                textTransform: "uppercase"
+              }}>share</span>
+            </div>
+            <div style={{
+              width: 28,
+              height: 28,
+              borderRadius: 7,
+              background: `${wish}15`,
+              border: `1px solid ${wish}30`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 13
+            }}>📦</div>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.75)", fontFamily: "'DM Sans', sans-serif" }}>
+              Share any Play Store page
+            </div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "'DM Sans', sans-serif", marginTop: 1 }}>
+              It lands straight in your Wishlist
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{
+        borderRadius: 12,
+        border: "1px solid rgba(255,255,255,0.08)",
+        background: "rgba(255,255,255,0.03)",
+        padding: "12px 14px"
+      }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <div style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>💡</div>
+          <div>
+            <div style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "rgba(255,255,255,0.6)",
+              fontFamily: "'DM Sans', sans-serif",
+              marginBottom: 4,
+              letterSpacing: "0.04em"
+            }}>GOOD TO KNOW</div>
+            <p style={{
+              fontSize: 11,
+              color: "rgba(255,255,255,0.45)",
+              margin: 0,
+              fontFamily: "'DM Sans', sans-serif",
+              lineHeight: 1.6
+            }}>{disclaimer}</p>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const visuals = {
   clutter: ClutterVisual,
@@ -872,4 +1045,3 @@ export default function DecluttrOnboarding() {
     </>
   );
 }
-

@@ -17,6 +17,56 @@ const slide = {
 const CloudVisual = ({ accent, disclaimer }) => (
   <div style={{ display:"flex", flexDirection:"column", gap:10, width:"100%" }}>
 
+    {/* ── Illustration ── */}
+    <div style={{
+      borderRadius: 16,
+      border: `1px solid ${accent}22`,
+      background: `linear-gradient(135deg, ${accent}16 0%, rgba(255,255,255,0.02) 60%)`,
+      padding: "10px 12px",
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+    }}>
+      <div style={{
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        background: `radial-gradient(circle at 30% 30%, ${accent}55 0%, ${accent}18 55%, rgba(255,255,255,0.03) 100%)`,
+        border: `1px solid ${accent}35`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}>
+        <img
+          src="file:///android_asset/icon_final.png"
+          alt="Decluttr"
+          style={{ width: 26, height: 26, objectFit: "contain" }}
+        />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.85)", fontFamily: "'DM Sans',sans-serif" }}>
+          Your shelf syncs everywhere
+        </div>
+        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontFamily: "'DM Sans',sans-serif", marginTop: 2, lineHeight: 1.4 }}>
+          Archive, notes, and categories follow your account
+        </div>
+      </div>
+      <div style={{
+        width: 34,
+        height: 34,
+        borderRadius: 12,
+        background: `${accent}14`,
+        border: `1px solid ${accent}24`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}>
+        <span style={{ fontSize: 16 }}>☁️</span>
+      </div>
+    </div>
+
     {/* ── Sync block ── */}
     <div style={{
       borderRadius:14, border:`1px solid ${accent}25`,
@@ -64,7 +114,7 @@ const CloudVisual = ({ accent, disclaimer }) => (
           <span style={{
             fontSize:9, fontWeight:700, color:`${WISH}99`,
             fontFamily:"'DM Sans',sans-serif", letterSpacing:"0.1em", textTransform:"uppercase",
-          }}>Also included · Wishlist</span>
+          }}>ALSO INCLUDED • WISHLIST</span>
         </div>
         <span style={{
           fontSize:8, fontWeight:600, color:`${WISH}55`,
