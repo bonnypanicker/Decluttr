@@ -672,10 +672,21 @@ const CloudVisual = ({ accent, disclaimer }) => {
               justifyContent: "center",
               fontSize: 12
             }}>
-              <img
-                src="file:///android_res/drawable/ic_google_play.png"
-                alt="Play Store"
-                style={{ width: 14, height: 14, objectFit: "contain" }}
+              <div
+                aria-label="Play Store"
+                style={{
+                  width: 14,
+                  height: 14,
+                  background: "#34D399",
+                  WebkitMaskImage: 'url("file:///android_res/drawable/ic_google_play.png")',
+                  WebkitMaskRepeat: "no-repeat",
+                  WebkitMaskSize: "contain",
+                  WebkitMaskPosition: "center",
+                  maskImage: 'url("file:///android_res/drawable/ic_google_play.png")',
+                  maskRepeat: "no-repeat",
+                  maskSize: "contain",
+                  maskPosition: "center",
+                }}
               />
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
