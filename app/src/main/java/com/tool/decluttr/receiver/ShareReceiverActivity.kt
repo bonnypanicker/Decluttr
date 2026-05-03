@@ -1,6 +1,8 @@
 package com.tool.decluttr.receiver
 
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.content.pm.PackageManager
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
@@ -103,8 +105,22 @@ class ShareReceiverActivity : AppCompatActivity() {
                 return@launch
             }
 
-            // Try installed app metadata first, then Play Store scrape.
-            val info = getLocalAppInfo(packageId) ?: scraper.fetch(packageId)
+            // Try installed app metadata first, then Play Store scrape if network is available.
+            val localInfo = getLocalAppInfo(packageId)
+            val info = if (localInfo != null) {
+                localInfo
+            } else {
+                if (!isNetworkAvailable()) {
+                    Toast.makeText(
+                        this@ShareReceiverActivity,
+                        "Network unavailable. Connect to internet and try again.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    finish()
+                    return@launch
+                }
+                scraper.fetch(packageId)
+            }
 
             if (info != null) {
                 android.util.Log.d(
@@ -113,27 +129,9 @@ class ShareReceiverActivity : AppCompatActivity() {
                 )
                 showConfirmDialog(info, playStoreUrl)
             } else {
-                runCatching {
-                    withContext(NonCancellable) {
-                        viewModel.add(
-                            WishlistApp(
-                                packageId = packageId,
-                                name = packageId,
-                                iconUrl = "",
-                                description = "",
-                                playStoreUrl = playStoreUrl,
-                            )
-                        )
-                    }
-                }.onFailure {
-                    android.util.Log.e(TAG, "processPackageId: fallback add failed pkg=$packageId", it)
-                }.onSuccess {
-                    android.util.Log.d(TAG, "processPackageId: fallback add completed pkg=$packageId")
-                }
-
                 Toast.makeText(
                     this@ShareReceiverActivity,
-                    "Saved to wishlist (details unavailable offline)",
+                    "Couldn't fetch app details. Please try again.",
                     Toast.LENGTH_SHORT
                 ).show()
                 finish()
@@ -151,6 +149,14 @@ class ShareReceiverActivity : AppCompatActivity() {
         )
     } catch (e: PackageManager.NameNotFoundException) {
         null
+    }
+
+    private fun isNetworkAvailable(): Boolean {
+        val cm = getSystemService(ConnectivityManager::class.java) ?: return false
+        val network = cm.activeNetwork ?: return false
+        val capabilities = cm.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
     private fun showConfirmDialog(info: PlayStoreAppInfo, playStoreUrl: String) {
