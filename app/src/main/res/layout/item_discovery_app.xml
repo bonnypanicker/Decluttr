@@ -12,8 +12,7 @@
     app:cardCornerRadius="12dp"
     app:cardElevation="0dp"
     app:rippleColor="?attr/colorControlHighlight"
-    app:strokeColor="?attr/colorOutlineVariant"
-    app:strokeWidth="1dp"
+    app:strokeWidth="0dp"
     style="@style/Widget.Material3.CardView.Filled">
 
     <LinearLayout
