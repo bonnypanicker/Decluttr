@@ -14,6 +14,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -26,12 +27,15 @@ import com.google.android.material.chip.ChipGroup
 import com.google.android.material.color.MaterialColors
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.WishlistSortOption
+import com.tool.decluttr.presentation.screens.billing.BillingViewModel
+import com.tool.decluttr.presentation.screens.billing.PaywallBottomSheet
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class WishlistFragment : Fragment(R.layout.fragment_wishlist) {
     private val viewModel: WishlistViewModel by viewModels()
+    private val billingViewModel: BillingViewModel by activityViewModels()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -139,6 +143,24 @@ class WishlistFragment : Fragment(R.layout.fragment_wishlist) {
                     val webIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(app.playStoreUrl))
                     startActivity(webIntent)
                 }
+            },
+            onNotesClick = { app ->
+                val tag = "WishlistNotesSheet"
+                if (parentFragmentManager.findFragmentByTag(tag) == null) {
+                    WishlistNotesBottomSheet.newInstance(
+                        packageId = app.packageId,
+                        appName = app.name,
+                        iconUrl = app.iconUrl,
+                        notes = app.notes
+                    ).show(parentFragmentManager, tag)
+                }
+            },
+            onUpgradeClick = {
+                val tag = "PaywallBottomSheet"
+                if (parentFragmentManager.findFragmentByTag(tag) == null) {
+                    PaywallBottomSheet.newInstance(reason = "wishlist_notes")
+                        .show(parentFragmentManager, tag)
+                }
             }
         )
 
@@ -147,9 +169,16 @@ class WishlistFragment : Fragment(R.layout.fragment_wishlist) {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.wishlist.collect { apps ->
-                    adapter.submitList(apps)
-                    tvEmpty.visibility = if (apps.isEmpty()) View.VISIBLE else View.GONE
+                launch {
+                    viewModel.wishlist.collect { apps ->
+                        adapter.submitList(apps)
+                        tvEmpty.visibility = if (apps.isEmpty()) View.VISIBLE else View.GONE
+                    }
+                }
+                launch {
+                    billingViewModel.entitlementState.collect { entitlement ->
+                        adapter.setPremium(entitlement.isPremium)
+                    }
                 }
             }
         }

@@ -4,6 +4,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.text.InputFilter
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -16,6 +17,7 @@ import com.tool.decluttr.R
 import com.tool.decluttr.data.remote.PlayStoreAppInfo
 import com.tool.decluttr.data.remote.PlayStoreScraper
 import com.tool.decluttr.domain.model.WishlistApp
+import com.tool.decluttr.presentation.screens.billing.BillingViewModel
 import com.tool.decluttr.presentation.screens.wishlist.WishlistViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.NonCancellable
@@ -33,9 +35,11 @@ class ShareReceiverActivity : AppCompatActivity() {
     @Inject lateinit var scraper: PlayStoreScraper
     @Inject lateinit var firebaseAuth: FirebaseAuth
     private val viewModel: WishlistViewModel by viewModels()
+    private val billingViewModel: BillingViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        billingViewModel.refreshBilling()
         handleIntent(intent)
     }
 
@@ -155,9 +159,34 @@ class ShareReceiverActivity : AppCompatActivity() {
         val iconView = view.findViewById<android.widget.ImageView>(R.id.iv_app_icon)
         val nameView = view.findViewById<android.widget.TextView>(R.id.tv_app_name)
         val descView = view.findViewById<android.widget.TextView>(R.id.tv_app_desc)
+        val tilNotes = view.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.til_share_notes)
+        val etNotes = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.et_share_notes)
+        val lockRow = view.findViewById<View>(R.id.notes_lock_row)
 
         nameView.text = info.name
         descView.text = info.description.ifBlank { "No description available" }
+
+        val isPremium = billingViewModel.entitlementState.value.isPremium
+        if (isPremium) {
+            tilNotes.alpha = 1f
+            lockRow.visibility = View.GONE
+            tilNotes.hint = "Add a note (optional)"
+            etNotes.isEnabled = true
+            etNotes.isFocusable = true
+            etNotes.isFocusableInTouchMode = true
+            etNotes.filters = arrayOf(InputFilter.LengthFilter(500))
+            tilNotes.setOnClickListener(null)
+            lockRow.setOnClickListener(null)
+        } else {
+            tilNotes.alpha = 0.45f
+            lockRow.visibility = View.VISIBLE
+            tilNotes.hint = "Notes (Premium)"
+            etNotes.isEnabled = false
+            etNotes.isFocusable = false
+            etNotes.isFocusableInTouchMode = false
+            tilNotes.setOnClickListener { showSharePaywallDialog() }
+            lockRow.setOnClickListener { showSharePaywallDialog() }
+        }
 
         val placeholderColor = generateColorFromString(info.name)
         val placeholder = ColorDrawable(placeholderColor)
@@ -195,7 +224,8 @@ class ShareReceiverActivity : AppCompatActivity() {
                                     iconUrl = info.iconUrl,
                                     description = info.description,
                                     playStoreUrl = playStoreUrl,
-                                    category = info.category
+                                    category = info.category,
+                                    notes = if (isPremium) etNotes.text?.toString()?.trim().orEmpty() else ""
                                 )
                             )
                         }
@@ -219,6 +249,24 @@ class ShareReceiverActivity : AppCompatActivity() {
             }
             .setNegativeButton("Cancel") { _, _ -> finish() }
             .setOnCancelListener { finish() }
+            .show()
+    }
+
+    private fun showSharePaywallDialog() {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Premium Feature")
+            .setMessage("Notes on wishlist items is a Decluttr Pro feature. Upgrade to add notes when saving apps from Play Store.")
+            .setPositiveButton("Get Pro") { _, _ ->
+                startActivity(
+                    Intent(this, MainActivity::class.java).apply {
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                        putExtra("open_paywall", true)
+                        putExtra("paywall_reason", "wishlist_notes_share")
+                    }
+                )
+                finish()
+            }
+            .setNegativeButton("Not now", null)
             .show()
     }
 

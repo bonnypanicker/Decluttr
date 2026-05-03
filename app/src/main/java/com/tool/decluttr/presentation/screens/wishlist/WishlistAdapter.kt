@@ -13,13 +13,29 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import coil.transform.RoundedCornersTransformation
+import com.google.android.material.color.MaterialColors
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.WishlistApp
 
 class WishlistAdapter(
     private val onDeleteClick: (WishlistApp) -> Unit,
-    private val onPlayStoreClick: (WishlistApp) -> Unit
+    private val onPlayStoreClick: (WishlistApp) -> Unit,
+    private val onNotesClick: (WishlistApp) -> Unit,
+    private val onUpgradeClick: () -> Unit
 ) : ListAdapter<WishlistApp, WishlistAdapter.ViewHolder>(WishlistDiffCallback()) {
+
+    private var isPremium: Boolean = false
+
+    fun setPremium(premium: Boolean) {
+        if (isPremium != premium) {
+            isPremium = premium
+            notifyItemRangeChanged(0, itemCount, PAYLOAD_PREMIUM_CHANGED)
+        }
+    }
+
+    companion object {
+        private const val PAYLOAD_PREMIUM_CHANGED = "premium_changed"
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_wishlist, parent, false)
@@ -30,11 +46,20 @@ class WishlistAdapter(
         holder.bind(getItem(position))
     }
 
+    override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.contains(PAYLOAD_PREMIUM_CHANGED)) {
+            holder.bindNoteButton(getItem(position))
+            return
+        }
+        super.onBindViewHolder(holder, position, payloads)
+    }
+
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val iconView: ImageView = itemView.findViewById(R.id.iv_icon)
         private val nameView: TextView = itemView.findViewById(R.id.tv_name)
         private val descView: TextView = itemView.findViewById(R.id.tv_desc)
         private val notesView: TextView = itemView.findViewById(R.id.tv_notes)
+        private val btnNotes: ImageButton = itemView.findViewById(R.id.btn_notes)
         private val btnDelete: ImageButton = itemView.findViewById(R.id.btn_delete)
 
         fun bind(app: WishlistApp) {
@@ -65,12 +90,33 @@ class WishlistAdapter(
                 }
             }
 
+            bindNoteButton(app)
+
             btnDelete.setOnClickListener {
                 onDeleteClick(app)
             }
 
             itemView.setOnClickListener {
                 onPlayStoreClick(app)
+            }
+        }
+
+        fun bindNoteButton(app: WishlistApp) {
+            val tint = MaterialColors.getColor(
+                itemView,
+                com.google.android.material.R.attr.colorOnSurfaceVariant
+            )
+            btnNotes.setColorFilter(tint)
+            if (isPremium) {
+                btnNotes.setImageResource(R.drawable.ic_edit_note)
+                btnNotes.alpha = 1f
+                btnNotes.contentDescription = if (app.notes.isBlank()) "Add note" else "Edit note"
+                btnNotes.setOnClickListener { onNotesClick(app) }
+            } else {
+                btnNotes.setImageResource(R.drawable.ic_lock)
+                btnNotes.alpha = 0.45f
+                btnNotes.contentDescription = "Notes — Premium feature"
+                btnNotes.setOnClickListener { onUpgradeClick() }
             }
         }
     }

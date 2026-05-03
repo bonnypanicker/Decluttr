@@ -8,6 +8,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.fragment.NavHostFragment
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
+import com.tool.decluttr.presentation.screens.billing.PaywallBottomSheet
 import com.tool.decluttr.presentation.screens.dashboard.DashboardViewModel
 import com.tool.decluttr.presentation.util.AppReviewManager
 import com.tool.decluttr.presentation.util.ThemePreferences
@@ -57,6 +58,8 @@ class MainActivity : AppCompatActivity() {
             
             // Check app launch count and potentially show Play Store rating panel
             AppReviewManager.checkAndShowReview(this)
+
+            maybeShowPaywallFromIntent(intent)
             
             DecluttrApp.appendStartupLog(this, "Navigation graph ready with startDestination=$startDestination")
         } catch (throwable: Throwable) {
@@ -64,5 +67,21 @@ class MainActivity : AppCompatActivity() {
             DecluttrApp.recordExceptionIfAvailable(this, throwable)
             throw throwable
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        maybeShowPaywallFromIntent(intent)
+    }
+
+    private fun maybeShowPaywallFromIntent(intent: android.content.Intent) {
+        if (!intent.getBooleanExtra("open_paywall", false)) return
+        intent.putExtra("open_paywall", false)
+        val reason = intent.getStringExtra("paywall_reason") ?: "wishlist_notes_share"
+        val tag = "PaywallBottomSheet"
+        if (supportFragmentManager.findFragmentByTag(tag) != null) return
+        PaywallBottomSheet.newInstance(reason = reason)
+            .show(supportFragmentManager, tag)
     }
 }
