@@ -671,7 +671,13 @@ const CloudVisual = ({ accent, disclaimer }) => {
               alignItems: "center",
               justifyContent: "center",
               fontSize: 12
-            }}>▶</div>
+            }}>
+              <img
+                src="file:///android_res/drawable/ic_google_play.png"
+                alt="Play Store"
+                style={{ width: 14, height: 14, objectFit: "contain" }}
+              />
+            </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
               <div style={{ width: 12, height: 1.5, background: `linear-gradient(to right,${wish}30,${wish}65)` }} />
               <span style={{
@@ -692,11 +698,17 @@ const CloudVisual = ({ accent, disclaimer }) => {
               alignItems: "center",
               justifyContent: "center",
               fontSize: 12
-            }}>📦</div>
+            }}>
+              <img
+                src="file:///android_asset/icon_final.png"
+                alt="Decluttr"
+                style={{ width: 14, height: 14, objectFit: "contain" }}
+              />
+            </div>
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.75)", fontFamily: "'DM Sans', sans-serif" }}>
-              Share any Play Store page
+              Share app from Play Store page
             </div>
             <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "'DM Sans', sans-serif", marginTop: 1 }}>
               It lands straight in your Wishlist
