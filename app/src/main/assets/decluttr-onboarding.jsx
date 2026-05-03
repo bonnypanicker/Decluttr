@@ -672,13 +672,11 @@ const CloudVisual = ({ accent, disclaimer }) => {
               justifyContent: "center",
               fontSize: 12
             }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path fill="#FFFFFF" d="M3 4.8C3 3.81 3.81 3 4.8 3h14.4C20.19 3 21 3.81 21 4.8v14.4c0 .99-.81 1.8-1.8 1.8H4.8C3.81 21 3 20.19 3 19.2V4.8z" />
-                <path fill="#00A173" d="M8.01 7.02l6.78 6.78-2.56 2.56c-.45.45-1.16.53-1.7.2l-2.52-1.55V7.02z" />
-                <path fill="#EA4335" d="M8.01 7.02l3.44 3.44 3.34-1.93-2.56-1.57c-.54-.33-1.25-.24-1.7.2L8.01 7.02z" />
-                <path fill="#4285F4" d="M14.79 8.53l1.95 1.2c.89.55.89 1.86 0 2.41l-1.95 1.2-3.34-2.88 3.34-1.93z" />
-                <path fill="#FBBC04" d="M11.45 10.46l3.34 2.88-3.34 1.93-3.44 3.44v-3.7l3.44-4.55z" />
-              </svg>
+              <img
+                src="file:///android_res/drawable/ic_google_play.png"
+                alt="Play Store"
+                style={{ width: 14, height: 14, objectFit: "contain" }}
+              />
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
               <div style={{ width: 12, height: 1.5, background: `linear-gradient(to right,${wish}30,${wish}65)` }} />
