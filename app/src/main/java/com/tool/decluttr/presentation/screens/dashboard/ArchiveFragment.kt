@@ -731,11 +731,6 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             .groupingBy { it }
             .eachCount()
 
-        folderCounts
-            .filterValues { it >= 2 }
-            .keys
-            .forEach { pendingFolderCreations.remove(it) }
-
         val singletonApps = apps.filter { app ->
             val folder = app.folderName
             folder != null &&
@@ -990,10 +985,11 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 val normalized = newName.trim()
                 if (normalized.isEmpty()) return@show
                 val now = System.currentTimeMillis()
-                pendingFolderCreations[folderName] = now + pendingFolderCreationWindowMs
-                pendingFolderCreations[normalized] = now + pendingFolderCreationWindowMs
                 val appsToRename = viewModel.archivedApps.value.filter { it.folderName == folderName }
                 if (appsToRename.isEmpty()) return@show
+                val renameWindowMs = pendingFolderCreationWindowMs * 5
+                pendingFolderCreations[folderName] = now + renameWindowMs
+                pendingFolderCreations[normalized] = now + renameWindowMs
                 expandedFolder = normalized
                 appsToRename.forEach { app ->
                     viewModel.updateArchivedApp(app.copy(folderName = normalized))
