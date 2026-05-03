@@ -220,10 +220,8 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         val isArchiveTab = selectedTabIndex == 1
         val credits = lastCredits ?: billingViewModel.archiveCreditsUi.value
         val isPremium = billingViewModel.entitlementState.value.isPremium
-
-        val reclaimedItem = toolbar.menu.findItem(R.id.action_reclaimed)
-        val reclaimedText = reclaimedItem?.actionView?.findViewById<TextView>(R.id.toolbar_reclaimed_action)
-        if (reclaimedItem != null && reclaimedText != null) {
+        val reclaimedInlineText = toolbar.findViewById<TextView>(R.id.toolbar_reclaimed_inline)
+        if (reclaimedInlineText != null) {
             val totalBytes = lastArchivedBytes.coerceAtLeast(0L)
             val mb = totalBytes / (1024.0 * 1024.0)
             val compact = if (mb < 10.0) {
@@ -231,9 +229,8 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
             } else {
                 String.format(java.util.Locale.US, "~%.0fMB", mb)
             }
-            reclaimedText.text = "$compact freed"
-            reclaimedItem.isVisible = isArchiveTab && totalBytes > 0L
-            reclaimedText.visibility = if (reclaimedItem.isVisible) View.VISIBLE else View.GONE
+            reclaimedInlineText.text = "$compact freed"
+            reclaimedInlineText.visibility = if (isArchiveTab) View.VISIBLE else View.GONE
         }
 
         val getProItem = toolbar.menu.findItem(R.id.action_get_pro)
@@ -242,7 +239,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
             val canShow = isArchiveTab && !isPremium && credits.isVisible
             getProItem.isVisible = canShow
             if (canShow) {
-                getProText.text = "Unlock Premium - ${credits.used}/${credits.limit}"
+                getProText.text = "Get Pro ${credits.used}/${credits.limit}"
                 getProText.visibility = View.VISIBLE
                 getProItem.actionView?.setOnClickListener {
                     showPaywall(reason = "toolbar_get_pro", used = credits.used, limit = credits.limit)
