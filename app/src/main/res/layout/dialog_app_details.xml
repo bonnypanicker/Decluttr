@@ -110,9 +110,8 @@
             android:textStyle="bold"
             android:textColor="?attr/colorOnPrimary"
             app:backgroundTint="?attr/colorPrimary"
-            app:icon="@drawable/ic_google_play"
+            app:icon="@drawable/play_icon"
             app:iconGravity="textStart"
-            app:iconTint="@color/GooglePlayGreen"
             app:iconPadding="10dp" />
 
         <include
