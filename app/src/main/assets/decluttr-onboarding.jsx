@@ -525,7 +525,7 @@ const DiscoverVisual = ({ accent, stats }) => {
   );
 };
 
-const SyncStatusBar = ({ accent, wish }) => {
+const SyncStatusBar = ({ accent }) => {
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick(t => (t + 1) % 3), 600);
@@ -533,112 +533,76 @@ const SyncStatusBar = ({ accent, wish }) => {
   }, []);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "10px 14px",
+      borderRadius: 12,
+      background: `${accent}08`,
+      border: `1px solid ${accent}20`,
+    }}>
       <div style={{
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        flexShrink: 0,
+        background: `${accent}18`,
+        border: `1px solid ${accent}35`,
         display: "flex",
         alignItems: "center",
-        gap: 10,
-        padding: "10px 14px",
-        borderRadius: 12,
-        background: `${accent}08`,
-        border: `1px solid ${accent}20`,
+        justifyContent: "center",
+        position: "relative",
       }}>
         <div style={{
-          width: 32,
-          height: 32,
-          borderRadius: 8,
-          flexShrink: 0,
-          background: `${accent}18`,
-          border: `1px solid ${accent}35`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          position: "relative",
-        }}>
-          <div style={{
-            position: "absolute",
-            inset: -4,
-            borderRadius: 12,
-            background: `${accent}12`,
-            filter: "blur(6px)",
-            pointerEvents: "none",
-          }} />
-          <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style={{ position: "relative" }}>
-            <path
-              d="M14.5 12H4a3 3 0 0 1-.35-5.98A4.5 4.5 0 0 1 12.6 5.4 2.5 2.5 0 0 1 14.5 10v2Z"
-              fill={accent}
-              fillOpacity="0.9"
-            />
-          </svg>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 5, flex: 1 }}>
-          {[0, 1, 2].map(i => (
-            <div
-              key={i}
-              style={{
-                width: i === tick ? 18 : 6,
-                height: 4,
-                borderRadius: 2,
-                background: i === tick ? accent : `${accent}30`,
-                transition: "all 0.35s ease",
-              }}
-            />
-          ))}
-        </div>
-
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-          padding: "3px 9px",
-          borderRadius: 20,
-          background: "rgba(52,211,153,0.1)",
-          border: "1px solid rgba(52,211,153,0.25)",
-        }}>
-          <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#34D399" }} />
-          <span style={{
-            fontSize: 9,
-            fontWeight: 700,
-            color: "#34D399",
-            fontFamily: "'DM Sans', sans-serif",
-            letterSpacing: "0.06em",
-          }}>SYNCED</span>
-        </div>
+          position: "absolute",
+          inset: -4,
+          borderRadius: 12,
+          background: `${accent}12`,
+          filter: "blur(6px)",
+          pointerEvents: "none",
+        }} />
+        <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style={{ position: "relative" }}>
+          <path
+            d="M14.5 12H4a3 3 0 0 1-.35-5.98A4.5 4.5 0 0 1 12.6 5.4 2.5 2.5 0 0 1 14.5 10v2Z"
+            fill={accent}
+            fillOpacity="0.9"
+          />
+        </svg>
       </div>
 
-      <div style={{ display: "flex", gap: 5 }}>
-        {[
-          { label: "Archive", icon: "📦" },
-          { label: "Notes", icon: "📝" },
-          { label: "Tags", icon: "🏷️" },
-          { label: "Wishlist", icon: "🔖" },
-        ].map((item, i) => (
+      <div style={{ display: "flex", alignItems: "center", gap: 5, flex: 1 }}>
+        {[0, 1, 2].map(i => (
           <div
             key={i}
             style={{
-              flex: 1,
-              padding: "5px 0",
-              borderRadius: 8,
-              textAlign: "center",
-              background: i === 3 ? `${wish}10` : `${accent}12`,
-              border: `1px solid ${i === 3 ? wish + "28" : accent + "22"}`,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 2,
+              width: i === tick ? 18 : 6,
+              height: 4,
+              borderRadius: 2,
+              background: i === tick ? accent : `${accent}30`,
+              transition: "all 0.35s ease",
             }}
-          >
-            <span style={{ fontSize: 11, lineHeight: 1 }}>{item.icon}</span>
-            <span style={{
-              fontSize: 8,
-              fontWeight: 600,
-              color: i === 3 ? `${wish}99` : `${accent}bb`,
-              fontFamily: "'DM Sans', sans-serif",
-              letterSpacing: "0.04em",
-            }}>{item.label}</span>
-          </div>
+          />
         ))}
+      </div>
+
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "3px 9px",
+        borderRadius: 20,
+        background: "rgba(52,211,153,0.1)",
+        border: "1px solid rgba(52,211,153,0.25)",
+      }}>
+        <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#34D399" }} />
+        <span style={{
+          fontSize: 9,
+          fontWeight: 700,
+          color: "#34D399",
+          fontFamily: "'DM Sans', sans-serif",
+          letterSpacing: "0.06em",
+        }}>SYNCED</span>
       </div>
     </div>
   );
@@ -654,7 +618,7 @@ const CloudVisual = ({ accent, disclaimer }) => {
         background: `${accent}05`,
         padding: "12px 14px",
       }}>
-        <SyncStatusBar accent={accent} wish={wish} />
+        <SyncStatusBar accent={accent} />
       </div>
 
       <div style={{
