@@ -530,70 +530,10 @@ const CloudVisual = ({ accent, disclaimer }) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%" }}>
       <div style={{
-        borderRadius: 16,
-        border: `1px solid ${accent}22`,
-        background: `linear-gradient(135deg, ${accent}16 0%, rgba(255,255,255,0.02) 60%)`,
-        padding: "10px 12px",
-        display: "flex",
-        alignItems: "center",
-        gap: 10
-      }}>
-        <div style={{
-          width: 44,
-          height: 44,
-          borderRadius: 14,
-          background: `radial-gradient(circle at 30% 30%, ${accent}55 0%, ${accent}18 55%, rgba(255,255,255,0.03) 100%)`,
-          border: `1px solid ${accent}35`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0
-        }}>
-          <img
-            src="file:///android_asset/icon_final.png"
-            alt="Decluttr"
-            style={{ width: 26, height: 26, objectFit: "contain" }}
-          />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: "rgba(255,255,255,0.85)",
-            fontFamily: "'DM Sans', sans-serif"
-          }}>
-            Your shelf syncs everywhere
-          </div>
-          <div style={{
-            fontSize: 10,
-            color: "rgba(255,255,255,0.35)",
-            fontFamily: "'DM Sans', sans-serif",
-            marginTop: 2,
-            lineHeight: 1.4
-          }}>
-            Archive, notes, and categories follow your account
-          </div>
-        </div>
-        <div style={{
-          width: 34,
-          height: 34,
-          borderRadius: 12,
-          background: `${accent}14`,
-          border: `1px solid ${accent}24`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0
-        }}>
-          <span style={{ fontSize: 16 }}>☁️</span>
-        </div>
-      </div>
-
-      <div style={{
         borderRadius: 14,
         border: `1px solid ${accent}25`,
         background: `${accent}06`,
-        padding: "14px 16px"
+        padding: "12px 14px"
       }}>
         <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center", marginBottom: 10 }}>
           {["📱 Phone A", "☁️ Cloud", "📱 Phone B"].map((label, i) => (
@@ -637,10 +577,10 @@ const CloudVisual = ({ accent, disclaimer }) => {
         borderRadius: 12,
         border: `1px solid ${wish}22`,
         background: `${wish}06`,
-        padding: "11px 13px",
+        padding: "10px 12px",
         display: "flex",
         flexDirection: "column",
-        gap: 9
+        gap: 8
       }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -652,7 +592,7 @@ const CloudVisual = ({ accent, disclaimer }) => {
               fontFamily: "'DM Sans', sans-serif",
               letterSpacing: "0.1em",
               textTransform: "uppercase"
-            }}>ALSO INCLUDED • WISHLIST</span>
+            }}>ALSO INCLUDED. WISHLIST</span>
           </div>
           <span style={{
             fontSize: 8,
@@ -667,25 +607,25 @@ const CloudVisual = ({ accent, disclaimer }) => {
           display: "flex",
           alignItems: "center",
           gap: 9,
-          padding: "8px 10px",
+          padding: "7px 9px",
           borderRadius: 9,
           background: "rgba(255,255,255,0.03)",
           border: "1px solid rgba(255,255,255,0.06)"
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
             <div style={{
-              width: 28,
-              height: 28,
+              width: 26,
+              height: 26,
               borderRadius: 7,
               background: "rgba(255,255,255,0.06)",
               border: "1px solid rgba(255,255,255,0.1)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 13
+              fontSize: 12
             }}>▶</div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
-              <div style={{ width: 14, height: 1.5, background: `linear-gradient(to right,${wish}30,${wish}65)` }} />
+              <div style={{ width: 12, height: 1.5, background: `linear-gradient(to right,${wish}30,${wish}65)` }} />
               <span style={{
                 fontSize: 7,
                 color: `${wish}55`,
@@ -695,15 +635,15 @@ const CloudVisual = ({ accent, disclaimer }) => {
               }}>share</span>
             </div>
             <div style={{
-              width: 28,
-              height: 28,
+              width: 26,
+              height: 26,
               borderRadius: 7,
               background: `${wish}15`,
               border: `1px solid ${wish}30`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 13
+              fontSize: 12
             }}>📦</div>
           </div>
           <div style={{ flex: 1 }}>
@@ -715,13 +655,44 @@ const CloudVisual = ({ accent, disclaimer }) => {
             </div>
           </div>
         </div>
+
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 9,
+          padding: "7px 9px",
+          borderRadius: 9,
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.06)"
+        }}>
+          <div style={{
+            width: 26,
+            height: 26,
+            borderRadius: 7,
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 12,
+            flexShrink: 0,
+          }}>🔖</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.75)", fontFamily: "'DM Sans', sans-serif" }}>
+              Dedicated Wishlist tab in the app
+            </div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "'DM Sans', sans-serif", marginTop: 1 }}>
+              Browse saved apps, add notes, open in Play Store
+            </div>
+          </div>
+        </div>
       </div>
 
       <div style={{
         borderRadius: 12,
         border: "1px solid rgba(255,255,255,0.08)",
         background: "rgba(255,255,255,0.03)",
-        padding: "12px 14px"
+        padding: "10px 12px"
       }}>
         <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
           <div style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>💡</div>
@@ -739,7 +710,7 @@ const CloudVisual = ({ accent, disclaimer }) => {
               color: "rgba(255,255,255,0.45)",
               margin: 0,
               fontFamily: "'DM Sans', sans-serif",
-              lineHeight: 1.6
+              lineHeight: 1.55
             }}>{disclaimer}</p>
           </div>
         </div>
@@ -763,6 +734,7 @@ export default function DecluttrOnboarding() {
   const [isAnimating, setIsAnimating] = useState(false);
   const [visible, setVisible] = useState(true);
   const touchStartX = useRef(null);
+  const isLastSlide = current === slides.length - 1;
 
   const goTo = (index, dir = 1) => {
     if (isAnimating || index === current) return;
@@ -899,7 +871,10 @@ export default function DecluttrOnboarding() {
           className="slide-enter"
           style={{
             flex: 1, display: "flex", flexDirection: "column",
-            padding: "28px 28px 0", position: "relative", zIndex: 10,
+            padding: isLastSlide ? "28px 28px 12px" : "28px 28px 0",
+            position: "relative",
+            zIndex: 10,
+            overflowY: isLastSlide ? "auto" : "hidden",
           }}
         >
           {/* Tag */}
@@ -939,7 +914,7 @@ export default function DecluttrOnboarding() {
           <p style={{
             fontSize: 14, color: "rgba(255,255,255,0.5)",
             fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7,
-            marginBottom: 24,
+            marginBottom: isLastSlide ? 16 : 24,
             animation: "fadeSlideIn 0.5s ease both",
             animationDelay: "0.25s",
           }}>
