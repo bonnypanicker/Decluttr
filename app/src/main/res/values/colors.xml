@@ -17,6 +17,11 @@
     <color name="DarkSurface">#161B22</color>
     <color name="DarkPrimaryText">#E5E7EB</color>
     <color name="DarkSecondaryText">#9CA3AF</color>
+    <color name="CreamBackground">#FFF8EF</color>
+    <color name="CreamSurface">#FFF6EA</color>
+    <color name="CreamSurfaceContainer">#FFF1E1</color>
+    <color name="CreamSurfaceContainerHigh">#FFEBD7</color>
+    <color name="CreamSurfaceContainerHighest">#FFE5CD</color>
     <color name="AccentTeal">#14B8A6</color>
     <color name="GooglePlayGreen">#34A853</color>
     <color name="drag_highlight_fill">#1A6750A4</color>

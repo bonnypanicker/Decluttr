@@ -5,16 +5,15 @@
     android:layout_height="wrap_content"
     android:layout_marginBottom="10dp"
     android:clickable="true"
-    android:focusable="true">
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
 
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:foreground="?attr/selectableItemBackground"
         app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
         app:cardCornerRadius="18dp"
         app:cardElevation="0dp"
-        app:rippleColor="?attr/colorPrimaryContainer"
         app:strokeColor="?attr/colorOutlineVariant"
         app:strokeWidth="1dp">
 
@@ -69,15 +68,6 @@
                     android:textAppearance="?attr/textAppearanceBodySmall"
                     android:textColor="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
-
-            <ImageView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:layout_marginStart="8dp"
-                android:contentDescription="@null"
-                android:importantForAccessibility="no"
-                android:src="@drawable/ic_arrow_right"
-                app:tint="?attr/colorOnSurfaceVariant" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 </FrameLayout>
