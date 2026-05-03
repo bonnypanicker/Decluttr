@@ -672,22 +672,18 @@ const CloudVisual = ({ accent, disclaimer }) => {
               justifyContent: "center",
               fontSize: 12
             }}>
-              <div
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
                 aria-label="Play Store"
-                style={{
-                  width: 14,
-                  height: 14,
-                  background: "#34D399",
-                  WebkitMaskImage: 'url("file:///android_res/drawable/ic_google_play.png")',
-                  WebkitMaskRepeat: "no-repeat",
-                  WebkitMaskSize: "contain",
-                  WebkitMaskPosition: "center",
-                  maskImage: 'url("file:///android_res/drawable/ic_google_play.png")',
-                  maskRepeat: "no-repeat",
-                  maskSize: "contain",
-                  maskPosition: "center",
-                }}
-              />
+              >
+                <path
+                  d="M8 5v14l11-7z"
+                  fill="#00A173"
+                  fillOpacity="0.95"
+                />
+              </svg>
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
               <div style={{ width: 12, height: 1.5, background: `linear-gradient(to right,${wish}30,${wish}65)` }} />
