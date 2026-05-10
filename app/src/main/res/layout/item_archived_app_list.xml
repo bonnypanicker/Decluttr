@@ -32,10 +32,11 @@
                 android:background="@drawable/bg_archive_list_icon_container"
                 android:padding="8dp">
 
-                <ImageView
+                <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/app_icon"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
+                    app:shapeAppearanceOverlay="@style/CircleIconShape"
                     android:contentDescription="App Icon" />
             </FrameLayout>
 
