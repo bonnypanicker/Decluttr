@@ -37,6 +37,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     app:shapeAppearanceOverlay="@style/CircleIconShape"
+                    app:strokeWidth="0dp"
+                    app:strokeColor="@android:color/transparent"
                     android:contentDescription="App Icon" />
             </FrameLayout>
 

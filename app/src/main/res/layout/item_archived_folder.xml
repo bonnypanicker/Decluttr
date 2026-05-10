@@ -29,28 +29,36 @@
                     android:layout_width="18dp"
                     android:layout_height="18dp"
                     android:layout_margin="1dp"
-                    app:shapeAppearanceOverlay="@style/CircleIconShape" />
+                    app:shapeAppearanceOverlay="@style/CircleIconShape"
+                    app:strokeWidth="0dp"
+                    app:strokeColor="@android:color/transparent" />
 
                 <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/folder_icon_2"
                     android:layout_width="18dp"
                     android:layout_height="18dp"
                     android:layout_margin="1dp"
-                    app:shapeAppearanceOverlay="@style/CircleIconShape" />
+                    app:shapeAppearanceOverlay="@style/CircleIconShape"
+                    app:strokeWidth="0dp"
+                    app:strokeColor="@android:color/transparent" />
 
                 <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/folder_icon_3"
                     android:layout_width="18dp"
                     android:layout_height="18dp"
                     android:layout_margin="1dp"
-                    app:shapeAppearanceOverlay="@style/CircleIconShape" />
+                    app:shapeAppearanceOverlay="@style/CircleIconShape"
+                    app:strokeWidth="0dp"
+                    app:strokeColor="@android:color/transparent" />
 
                 <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/folder_icon_4"
                     android:layout_width="18dp"
                     android:layout_height="18dp"
                     android:layout_margin="1dp"
-                    app:shapeAppearanceOverlay="@style/CircleIconShape" />
+                    app:shapeAppearanceOverlay="@style/CircleIconShape"
+                    app:strokeWidth="0dp"
+                    app:strokeColor="@android:color/transparent" />
         </GridLayout>
     </FrameLayout>
 
