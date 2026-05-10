@@ -12,7 +12,6 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
@@ -52,6 +51,10 @@ class AppRepositoryImpl(
         private const val FIRESTORE_ICON_MAX_BYTES = 24 * 1024
         private const val MAX_SYNC_RETRIES = 3
         private const val SYNC_RETRY_BASE_DELAY_MS = 1500L
+        private const val APPS_COLLECTION = "apps"
+        private const val APP_DELETES_COLLECTION = "app_deletes"
+        private const val DELETE_MARKER_RETENTION_MS = 30L * 24 * 60 * 60 * 1000 // 30 days
+        private const val DELETE_MARKER_PRUNE_INTERVAL_MS = 24L * 60 * 60 * 1000 // 24 hours
     }
     
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -91,17 +94,42 @@ class AppRepositoryImpl(
         try {
             val prefs = context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
             val lastSyncTimeKey = "last_sync_time_${user.uid}"
+            val lastDeleteSyncTimeKey = "last_delete_sync_time_${user.uid}"
             val lastSyncTime = prefs.getLong(lastSyncTimeKey, 0L)
+            val lastDeleteSyncTime = prefs.getLong(lastDeleteSyncTimeKey, 0L)
+            val userDoc = firestore.collection("users").document(user.uid)
 
-            var query: Query = firestore.collection("users").document(user.uid).collection("apps")
+            var query: Query = userDoc.collection(APPS_COLLECTION)
             if (lastSyncTime > 0L) {
                 query = query.whereGreaterThan("lastModified", lastSyncTime)
             }
+            var deleteQuery: Query = userDoc.collection(APP_DELETES_COLLECTION)
+            if (lastDeleteSyncTime > 0L) {
+                deleteQuery = deleteQuery.whereGreaterThan("lastModified", lastDeleteSyncTime)
+            }
 
+            val deleteSnapshot = deleteQuery.get().await()
             val snapshot = query.get().await()
             val localApps = dao.getArchivedAppsSnapshot().associateBy { it.packageId }
 
             var maxModified = lastSyncTime
+            var maxDeleteModified = lastDeleteSyncTime
+
+            for (doc in deleteSnapshot.documents) {
+                val packageId = doc.getString("packageId") ?: doc.id
+                val remoteDeleteModified = doc.getLong("lastModified")
+                    ?: doc.getLong("deletedAt")
+                    ?: 0L
+                if (remoteDeleteModified > maxDeleteModified) {
+                    maxDeleteModified = remoteDeleteModified
+                }
+                val localApp = localApps[packageId]
+                if (localApp != null && localApp.lastModified > remoteDeleteModified) {
+                    enqueueUpsert(localApp.toArchivedApp())
+                } else {
+                    dao.deleteAppById(packageId)
+                }
+            }
 
             for (doc in snapshot.documents) {
                 val remoteLastModified = doc.getLong("lastModified") ?: 0L
@@ -151,7 +179,12 @@ class AppRepositoryImpl(
             }
 
             val newSyncTime = if (maxModified > 0L) maxModified else System.currentTimeMillis()
-            prefs.edit().putLong(lastSyncTimeKey, newSyncTime).apply()
+            val newDeleteSyncTime = if (maxDeleteModified > 0L) maxDeleteModified else System.currentTimeMillis()
+            prefs.edit()
+                .putLong(lastSyncTimeKey, newSyncTime)
+                .putLong(lastDeleteSyncTimeKey, newDeleteSyncTime)
+                .apply()
+            pruneStaleDeleteMarkersIfNeeded(user.uid)
         } catch (e: Exception) {
             recordException(e)
         }
@@ -336,17 +369,43 @@ class AppRepositoryImpl(
         val auth = firebaseAuthOrNull() ?: error("FirebaseAuth unavailable")
         val firestore = firestoreOrNull() ?: error("Firestore unavailable")
         val user = auth.currentUser ?: error("No signed-in user")
-        
-        val deleteData = mapOf(
-            "isDeleted" to true,
-            "lastModified" to System.currentTimeMillis(),
-            "iconBase64" to FieldValue.delete()
+
+        val now = System.currentTimeMillis()
+        val userDoc = firestore.collection("users").document(user.uid)
+        val appDoc = userDoc.collection(APPS_COLLECTION).document(packageId)
+        val deleteMarkerDoc = userDoc.collection(APP_DELETES_COLLECTION).document(packageId)
+        val deleteMarkerData = mapOf(
+            "packageId" to packageId,
+            "deletedAt" to now,
+            "lastModified" to now
         )
-        
-        firestore.collection("users").document(user.uid).collection("apps")
-            .document(packageId)
-            .set(deleteData, SetOptions.merge())
+        firestore.runBatch { batch ->
+            batch.delete(appDoc)
+            batch.set(deleteMarkerDoc, deleteMarkerData, SetOptions.merge())
+        }.await()
+    }
+
+    private suspend fun pruneStaleDeleteMarkersIfNeeded(uid: String) {
+        val now = System.currentTimeMillis()
+        val prefs = context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
+        val key = "last_delete_prune_time_$uid"
+        val lastPrune = prefs.getLong(key, 0L)
+        if (now - lastPrune < DELETE_MARKER_PRUNE_INTERVAL_MS) return
+
+        val firestore = firestoreOrNull() ?: return
+        val cutoff = now - DELETE_MARKER_RETENTION_MS
+        val stale = firestore.collection("users")
+            .document(uid)
+            .collection(APP_DELETES_COLLECTION)
+            .whereLessThan("deletedAt", cutoff)
+            .limit(200)
+            .get()
             .await()
+        stale.documents.forEach { doc ->
+            runCatching { doc.reference.delete().await() }
+                .onFailure { recordException(it) }
+        }
+        prefs.edit().putLong(key, now).apply()
     }
 
     private fun compressIconForFirestore(iconBytes: ByteArray?): String? {
@@ -568,6 +627,8 @@ class AppRepositoryImpl(
             context.getSharedPreferences("sync_prefs", Context.MODE_PRIVATE)
                 .edit()
                 .remove("last_sync_time_$it")
+                .remove("last_delete_sync_time_$it")
+                .remove("last_delete_prune_time_$it")
                 .apply()
         }
         currentUserId = null

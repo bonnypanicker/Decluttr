@@ -109,7 +109,7 @@ jobs:
         path: app/build/outputs/apk/debug/*.apk
         if-no-files-found: error
 
-    - name: Build Release APK
+    - name: Build Release AAB
       if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'release')
       run: |
         if [ ! -f gradlew ]; then
@@ -117,7 +117,7 @@ jobs:
           gradle wrapper --gradle-version 8.10.2
         fi
         chmod +x gradlew
-        ./gradlew :app:assembleRelease
+        ./gradlew :app:bundleRelease
 
     - name: Build Debug APK
       if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'debug'
@@ -129,12 +129,12 @@ jobs:
         chmod +x gradlew
         ./gradlew :app:assembleDebug
 
-    - name: Upload Release APK
+    - name: Upload Release AAB
       if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'release')
       uses: actions/upload-artifact@v4
       with:
-        name: decluttr-release-apk
-        path: app/build/outputs/apk/release/*.apk
+        name: decluttr-release-aab
+        path: app/build/outputs/bundle/release/*.aab
         if-no-files-found: error
 
     - name: Upload APK

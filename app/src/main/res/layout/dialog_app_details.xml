@@ -38,7 +38,9 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="56dp"
                 android:layout_height="56dp"
-                app:cardCornerRadius="28dp">
+                app:cardBackgroundColor="@android:color/transparent"
+                app:cardCornerRadius="28dp"
+                app:cardElevation="0dp">
 
                 <ImageView
                     android:id="@+id/app_icon"
