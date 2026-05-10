@@ -434,11 +434,19 @@ class FolderExpandOverlay(
             anchorLoc[1] - parentLoc[1] + anchor.height
         )
 
-        val verticalGap = dpToPx(10)
-        val safeTop = findGridTopBoundary().coerceAtLeast(dpToPx(16))
         val safeHorizontal = dpToPx(12)
-        val targetTop = (anchorRect.top - card.height - verticalGap).coerceAtLeast(safeTop)
+        val safeTop = findGridTopBoundary().coerceAtLeast(dpToPx(16))
+        val safeBottom = parentView.height - dpToPx(16)
+
+        // Center the card over the anchor tile
+        val desiredTop = anchorRect.centerY() - card.height / 2
         val desiredLeft = anchorRect.centerX() - card.width / 2
+
+        // Clamp vertically so the card stays within safe bounds
+        val maxTop = (safeBottom - card.height).coerceAtLeast(safeTop)
+        val targetTop = desiredTop.coerceIn(safeTop, maxTop)
+
+        // Clamp horizontally
         val maxLeft = (parentView.width - card.width - safeHorizontal).coerceAtLeast(safeHorizontal)
         val targetLeft = desiredLeft.coerceIn(safeHorizontal, maxLeft)
 
