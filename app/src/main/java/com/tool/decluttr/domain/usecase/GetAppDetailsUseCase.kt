@@ -15,7 +15,7 @@ class GetAppDetailsUseCase @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     companion object {
-        private const val ARCHIVE_ICON_SIZE_PX = 144
+        private const val ARCHIVE_ICON_SIZE_PX = 128
     }
 
     data class AppDetailsResult(
@@ -85,8 +85,7 @@ class GetAppDetailsUseCase @Inject constructor(
             ARCHIVE_ICON_SIZE_PX,
             true
         )
-        val compressed = encodeBitmap(scaledBitmap, Bitmap.CompressFormat.PNG, 100)
-            ?: encodeBitmap(scaledBitmap, Bitmap.CompressFormat.JPEG, 92)
+        val compressed = encodeBitmap(scaledBitmap, 85)
         if (scaledBitmap !== bitmap && !scaledBitmap.isRecycled) {
             scaledBitmap.recycle()
         }
@@ -95,10 +94,15 @@ class GetAppDetailsUseCase @Inject constructor(
 
     private fun encodeBitmap(
         bitmap: Bitmap,
-        format: Bitmap.CompressFormat,
-        quality: Int
+        quality: Int = 85
     ): ByteArray? {
         val stream = ByteArrayOutputStream()
+        val format = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            Bitmap.CompressFormat.WEBP_LOSSY
+        } else {
+            @Suppress("DEPRECATION")
+            Bitmap.CompressFormat.WEBP
+        }
         if (!bitmap.compress(format, quality, stream)) return null
         val bytes = stream.toByteArray()
         if (bytes.isEmpty()) return null

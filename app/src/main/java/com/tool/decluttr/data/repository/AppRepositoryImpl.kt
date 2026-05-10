@@ -47,10 +47,9 @@ class AppRepositoryImpl(
     companion object {
         private const val TAG = "DecluttrDragDbgRepo"
         private const val FREE_ARCHIVE_LIMIT = 50
-        private const val LOCAL_ICON_DIM = 144
+        private const val LOCAL_ICON_DIM = 128
         private const val FIRESTORE_ICON_MAX_DIM = 128
         private const val FIRESTORE_ICON_MAX_BYTES = 24 * 1024
-        private val FIRESTORE_JPEG_QUALITIES = intArrayOf(92, 84, 76, 68)
         private const val MAX_SYNC_RETRIES = 3
         private const val SYNC_RETRY_BASE_DELAY_MS = 1500L
     }
@@ -376,16 +375,17 @@ class AppRepositoryImpl(
     }
 
     private fun compressBitmapForFirestore(bitmap: Bitmap): ByteArray? {
-        val pngBytes = encodeBitmap(bitmap, Bitmap.CompressFormat.PNG, 100)
-        if (pngBytes != null && pngBytes.size <= FIRESTORE_ICON_MAX_BYTES) {
-            return pngBytes
+        val webpBytes = encodeBitmap(bitmap, 85)
+        if (webpBytes != null && webpBytes.size <= FIRESTORE_ICON_MAX_BYTES) {
+            return webpBytes
         }
 
-        var best = pngBytes
-        for (quality in FIRESTORE_JPEG_QUALITIES) {
-            val jpegBytes = encodeBitmap(bitmap, Bitmap.CompressFormat.JPEG, quality) ?: continue
-            if (best == null || jpegBytes.size < best.size) best = jpegBytes
-            if (jpegBytes.size <= FIRESTORE_ICON_MAX_BYTES) return jpegBytes
+        var best = webpBytes
+        val fallbackQualities = intArrayOf(75, 65, 55)
+        for (quality in fallbackQualities) {
+            val bytes = encodeBitmap(bitmap, quality) ?: continue
+            if (best == null || bytes.size < best.size) best = bytes
+            if (bytes.size <= FIRESTORE_ICON_MAX_BYTES) return bytes
         }
         return best
     }
@@ -534,7 +534,7 @@ class AppRepositoryImpl(
             }
         }
         val scaled = Bitmap.createScaledBitmap(bitmap, LOCAL_ICON_DIM, LOCAL_ICON_DIM, true)
-        val bytes = encodeBitmap(scaled, Bitmap.CompressFormat.PNG, 100)
+        val bytes = encodeBitmap(scaled, 85)
         if (scaled !== bitmap && !scaled.isRecycled) {
             scaled.recycle()
         }
@@ -662,10 +662,15 @@ class AppRepositoryImpl(
 
     private fun encodeBitmap(
         bitmap: Bitmap,
-        format: Bitmap.CompressFormat,
-        quality: Int
+        quality: Int = 85
     ): ByteArray? {
         val stream = java.io.ByteArrayOutputStream()
+        val format = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            Bitmap.CompressFormat.WEBP_LOSSY
+        } else {
+            @Suppress("DEPRECATION")
+            Bitmap.CompressFormat.WEBP
+        }
         val ok = bitmap.compress(format, quality, stream)
         if (!ok) return null
         val bytes = stream.toByteArray()
