@@ -291,6 +291,8 @@ class DashboardViewModel @Inject constructor(
     data class UninstallProgress(val current: Int, val total: Int, val isUninstalling: Boolean)
     private val _uninstallProgress = MutableStateFlow(UninstallProgress(0, 0, false))
     val uninstallProgress = _uninstallProgress.asStateFlow()
+    private var uninstallJob: kotlinx.coroutines.Job? = null
+    private val _pendingUninstallPackageId = MutableStateFlow<String?>(null)
 
     fun deleteArchivedApp(app: ArchivedApp) {
         viewModelScope.launch {
@@ -346,81 +348,91 @@ class DashboardViewModel @Inject constructor(
             )
         }
         
-        viewModelScope.launch {
-            val quotaResult = archiveQuotaService.checkQuota(archiveEligiblePackageIds.size)
-            if (quotaResult is ArchiveQuotaResult.Blocked) {
-                _paywallEvent.emit(
-                    PaywallRequest(
-                        reason = "archive_limit_reached",
-                        quota = quotaResult
+        uninstallJob?.cancel()
+        uninstallJob = viewModelScope.launch {
+            try {
+                val quotaResult = archiveQuotaService.checkQuota(archiveEligiblePackageIds.size)
+                if (quotaResult is ArchiveQuotaResult.Blocked) {
+                    _paywallEvent.emit(
+                        PaywallRequest(
+                            reason = "archive_limit_reached",
+                            quota = quotaResult
+                        )
                     )
-                )
-                return@launch
-            }
-
-            _uninstallProgress.value = UninstallProgress(0, packageIds.size, true)
-            var uninstalledCount = 0
-            val successfullyArchivedIds = mutableListOf<String>()
-
-            for (packageId in packageIds) {
-                val sourceInfo = run {
-                    val baseInfo = appInfoMap[packageId]
-                    val details = runCatching { getAppDetailsUseCase(packageId, fetchIcon = true) }.getOrNull()
-                    com.tool.decluttr.domain.usecase.ArchiveAndUninstallUseCase.ArchiveSourceInfo(
-                        isPlayStoreInstalled = baseInfo?.isPlayStoreInstalled ?: true,
-                        lastTimeUsed = baseInfo?.lastTimeUsed ?: 0L,
-                        archivedSizeBytes = details?.archivedSizeBytes ?: baseInfo?.archivedSizeBytes,
-                        name = details?.name ?: baseInfo?.name,
-                        category = details?.category ?: baseInfo?.category,
-                        iconBytes = details?.iconBytes ?: baseInfo?.iconBytes
-                    )
+                    return@launch
                 }
-                _uninstallProgress.value = UninstallProgress(uninstalledCount + 1, packageIds.size, true)
-                val success = awaitUninstall(packageId) {
-                    uninstallAppUseCase(packageId)
-                }
-                if (success) {
-                    uninstalledCount++
-                    if (packageId in archiveEligiblePackageIds) {
-                        try {
-                            archiveAndUninstallUseCase(
-                                packageIds = listOf(packageId),
-                                appInfoMap = mapOf(packageId to sourceInfo),
-                                performUninstall = false
-                            )
-                            successfullyArchivedIds += packageId
-                        } catch (limit: ArchiveLimitExceededException) {
-                            _paywallEvent.emit(
-                                PaywallRequest(
-                                    reason = "archive_limit_reached_runtime",
-                                    quota = ArchiveQuotaResult.Blocked(
-                                        used = limit.used,
-                                        limit = limit.limit,
-                                        requested = limit.requested,
-                                        overflow = limit.overflow,
-                                        isPremium = false
+
+                _uninstallProgress.value = UninstallProgress(0, packageIds.size, true)
+                var uninstalledCount = 0
+                val successfullyArchivedIds = mutableListOf<String>()
+
+                for (packageId in packageIds) {
+                    val sourceInfo = run {
+                        val baseInfo = appInfoMap[packageId]
+                        val details = runCatching { getAppDetailsUseCase(packageId, fetchIcon = true) }.getOrNull()
+                        com.tool.decluttr.domain.usecase.ArchiveAndUninstallUseCase.ArchiveSourceInfo(
+                            isPlayStoreInstalled = baseInfo?.isPlayStoreInstalled ?: true,
+                            lastTimeUsed = baseInfo?.lastTimeUsed ?: 0L,
+                            archivedSizeBytes = details?.archivedSizeBytes ?: baseInfo?.archivedSizeBytes,
+                            name = details?.name ?: baseInfo?.name,
+                            category = details?.category ?: baseInfo?.category,
+                            iconBytes = details?.iconBytes ?: baseInfo?.iconBytes
+                        )
+                    }
+                    _uninstallProgress.value = UninstallProgress(uninstalledCount + 1, packageIds.size, true)
+                    _pendingUninstallPackageId.value = packageId
+                    val success = awaitUninstall(packageId) {
+                        uninstallAppUseCase(packageId)
+                    }
+                    _pendingUninstallPackageId.value = null
+                    if (success) {
+                        uninstalledCount++
+                        if (packageId in archiveEligiblePackageIds) {
+                            try {
+                                archiveAndUninstallUseCase(
+                                    packageIds = listOf(packageId),
+                                    appInfoMap = mapOf(packageId to sourceInfo),
+                                    performUninstall = false
+                                )
+                                successfullyArchivedIds += packageId
+                            } catch (limit: ArchiveLimitExceededException) {
+                                _paywallEvent.emit(
+                                    PaywallRequest(
+                                        reason = "archive_limit_reached_runtime",
+                                        quota = ArchiveQuotaResult.Blocked(
+                                            used = limit.used,
+                                            limit = limit.limit,
+                                            requested = limit.requested,
+                                            overflow = limit.overflow,
+                                            isPremium = false
+                                        )
                                     )
                                 )
-                            )
+                            }
                         }
                     }
                 }
-            }
 
-            _uninstallProgress.value = UninstallProgress(0, 0, false)
-            loadDiscoveryData()
-            
-            if (successfullyArchivedIds.isNotEmpty()) {
-                val archivedIds = successfullyArchivedIds.toSet()
-                val savedBytes = appsToUninstall
-                    .filter { it.packageId in archivedIds }
-                    .sumOf { it.apkSizeBytes }
-                val celebration = CelebrationData(archivedIds.size, savedBytes)
-                // Wait for Room to have all newly archived apps before showing review
-                val reviewApps = archivedApps.first { apps ->
-                    archivedIds.all { id -> apps.any { it.packageId == id } }
-                }.filter { it.packageId in archivedIds }
-                _reviewEvent.emit(ReviewData(reviewApps, celebration))
+                _uninstallProgress.value = UninstallProgress(0, 0, false)
+                loadDiscoveryData()
+
+                if (successfullyArchivedIds.isNotEmpty()) {
+                    val archivedIds = successfullyArchivedIds.toSet()
+                    val savedBytes = appsToUninstall
+                        .filter { it.packageId in archivedIds }
+                        .sumOf { it.apkSizeBytes }
+                    val celebration = CelebrationData(archivedIds.size, savedBytes)
+                    // Wait for Room to have all newly archived apps before showing review
+                    val reviewApps = archivedApps.first { apps ->
+                        archivedIds.all { id -> apps.any { it.packageId == id } }
+                    }.filter { it.packageId in archivedIds }
+                    _reviewEvent.emit(ReviewData(reviewApps, celebration))
+                }
+            } finally {
+                _pendingUninstallPackageId.value = null
+                if (_uninstallProgress.value.isUninstalling) {
+                    _uninstallProgress.value = UninstallProgress(0, 0, false)
+                }
             }
         }
     }
@@ -443,26 +455,58 @@ class DashboardViewModel @Inject constructor(
         val appsToUninstall = allInstalledApps.value.filter { it.packageId in packageIds }
         val savedBytes = appsToUninstall.sumOf { it.apkSizeBytes }
         
-        viewModelScope.launch {
-            _uninstallProgress.value = UninstallProgress(0, packageIds.size, true)
-            var uninstalledCount = 0
+        uninstallJob?.cancel()
+        uninstallJob = viewModelScope.launch {
+            try {
+                _uninstallProgress.value = UninstallProgress(0, packageIds.size, true)
+                var uninstalledCount = 0
 
-            for (packageId in packageIds) {
-                _uninstallProgress.value = UninstallProgress(uninstalledCount + 1, packageIds.size, true)
-                val success = awaitUninstall(packageId) {
-                    uninstallAppUseCase(packageId)
+                for (packageId in packageIds) {
+                    _uninstallProgress.value = UninstallProgress(uninstalledCount + 1, packageIds.size, true)
+                    _pendingUninstallPackageId.value = packageId
+                    val success = awaitUninstall(packageId) {
+                        uninstallAppUseCase(packageId)
+                    }
+                    _pendingUninstallPackageId.value = null
+                    if (success) {
+                        uninstalledCount++
+                    }
                 }
-                if (success) {
-                    uninstalledCount++
+
+                _uninstallProgress.value = UninstallProgress(0, 0, false)
+                loadDiscoveryData()
+
+                if (uninstalledCount > 0) {
+                    _celebrationEvent.emit(CelebrationData(uninstalledCount, appsToUninstall.take(uninstalledCount).sumOf { it.apkSizeBytes }))
+                }
+            } finally {
+                _pendingUninstallPackageId.value = null
+                if (_uninstallProgress.value.isUninstalling) {
+                    _uninstallProgress.value = UninstallProgress(0, 0, false)
                 }
             }
-            
+        }
+    }
+
+    fun onReturnedFromUninstallPrompt() {
+        val pendingPackageId = _pendingUninstallPackageId.value ?: return
+        if (!_uninstallProgress.value.isUninstalling) return
+        if (isPackageStillInstalled(pendingPackageId)) {
+            uninstallJob?.cancel()
+            _pendingUninstallPackageId.value = null
             _uninstallProgress.value = UninstallProgress(0, 0, false)
-            loadDiscoveryData()
-            
-            if (uninstalledCount > 0) {
-                _celebrationEvent.emit(CelebrationData(uninstalledCount, appsToUninstall.take(uninstalledCount).sumOf { it.apkSizeBytes }))
-            }
+        }
+    }
+
+    private fun isPackageStillInstalled(packageId: String): Boolean {
+        return try {
+            @Suppress("DEPRECATION")
+            context.packageManager.getPackageInfo(packageId, 0)
+            true
+        } catch (_: android.content.pm.PackageManager.NameNotFoundException) {
+            false
+        } catch (_: Throwable) {
+            false
         }
     }
 

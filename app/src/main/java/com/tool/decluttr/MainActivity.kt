@@ -46,22 +46,24 @@ class MainActivity : AppCompatActivity() {
             val navHostFragment = supportFragmentManager
                 .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
             val navController = navHostFragment.navController
-            val graph = navController.navInflater.inflate(R.navigation.nav_graph)
-            
-            val startDestination = if (currentUser != null) {
-                R.id.dashboardFragment
+            if (savedInstanceState == null) {
+                val graph = navController.navInflater.inflate(R.navigation.nav_graph)
+                val startDestination = if (currentUser != null) {
+                    R.id.dashboardFragment
+                } else {
+                    R.id.authFragment
+                }
+                graph.setStartDestination(startDestination)
+                navController.graph = graph
+                DecluttrApp.appendStartupLog(this, "Navigation graph ready with startDestination=$startDestination")
             } else {
-                R.id.authFragment
+                DecluttrApp.appendStartupLog(this, "Navigation state restored from savedInstanceState")
             }
-            graph.setStartDestination(startDestination)
-            navController.graph = graph
             
             // Check app launch count and potentially show Play Store rating panel
             AppReviewManager.checkAndShowReview(this)
 
             maybeShowPaywallFromIntent(intent)
-            
-            DecluttrApp.appendStartupLog(this, "Navigation graph ready with startDestination=$startDestination")
         } catch (throwable: Throwable) {
             DecluttrApp.appendStartupLog(this, "MainActivity onCreate failed", throwable)
             DecluttrApp.recordExceptionIfAvailable(this, throwable)

@@ -100,6 +100,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
 
     override fun onResume() {
         super.onResume()
+        viewModel.onReturnedFromUninstallPrompt()
         if (returnedFromUsageSettings) {
             returnedFromUsageSettings = false
             viewModel.checkUsagePermission()
