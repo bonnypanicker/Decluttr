@@ -32,15 +32,19 @@
             android:paddingStart="16dp"
             android:paddingTop="8dp"
             android:paddingEnd="16dp"
-            android:paddingBottom="24dp">
+            android:paddingBottom="32dp">
 
+            <!-- ════════════════════════════════════════ -->
+            <!-- Account & Cloud Sync Card               -->
+            <!-- ════════════════════════════════════════ -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardBackgroundColor="?attr/colorPrimaryContainer"
-                app:cardCornerRadius="24dp"
+                app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                app:cardCornerRadius="20dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -48,29 +52,44 @@
                     android:orientation="vertical"
                     android:padding="20dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Account &amp; Cloud Sync"
-                        android:textAppearance="?attr/textAppearanceTitleLarge"
-                        android:textColor="?attr/colorOnPrimaryContainer"
-                        android:textStyle="bold" />
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_cloud_sync"
+                            app:tint="?attr/colorPrimary" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:text="Account &amp; Cloud Sync"
+                            android:textAppearance="?attr/textAppearanceTitleMedium"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textStyle="bold" />
+                    </LinearLayout>
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
                         android:text="Your archive syncs automatically when signed in. Keep local export as backup anytime."
-                        android:textAppearance="?attr/textAppearanceBodyMedium"
-                        android:textColor="?attr/colorOnPrimaryContainer" />
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
 
+                    <!-- User email row -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
+                        android:layout_marginTop="16dp"
                         android:background="@drawable/bg_surface_container_low"
                         android:gravity="center_vertical"
-                        android:minHeight="52dp"
+                        android:minHeight="48dp"
                         android:orientation="horizontal"
                         android:paddingHorizontal="14dp"
                         android:paddingVertical="10dp">
@@ -79,7 +98,7 @@
                             android:layout_width="18dp"
                             android:layout_height="18dp"
                             android:src="@android:drawable/ic_dialog_email"
-                            app:tint="?attr/colorOnPrimaryContainer" />
+                            app:tint="?attr/colorOnSurfaceVariant" />
 
                         <TextView
                             android:id="@+id/tv_email"
@@ -88,51 +107,60 @@
                             android:layout_marginStart="10dp"
                             android:layout_weight="1"
                             android:textAppearance="?attr/textAppearanceBodyMedium"
-                            android:textColor="?attr/colorOnPrimaryContainer"
-                            tools:text="Logged in as: bonnypanicker@outlook.com" />
+                            android:textColor="?attr/colorOnSurface"
+                            tools:text="Logged in as: user@example.com" />
                     </LinearLayout>
 
+                    <!-- Premium button -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_manage_premium"
-                        style="?attr/materialButtonOutlinedStyle"
+                        style="@style/Widget.Material3.Button.TonalButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:text="Manage Premium" />
 
+                    <!-- Sign In button -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_signin"
-                        style="?attr/materialButtonOutlinedStyle"
+                        style="@style/Widget.Material3.Button.TonalButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
                         app:icon="@drawable/ic_google_logo"
-                        android:text="Sign In" />
+                        app:iconGravity="textStart"
+                        android:text="Sign In with Google" />
 
+                    <!-- Sign Out button -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_signout"
-                        style="?attr/materialButtonOutlinedStyle"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="Sign Out" />
+                        android:text="Sign Out"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- ════════════════════════════════════════ -->
+            <!-- Appearance Card                          -->
+            <!-- ════════════════════════════════════════ -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
-                app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                app:cardCornerRadius="24dp"
+                app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                app:cardCornerRadius="20dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="18dp">
+                    android:padding="20dp">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -154,7 +182,7 @@
                         android:id="@+id/theme_toggle_group"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="14dp"
                         app:selectionRequired="true"
                         app:singleSelection="true">
 
@@ -188,20 +216,24 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- ════════════════════════════════════════ -->
+            <!-- Archive Data Card                        -->
+            <!-- ════════════════════════════════════════ -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
-                app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                app:cardCornerRadius="24dp"
+                app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                app:cardCornerRadius="20dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="18dp">
+                    android:padding="20dp">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -223,10 +255,11 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:layout_marginTop="12dp">
-                        
+                        android:layout_marginTop="14dp">
+
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_export"
+                            style="@style/Widget.Material3.Button.TonalButton"
                             android:layout_width="0dp"
                             android:layout_weight="1"
                             android:layout_height="wrap_content"
@@ -235,7 +268,7 @@
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_import"
-                            style="?attr/materialButtonOutlinedStyle"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
                             android:layout_width="0dp"
                             android:layout_weight="1"
                             android:layout_height="wrap_content"
@@ -253,20 +286,24 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- ════════════════════════════════════════ -->
+            <!-- App Info Card                            -->
+            <!-- ════════════════════════════════════════ -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
-                app:cardBackgroundColor="?attr/colorSurfaceContainer"
-                app:cardCornerRadius="24dp"
+                app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+                app:cardCornerRadius="20dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                app:strokeColor="?attr/colorOutlineVariant"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="18dp">
+                    android:padding="20dp">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -286,50 +323,85 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_privacy_policy"
-                        style="?attr/materialButtonOutlinedStyle"
+                        style="@style/Widget.Material3.Button.TextButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
+                        android:layout_marginTop="10dp"
                         android:gravity="start|center_vertical"
-                        android:text="Privacy Policy" />
+                        android:text="Privacy Policy"
+                        android:textColor="?attr/colorOnSurface"
+                        app:icon="@android:drawable/ic_menu_info_details"
+                        app:iconGravity="start"
+                        app:iconTint="?attr/colorOnSurfaceVariant" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginHorizontal="4dp"
+                        android:background="?attr/colorOutlineVariant"
+                        android:alpha="0.4" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_terms"
-                        style="?attr/materialButtonOutlinedStyle"
+                        style="@style/Widget.Material3.Button.TextButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
                         android:gravity="start|center_vertical"
-                        android:text="Terms and Conditions" />
+                        android:text="Terms and Conditions"
+                        android:textColor="?attr/colorOnSurface"
+                        app:icon="@android:drawable/ic_menu_agenda"
+                        app:iconGravity="start"
+                        app:iconTint="?attr/colorOnSurfaceVariant" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_delete_account"
-                        style="?attr/materialButtonOutlinedStyle"
+                    <View
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:gravity="start|center_vertical"
-                        android:text="Delete Account" />
+                        android:layout_height="1dp"
+                        android:layout_marginHorizontal="4dp"
+                        android:background="?attr/colorOutlineVariant"
+                        android:alpha="0.4" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btn_licenses"
-                        style="?attr/materialButtonOutlinedStyle"
+                        style="@style/Widget.Material3.Button.TextButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
                         android:gravity="start|center_vertical"
-                        android:text="Open-source Licenses" />
+                        android:text="Open-source Licenses"
+                        android:textColor="?attr/colorOnSurface"
+                        app:icon="@android:drawable/ic_menu_view"
+                        app:iconGravity="start"
+                        app:iconTint="?attr/colorOnSurfaceVariant" />
 
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginHorizontal="4dp"
+                        android:background="?attr/colorOutlineVariant"
+                        android:alpha="0.4" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_delete_account"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="start|center_vertical"
+                        android:text="Delete Account"
+                        android:textColor="?attr/colorError"
+                        app:icon="@android:drawable/ic_menu_delete"
+                        app:iconGravity="start"
+                        app:iconTint="?attr/colorError" />
+
+                    <!-- Version label -->
                     <TextView
                         android:id="@+id/tv_app_version"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:background="@drawable/bg_surface_container_low"
-                        android:paddingHorizontal="12dp"
-                        android:paddingVertical="10dp"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        android:paddingVertical="8dp"
                         android:textAppearance="?attr/textAppearanceBodySmall"
                         android:textColor="?attr/colorOnSurfaceVariant"
+                        android:alpha="0.7"
                         tools:text="Version 1.0 (1)" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
