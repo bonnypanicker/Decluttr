@@ -10,10 +10,10 @@
         <item name="colorSurfaceContainer">@color/DarkSurfaceContainer</item>
         <item name="colorSurfaceContainerHigh">@color/DarkSurfaceContainerHigh</item>
         <item name="colorSurfaceContainerHighest">@color/DarkSurfaceContainerHighest</item>
-        <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="colorOnPrimaryContainer">@color/DarkPrimaryText</item>
-        <item name="colorOnSecondaryContainer">@color/DarkPrimaryText</item>
-        <item name="colorOnTertiaryContainer">@color/DarkPrimaryText</item>
+        <item name="colorOnPrimary">@color/DarkBackground</item>
+        <item name="colorOnPrimaryContainer">@color/DarkBackground</item>
+        <item name="colorOnSecondaryContainer">@color/DarkBackground</item>
+        <item name="colorOnTertiaryContainer">@color/DarkBackground</item>
         <item name="colorOnSecondary">@color/DarkPrimaryText</item>
         <item name="colorOnTertiary">@color/DarkPrimaryText</item>
         <item name="colorOnBackground">@color/DarkPrimaryText</item>
