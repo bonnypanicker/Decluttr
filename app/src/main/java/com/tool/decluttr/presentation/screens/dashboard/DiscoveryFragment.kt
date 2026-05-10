@@ -57,6 +57,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
     private lateinit var dashSearchClear: ImageView
     private lateinit var dashSelectionBar: View
     private lateinit var dashSelectionTitle: TextView
+    private lateinit var dashDeselectAllCheckbox: CheckBox
     private lateinit var dashBtnUninstall: Button
     private lateinit var dashBtnArchiveUninstall: Button
     
@@ -67,6 +68,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
     private lateinit var specSelectAllCheckbox: CheckBox
     private lateinit var specSelectAllLabel: TextView
     private lateinit var specSelectionInfo: TextView
+    private lateinit var specDeselectAllCheckbox: CheckBox
     private lateinit var specActionContainer: View
     private lateinit var specBtnUninstallOnly: Button
     private lateinit var specBtnArchive: Button
@@ -130,6 +132,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         dashSearchClear = dashSearchBar.findViewById(R.id.clear_button)
         dashSelectionBar = viewDashboard.findViewById(R.id.selection_bar)
         dashSelectionTitle = dashSelectionBar.findViewById(R.id.selection_info_title)
+        dashDeselectAllCheckbox = dashSelectionBar.findViewById(R.id.selection_deselect_all_checkbox)
         dashBtnUninstall = dashSelectionBar.findViewById(R.id.btn_uninstall_only)
         dashBtnArchiveUninstall = dashSelectionBar.findViewById(R.id.btn_archive_uninstall)
 
@@ -140,6 +143,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         specSelectAllCheckbox = viewSpecificList.findViewById(R.id.select_all_checkbox)
         specSelectAllLabel = viewSpecificList.findViewById(R.id.select_all_label)
         specSelectionInfo = viewSpecificList.findViewById(R.id.selection_info_title)
+        specDeselectAllCheckbox = viewSpecificList.findViewById(R.id.selection_deselect_all_checkbox)
         specActionContainer = viewSpecificList.findViewById(R.id.action_buttons_container)
         specBtnUninstallOnly = viewSpecificList.findViewById(R.id.btn_uninstall_only)
         specBtnArchive = viewSpecificList.findViewById(R.id.btn_archive_uninstall)
@@ -208,6 +212,10 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
 
         dashBtnUninstall.setOnClickListener { executeBatchUninstallOnly() }
         dashBtnArchiveUninstall.setOnClickListener { executeBatchArchive() }
+        dashDeselectAllCheckbox.setOnClickListener {
+            selectedApps = emptySet()
+            updateUI()
+        }
 
         specBtnBack.setOnClickListener { setViewState(DiscoveryViewState.DASHBOARD) }
         
@@ -234,6 +242,10 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
 
         specBtnUninstallOnly.setOnClickListener { executeBatchUninstallOnly() }
         specBtnArchive.setOnClickListener { executeBatchArchive() }
+        specDeselectAllCheckbox.setOnClickListener {
+            selectedApps = emptySet()
+            updateUI()
+        }
     }
 
     private fun setupBackHandling() {
@@ -381,9 +393,21 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         if (selectedApps.isNotEmpty()) {
             val totalBytes = selectedApps.sumOf { pkg -> allApps.find { it.packageId == pkg }?.apkSizeBytes ?: 0L }
             dashSelectionTitle.text = "${selectedApps.size} selected • ${bytesToMB(totalBytes)} MB"
+            dashDeselectAllCheckbox.isChecked = true
             if (dashSelectionBar.visibility == View.GONE) dashSelectionBar.visibility = View.VISIBLE
+            // Add bottom padding so the last item isn't hidden behind the bar
+            dashRecyclerView.setPadding(
+                dashRecyclerView.paddingLeft, dashRecyclerView.paddingTop,
+                dashRecyclerView.paddingRight,
+                (120 * resources.displayMetrics.density).toInt()
+            )
         } else {
             dashSelectionBar.visibility = View.GONE
+            dashRecyclerView.setPadding(
+                dashRecyclerView.paddingLeft, dashRecyclerView.paddingTop,
+                dashRecyclerView.paddingRight,
+                (12 * resources.displayMetrics.density).toInt()
+            )
         }
 
         val imm = requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as InputMethodManager
@@ -439,10 +463,22 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
             val selectedSize = selectedApps.sumOf { pkg -> appList.find { it.packageId == pkg }?.apkSizeBytes ?: 0L }
             specSelectionInfo.visibility = View.VISIBLE
             specSelectionInfo.text = "${selectedApps.size} of ${appList.size} • ${bytesToMB(selectedSize)} MB"
+            specDeselectAllCheckbox.isChecked = true
             specActionContainer.visibility = View.VISIBLE
+            // Add bottom padding so the last item isn't hidden behind the bar
+            specRecyclerView.setPadding(
+                specRecyclerView.paddingLeft, specRecyclerView.paddingTop,
+                specRecyclerView.paddingRight,
+                (120 * resources.displayMetrics.density).toInt()
+            )
         } else {
             specSelectionInfo.visibility = View.GONE
             specActionContainer.visibility = View.GONE
+            specRecyclerView.setPadding(
+                specRecyclerView.paddingLeft, specRecyclerView.paddingTop,
+                specRecyclerView.paddingRight,
+                (12 * resources.displayMetrics.density).toInt()
+            )
         }
 
         if (sortedList.isEmpty()) {
