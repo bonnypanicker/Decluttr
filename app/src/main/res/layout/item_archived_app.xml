@@ -15,6 +15,7 @@
         android:layout_width="56dp"
         android:layout_height="56dp"
         app:shapeAppearanceOverlay="@style/CircleIconShape"
+        app:strokeWidth="0dp"
         android:contentDescription="App Icon" />
 
     <TextView
