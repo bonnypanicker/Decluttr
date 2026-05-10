@@ -376,7 +376,9 @@ class DashboardViewModel @Inject constructor(
                     )
                 }
                 _uninstallProgress.value = UninstallProgress(uninstalledCount + 1, packageIds.size, true)
-                val success = awaitUninstall(packageId)
+                val success = awaitUninstall(packageId) {
+                    uninstallAppUseCase(packageId)
+                }
                 if (success) {
                     uninstalledCount++
                     if (packageId in archiveEligiblePackageIds) {
@@ -447,7 +449,9 @@ class DashboardViewModel @Inject constructor(
 
             for (packageId in packageIds) {
                 _uninstallProgress.value = UninstallProgress(uninstalledCount + 1, packageIds.size, true)
-                val success = awaitUninstall(packageId)
+                val success = awaitUninstall(packageId) {
+                    uninstallAppUseCase(packageId)
+                }
                 if (success) {
                     uninstalledCount++
                 }
@@ -462,30 +466,32 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    private suspend fun awaitUninstall(packageId: String): Boolean {
+    private suspend fun awaitUninstall(packageId: String, triggerUninstall: () -> Unit): Boolean {
         return kotlinx.coroutines.withTimeoutOrNull(60_000L) {
             kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
-                val action = "com.tool.decluttr.UNINSTALL_RESULT_$packageId"
                 val receiver = object : android.content.BroadcastReceiver() {
                     override fun onReceive(ctx: Context, intent: Intent) {
-                        if (intent.action == action) {
-                            val status = intent.getIntExtra(
-                                android.content.pm.PackageInstaller.EXTRA_STATUS,
-                                android.content.pm.PackageInstaller.STATUS_FAILURE
-                            )
-                            try {
-                                ctx.unregisterReceiver(this)
-                            } catch (e: Exception) {
-                                FirebaseCrashlytics.getInstance().recordException(e)
-                            }
-                            if (continuation.isActive) {
-                                continuation.resume(status == android.content.pm.PackageInstaller.STATUS_SUCCESS)
+                        val removedPkg = intent.data?.schemeSpecificPart
+                        if (removedPkg == packageId) {
+                            val isReplacing = intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)
+                            if (!isReplacing) {
+                                try {
+                                    ctx.unregisterReceiver(this)
+                                } catch (e: Exception) {
+                                    FirebaseCrashlytics.getInstance().recordException(e)
+                                }
+                                if (continuation.isActive) {
+                                    continuation.resume(true)
+                                }
                             }
                         }
                     }
                 }
+                val filter = android.content.IntentFilter(Intent.ACTION_PACKAGE_REMOVED).apply {
+                    addDataScheme("package")
+                }
                 
-                val filter = android.content.IntentFilter(action)
+                // MUST use RECEIVER_EXPORTED to receive system broadcasts like ACTION_PACKAGE_REMOVED
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
                     context.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
                 } else {
@@ -500,15 +506,7 @@ class DashboardViewModel @Inject constructor(
                     }
                 }
 
-                val pi = android.app.PendingIntent.getBroadcast(
-                    context,
-                    packageId.hashCode(),
-                    Intent(action).setPackage(context.packageName),
-                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or 
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) android.app.PendingIntent.FLAG_MUTABLE else 0
-                )
-                
-                context.packageManager.packageInstaller.uninstall(packageId, pi.intentSender)
+                triggerUninstall()
             }
         } ?: false // Timeout = user cancelled or took too long
     }

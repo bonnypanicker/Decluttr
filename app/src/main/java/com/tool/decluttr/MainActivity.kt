@@ -46,17 +46,15 @@ class MainActivity : AppCompatActivity() {
             val navHostFragment = supportFragmentManager
                 .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
             val navController = navHostFragment.navController
+            val graph = navController.navInflater.inflate(R.navigation.nav_graph)
             
-            if (savedInstanceState == null) {
-                val graph = navController.navInflater.inflate(R.navigation.nav_graph)
-                val startDestination = if (currentUser != null) {
-                    R.id.dashboardFragment
-                } else {
-                    R.id.authFragment
-                }
-                graph.setStartDestination(startDestination)
-                navController.graph = graph
+            val startDestination = if (currentUser != null) {
+                R.id.dashboardFragment
+            } else {
+                R.id.authFragment
             }
+            graph.setStartDestination(startDestination)
+            navController.graph = graph
             
             // Check app launch count and potentially show Play Store rating panel
             AppReviewManager.checkAndShowReview(this)
