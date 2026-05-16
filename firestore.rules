@@ -19,6 +19,11 @@ service cloud.firestore {
         allow read, write: if isOwner(userId);
       }
 
+      // Hard-delete tombstones used to sync archive deletions across devices.
+      match /app_deletes/{appId} {
+        allow read, write: if isOwner(userId);
+      }
+
       // Wishlist sync path used by WishlistRepositoryImpl.
       match /wishlist/{itemId} {
         allow read, write: if isOwner(userId);
