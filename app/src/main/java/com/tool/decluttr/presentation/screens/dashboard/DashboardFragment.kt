@@ -269,7 +269,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
 
     private fun formatArchivedAppsLabel(count: Int): String {
         val safeCount = count.coerceAtLeast(0)
-        return if (safeCount == 1) "1 app" else "$safeCount apps"
+        return safeCount.toString()
     }
 
     private fun openSettings() {
