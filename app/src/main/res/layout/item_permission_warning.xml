@@ -27,8 +27,8 @@
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@android:drawable/ic_dialog_alert"
-                android:tint="?attr/colorOnErrorContainer" />
+                android:src="@drawable/ic_warning"
+                app:tint="?attr/colorOnErrorContainer" />
 
             <TextView
                 android:layout_width="wrap_content"

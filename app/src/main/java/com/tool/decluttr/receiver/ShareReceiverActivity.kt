@@ -216,7 +216,7 @@ class ShareReceiverActivity : AppCompatActivity() {
 
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
             .setView(view)
-            .setPositiveButton("Add to Wishlist") { _, _ ->
+            .setPositiveButton("Add to wishlist") { _, _ ->
                 lifecycleScope.launch {
                     if (!ensureLoggedInOrRedirect()) {
                         return@launch

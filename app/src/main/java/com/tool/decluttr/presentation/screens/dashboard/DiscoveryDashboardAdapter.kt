@@ -174,7 +174,7 @@ class DiscoveryDashboardAdapter(
 
         fun bind(item: DashboardItem.StorageMeter) {
             val context = itemView.context
-            storageValue.text = "${bytesToMB(item.estimatedFreedBytes)} MB"
+            storageValue.text = formatStorageSize(item.estimatedFreedBytes)
             wasteScore.text = context.getString(R.string.discovery_storage_score, item.impactPercent)
             storageSubtitle.text = when {
                 item.candidateAppsCount > 0 ->
@@ -349,6 +349,25 @@ class DiscoveryDashboardAdapter(
             String.format(Locale.US, "%.1f", mb)
         } else {
             String.format(Locale.US, "%.0f", mb)
+        }
+    }
+
+    private fun formatStorageSize(bytes: Long): String {
+        val safeBytes = bytes.coerceAtLeast(0L)
+        val mb = safeBytes / (1024.0 * 1024.0)
+        if (mb < 1024.0) {
+            return if (mb < 1.0) {
+                String.format(Locale.US, "%.1f MB", mb)
+            } else {
+                String.format(Locale.US, "%.0f MB", mb)
+            }
+        }
+
+        val gb = mb / 1024.0
+        return if (gb < 10.0) {
+            String.format(Locale.US, "%.1f GB", gb)
+        } else {
+            String.format(Locale.US, "%.0f GB", gb)
         }
     }
 }

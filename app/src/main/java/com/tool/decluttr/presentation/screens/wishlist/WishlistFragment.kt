@@ -7,7 +7,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
-import android.widget.TextView
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -55,7 +54,7 @@ class WishlistFragment : Fragment(R.layout.fragment_wishlist) {
         val btnSort = view.findViewById<ImageButton>(R.id.btn_sort)
         val chipGroupCategories = view.findViewById<ChipGroup>(R.id.chip_group_categories)
         val recyclerView = view.findViewById<RecyclerView>(R.id.rv_wishlist)
-        val tvEmpty = view.findViewById<TextView>(R.id.tv_empty)
+        val emptyStateContainer = view.findViewById<View>(R.id.empty_state_container)
 
         ViewCompat.setOnApplyWindowInsetsListener(recyclerView) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -172,7 +171,7 @@ class WishlistFragment : Fragment(R.layout.fragment_wishlist) {
                 launch {
                     viewModel.wishlist.collect { apps ->
                         adapter.submitList(apps)
-                        tvEmpty.visibility = if (apps.isEmpty()) View.VISIBLE else View.GONE
+                        emptyStateContainer.visibility = if (apps.isEmpty()) View.VISIBLE else View.GONE
                     }
                 }
                 launch {

@@ -65,7 +65,9 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
                 }
                 R.id.action_get_pro -> {
                     val credits = lastCredits ?: billingViewModel.archiveCreditsUi.value
-                    showPaywall(reason = "toolbar_get_pro", used = credits.used, limit = credits.limit)
+                    if (!credits.isPremium) {
+                        showPaywall(reason = "toolbar_get_pro", used = credits.used, limit = credits.limit)
+                    }
                     true
                 }
                 else -> false
@@ -219,7 +221,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
     private fun updateToolbarActions(toolbar: MaterialToolbar) {
         val isArchiveTab = selectedTabIndex == 1
         val credits = lastCredits ?: billingViewModel.archiveCreditsUi.value
-        val isPremium = billingViewModel.entitlementState.value.isPremium
+        val isPremium = credits.isPremium
         val reclaimedInlineText = toolbar.findViewById<TextView>(R.id.toolbar_reclaimed_inline)
         if (reclaimedInlineText != null) {
             val totalBytes = lastArchivedBytes.coerceAtLeast(0L)
@@ -236,19 +238,38 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         val getProItem = toolbar.menu.findItem(R.id.action_get_pro)
         val getProText = getProItem?.actionView?.findViewById<TextView>(R.id.toolbar_get_pro_action)
         if (getProItem != null && getProText != null) {
-            val canShow = isArchiveTab && !isPremium && credits.isVisible
+            val canShow = isArchiveTab && credits.isVisible
             getProItem.isVisible = canShow
             if (canShow) {
-                getProText.text = "Get Pro ${credits.used}/${credits.limit}"
+                val archivedAppsLabel = formatArchivedAppsLabel(credits.used)
+                getProText.text = if (isPremium) {
+                    archivedAppsLabel
+                } else {
+                    "Get Pro ${credits.used}/${credits.limit}"
+                }
+                getProText.contentDescription = if (isPremium) {
+                    "$archivedAppsLabel archived"
+                } else {
+                    "${credits.used} of ${credits.limit} free archive credits used. Get Pro."
+                }
                 getProText.visibility = View.VISIBLE
-                getProItem.actionView?.setOnClickListener {
-                    showPaywall(reason = "toolbar_get_pro", used = credits.used, limit = credits.limit)
+                if (isPremium) {
+                    getProItem.actionView?.setOnClickListener(null)
+                } else {
+                    getProItem.actionView?.setOnClickListener {
+                        showPaywall(reason = "toolbar_get_pro", used = credits.used, limit = credits.limit)
+                    }
                 }
             } else {
                 getProText.visibility = View.GONE
                 getProItem.actionView?.setOnClickListener(null)
             }
         }
+    }
+
+    private fun formatArchivedAppsLabel(count: Int): String {
+        val safeCount = count.coerceAtLeast(0)
+        return if (safeCount == 1) "1 app" else "$safeCount apps"
     }
 
     private fun openSettings() {
