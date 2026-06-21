@@ -47,6 +47,13 @@ android {
                 "proguard-rules.pro"
             )
         }
+        debug {
+            // In CI the release upload keystore is used so the debug APK
+            // carries the same SHA fingerprint registered in Firebase.
+            if (!System.getenv("KEYSTORE_PATH").isNullOrBlank()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

@@ -50,7 +50,7 @@ jobs:
         fi
 
     - name: Restore release upload keystore and export signing env
-      if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.build_type == 'release')
+      if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
       env:
         RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 || vars.RELEASE_KEYSTORE_BASE64 }}
         RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD || vars.RELEASE_KEYSTORE_PASSWORD }}
