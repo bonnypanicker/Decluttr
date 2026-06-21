@@ -2,7 +2,6 @@ package com.tool.decluttr.presentation.screens.auth
 
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Base64
 import android.view.View
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
@@ -12,26 +11,16 @@ import android.widget.Toast
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.credentials.CredentialManager
-import androidx.credentials.CustomCredential
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.GetCredentialException
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.tool.decluttr.R
 import com.tool.decluttr.presentation.screens.settings.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.security.MessageDigest
-import java.util.UUID
 
 @AndroidEntryPoint
 class AuthFragment : Fragment(R.layout.screen_auth) {
@@ -165,56 +154,23 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
-            var authRequestStarted = false
+            var keepLoading = false
             try {
-                val rawNonce = UUID.randomUUID().toString()
-                val bytes = rawNonce.toByteArray()
-                val md = MessageDigest.getInstance("SHA-256")
-                val digest = md.digest(bytes)
-                val hashedNonce = digest.fold("") { str, it -> str + "%02x".format(it) }
-
-                val googleIdOption = GetGoogleIdOption.Builder()
-                    .setServerClientId(serverClientId)
-                    .setFilterByAuthorizedAccounts(false)
-                    .setAutoSelectEnabled(false)
-                    .setNonce(hashedNonce)
-                    .build()
-
-                val request = GetCredentialRequest.Builder()
-                    .addCredentialOption(googleIdOption)
-                    .build()
-
-                val result = credentialManager.getCredential(
-                    context = requireActivity(),
-                    request = request
-                )
-
-                val credential = result.credential
-                if (credential is CustomCredential &&
-                    credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-                ) {
-                    val googleCredential = GoogleIdTokenCredential.createFrom(credential.data)
-                    authRequestStarted = true
-                    viewModel.authenticateWithGoogleIdToken(googleCredential.idToken, rawNonce)
-                } else {
-                    Toast.makeText(
-                        requireContext(),
-                        "Unable to read Google credential.",
-                        Toast.LENGTH_LONG
-                    ).show()
+                when (val result = GoogleSignInHelper.signIn(requireActivity(), credentialManager, serverClientId)) {
+                    is GoogleSignInHelper.Result.NativeToken -> {
+                        keepLoading = true
+                        viewModel.authenticateWithGoogleIdToken(result.idToken, result.rawNonce)
+                    }
+                    GoogleSignInHelper.Result.WebSignedIn,
+                    GoogleSignInHelper.Result.Canceled -> Unit
+                    is GoogleSignInHelper.Result.Failed -> {
+                        Toast.makeText(
+                            requireContext(),
+                            result.error.localizedMessage ?: "Google sign-in failed.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
                 }
-            } catch (_: GetCredentialException) {
-                Toast.makeText(
-                    requireContext(),
-                    "Google sign-in was canceled or unavailable.",
-                    Toast.LENGTH_SHORT
-                ).show()
-            } catch (_: GoogleIdTokenParsingException) {
-                Toast.makeText(
-                    requireContext(),
-                    "Google token parsing failed.",
-                    Toast.LENGTH_LONG
-                ).show()
             } catch (e: Exception) {
                 Toast.makeText(
                     requireContext(),
@@ -222,7 +178,7 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
                     Toast.LENGTH_LONG
                 ).show()
             } finally {
-                if (!authRequestStarted) {
+                if (!keepLoading) {
                     onboardingWebView?.evaluateJavascript(
                         "window.setAuthLoading && window.setAuthLoading(false);",
                         null

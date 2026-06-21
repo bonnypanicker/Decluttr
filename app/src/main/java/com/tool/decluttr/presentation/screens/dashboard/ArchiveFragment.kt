@@ -37,6 +37,7 @@ import com.tool.decluttr.R
 import com.tool.decluttr.domain.model.EntitlementState
 import com.tool.decluttr.domain.model.ArchivedApp
 import com.tool.decluttr.presentation.screens.auth.AuthViewModel
+import com.tool.decluttr.presentation.screens.auth.GoogleSignInHelper
 import com.tool.decluttr.presentation.screens.billing.BillingViewModel
 import com.tool.decluttr.presentation.screens.billing.PaywallBottomSheet
 import dagger.hilt.android.AndroidEntryPoint
@@ -1053,41 +1054,22 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
             isGoogleSignInLoading = true
             updateUI(viewModel.archivedApps.value)
             try {
-                val rawNonce = java.util.UUID.randomUUID().toString()
-                val bytes = rawNonce.toByteArray()
-                val md = java.security.MessageDigest.getInstance("SHA-256")
-                val digest = md.digest(bytes)
-                val hashedNonce = digest.fold("") { str, it -> str + "%02x".format(it) }
-
-                val googleIdOption = com.google.android.libraries.identity.googleid.GetGoogleIdOption.Builder()
-                    .setServerClientId(serverClientId)
-                    .setFilterByAuthorizedAccounts(false)
-                    .setAutoSelectEnabled(false)
-                    .setNonce(hashedNonce)
-                    .build()
-
-                val request = androidx.credentials.GetCredentialRequest.Builder()
-                    .addCredentialOption(googleIdOption)
-                    .build()
-
-                val result = credentialManager.getCredential(
-                    context = requireActivity(),
-                    request = request
-                )
-
-                val credential = result.credential
-                if (credential is androidx.credentials.CustomCredential &&
-                    credential.type == com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-                ) {
-                    val googleCredential = com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.createFrom(credential.data)
-                    authViewModel.authenticateWithGoogleIdToken(googleCredential.idToken, rawNonce)
-                } else {
-                    android.widget.Toast.makeText(requireContext(), "Unable to read Google credential.", android.widget.Toast.LENGTH_LONG).show()
+                when (val result = GoogleSignInHelper.signIn(requireActivity(), credentialManager, serverClientId)) {
+                    is GoogleSignInHelper.Result.NativeToken -> {
+                        authViewModel.authenticateWithGoogleIdToken(result.idToken, result.rawNonce)
+                    }
+                    GoogleSignInHelper.Result.WebSignedIn,
+                    GoogleSignInHelper.Result.Canceled -> Unit
+                    is GoogleSignInHelper.Result.Failed -> {
+                        android.widget.Toast.makeText(
+                            requireContext(),
+                            result.error.localizedMessage ?: "Google Sign-In failed.",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
                 }
             } catch (e: Exception) {
-                if (e !is androidx.credentials.exceptions.GetCredentialCancellationException) {
-                    android.widget.Toast.makeText(requireContext(), "Google Sign-In failed.", android.widget.Toast.LENGTH_LONG).show()
-                }
+                android.widget.Toast.makeText(requireContext(), e.localizedMessage ?: "Google Sign-In failed.", android.widget.Toast.LENGTH_LONG).show()
             } finally {
                 isGoogleSignInLoading = false
                 updateUI(viewModel.archivedApps.value)
