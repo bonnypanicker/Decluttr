@@ -1,5 +1,7 @@
 package com.tool.decluttr.presentation.screens.auth
 
+// Tries native Credential Manager first; falls back to web-based OAuthProvider sign-in.
+
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
