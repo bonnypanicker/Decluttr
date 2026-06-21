@@ -85,7 +85,7 @@
     <string name="archive_empty_action_login">Continue with Google</string>
     <string name="archive_empty_filtered">No archived apps match your current search.</string>
     <string name="wishlist_empty_title">Your wishlist is empty</string>
-    <string name="wishlist_empty_message">To add an app, open it in Play Store, tap the 3-dot menu, choose Share, select Decluttr, then add notes.</string>
+    <string name="wishlist_empty_message">To add an app, open it in Play Store, tap the 3-dot menu, select Share, choose Decluttr, add notes, then tap Add to Wishlist.</string>
     <string name="discovery_empty_title">Nothing to show here</string>
     <string name="discovery_empty_message">Try changing search or sort to discover more apps.</string>
     <string name="discovery_loading">Analyzing installed apps…</string>

@@ -55,6 +55,7 @@ class WishlistFragment : Fragment(R.layout.fragment_wishlist) {
         val chipGroupCategories = view.findViewById<ChipGroup>(R.id.chip_group_categories)
         val recyclerView = view.findViewById<RecyclerView>(R.id.rv_wishlist)
         val emptyStateContainer = view.findViewById<View>(R.id.empty_state_container)
+        val sortRow = view.findViewById<View>(R.id.sort_row)
 
         ViewCompat.setOnApplyWindowInsetsListener(recyclerView) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -171,7 +172,9 @@ class WishlistFragment : Fragment(R.layout.fragment_wishlist) {
                 launch {
                     viewModel.wishlist.collect { apps ->
                         adapter.submitList(apps)
-                        emptyStateContainer.visibility = if (apps.isEmpty()) View.VISIBLE else View.GONE
+                        val isEmpty = apps.isEmpty()
+                        emptyStateContainer.visibility = if (isEmpty) View.VISIBLE else View.GONE
+                        sortRow.visibility = if (isEmpty) View.GONE else View.VISIBLE
                     }
                 }
                 launch {
