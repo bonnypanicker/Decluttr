@@ -254,8 +254,28 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
                 }
                 getProText.visibility = View.VISIBLE
                 if (isPremium) {
-                    getProItem.actionView?.setOnClickListener(null)
+                    getProText.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_crown, 0, 0, 0)
+                    getProText.compoundDrawablePadding = (4 * resources.displayMetrics.density).toInt()
+                    getProItem.actionView?.setOnClickListener { view ->
+                        val popupView = layoutInflater.inflate(R.layout.popup_premium_status, null)
+                        val popupWindow = android.widget.PopupWindow(
+                            popupView,
+                            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                            true
+                        )
+                        popupWindow.elevation = 8f
+                        popupWindow.isOutsideTouchable = true
+                        popupWindow.isFocusable = true
+                        val tvCount = popupView.findViewById<TextView>(R.id.tv_popup_archived_count)
+                        val safeCount = credits.used.coerceAtLeast(0)
+                        tvCount.text = if (safeCount == 1) "1 app archived" else "$safeCount apps archived"
+                        val yOffset = (8 * resources.displayMetrics.density).toInt()
+                        popupWindow.showAsDropDown(view, 0, yOffset)
+                    }
                 } else {
+                    getProText.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0)
+                    getProText.compoundDrawablePadding = 0
                     getProItem.actionView?.setOnClickListener {
                         showPaywall(reason = "toolbar_get_pro", used = credits.used, limit = credits.limit)
                     }
