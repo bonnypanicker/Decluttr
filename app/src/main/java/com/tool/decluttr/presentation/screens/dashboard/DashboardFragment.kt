@@ -272,9 +272,8 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
                         val tvCount = popupView.findViewById<TextView>(R.id.tv_popup_archived_count)
                         val safeCount = credits.used.coerceAtLeast(0)
                         tvCount.text = if (safeCount == 1) "1 app archived" else "$safeCount apps archived"
-                        val xOffset = (-8 * resources.displayMetrics.density).toInt()
-                        val yOffset = (8 * resources.displayMetrics.density).toInt()
-                        popupWindow.showAsDropDown(view, xOffset, yOffset, android.view.Gravity.END)
+                        val yOffset = (0 * resources.displayMetrics.density).toInt()
+                        popupWindow.showAsDropDown(view, 0, yOffset, android.view.Gravity.END)
                     }
                 } else {
                     getProText.minWidth = (78 * resources.displayMetrics.density).toInt()
