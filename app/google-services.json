@@ -30,6 +30,14 @@
           }
         },
         {
+          "client_id": "991083542214-ac1ueoc801p5285i66jv08qpm6r7o84j.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tool.decluttr",
+            "certificate_hash": "c4ba91529d0ed53cf06e4200b2745bdbb3f6ab49"
+          }
+        },
+        {
           "client_id": "991083542214-f3hucb451iebi2gta2criv58vuq4r4j1.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
