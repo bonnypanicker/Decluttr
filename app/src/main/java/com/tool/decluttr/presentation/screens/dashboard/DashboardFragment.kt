@@ -254,6 +254,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
                 }
                 getProText.visibility = View.VISIBLE
                 if (isPremium) {
+                    getProText.minWidth = 0
                     getProText.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_crown, 0, 0, 0)
                     getProText.compoundDrawablePadding = (4 * resources.displayMetrics.density).toInt()
                     getProItem.actionView?.setOnClickListener { view ->
@@ -270,10 +271,12 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
                         val tvCount = popupView.findViewById<TextView>(R.id.tv_popup_archived_count)
                         val safeCount = credits.used.coerceAtLeast(0)
                         tvCount.text = if (safeCount == 1) "1 app archived" else "$safeCount apps archived"
+                        val xOffset = (-16 * resources.displayMetrics.density).toInt()
                         val yOffset = (8 * resources.displayMetrics.density).toInt()
-                        popupWindow.showAsDropDown(view, 0, yOffset)
+                        popupWindow.showAsDropDown(view, xOffset, yOffset)
                     }
                 } else {
+                    getProText.minWidth = (78 * resources.displayMetrics.density).toInt()
                     getProText.setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0)
                     getProText.compoundDrawablePadding = 0
                     getProItem.actionView?.setOnClickListener {
