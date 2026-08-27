@@ -16,6 +16,7 @@ import androidx.activity.addCallback
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -26,6 +27,8 @@ import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.tool.decluttr.R
 import com.tool.decluttr.domain.usecase.GetInstalledAppsUseCase
+import com.tool.decluttr.presentation.screens.auth.AuthViewModel
+import com.tool.decluttr.presentation.screens.auth.GoogleSignInHelper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -34,6 +37,7 @@ import kotlin.math.roundToInt
 class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
 
     private val viewModel: DashboardViewModel by activityViewModels()
+    private val authViewModel: AuthViewModel by viewModels()
     private val disclosurePrefs by lazy {
         requireContext().getSharedPreferences("decluttr_prefs", android.content.Context.MODE_PRIVATE)
     }
@@ -507,11 +511,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
 
     private fun executeBatchArchive() {
         if (viewModel.isLoggedIn.value != true) {
-            com.google.android.material.snackbar.Snackbar.make(
-                requireView(), 
-                "Please login to use the archive feature.", 
-                com.google.android.material.snackbar.Snackbar.LENGTH_LONG
-            ).show()
+            showLoginPrompt()
             return
         }
         val ids = selectedApps.toSet()
@@ -623,5 +623,53 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         val mb = bytes / (1024.0 * 1024.0)
         return if (mb < 1.0) String.format(java.util.Locale.US, "%.1f", mb)
         else String.format(java.util.Locale.US, "%.0f", mb)
+    }
+
+    private fun showLoginPrompt() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.login_required_title))
+            .setMessage(getString(R.string.login_required_message))
+            .setPositiveButton(getString(R.string.login_required_positive)) { _, _ ->
+                startGoogleSignIn()
+            }
+            .setNegativeButton(getString(R.string.login_required_negative), null)
+            .show()
+    }
+
+    private fun startGoogleSignIn() {
+        val credentialManager = androidx.credentials.CredentialManager.create(requireContext())
+        val serverClientId = runCatching { getString(R.string.default_web_client_id) }.getOrNull()
+        if (serverClientId.isNullOrBlank()) {
+            android.widget.Toast.makeText(
+                requireContext(),
+                "Google Sign-In is not configured for this build.",
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                when (val result = GoogleSignInHelper.signIn(requireActivity(), credentialManager, serverClientId)) {
+                    is GoogleSignInHelper.Result.NativeToken -> {
+                        authViewModel.authenticateWithGoogleIdToken(result.idToken, result.rawNonce)
+                    }
+                    GoogleSignInHelper.Result.WebSignedIn,
+                    GoogleSignInHelper.Result.Canceled -> Unit
+                    is GoogleSignInHelper.Result.Failed -> {
+                        android.widget.Toast.makeText(
+                            requireContext(),
+                            result.error.localizedMessage ?: "Google Sign-In failed.",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(
+                    requireContext(),
+                    e.localizedMessage ?: "Google Sign-In failed.",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+            }
+        }
     }
 }

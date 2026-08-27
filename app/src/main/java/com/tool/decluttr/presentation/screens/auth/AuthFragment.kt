@@ -115,6 +115,14 @@ class AuthFragment : Fragment(R.layout.screen_auth) {
         }
 
         @JavascriptInterface
+        fun continueAsGuest() {
+            activity?.runOnUiThread {
+                com.tool.decluttr.presentation.util.GuestSession.enterAsGuest(requireContext())
+                navigateToDashboard()
+            }
+        }
+
+        @JavascriptInterface
         fun openUrl(url: String) {
             activity?.runOnUiThread {
                 try {

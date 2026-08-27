@@ -26,7 +26,8 @@ class MainActivity : AppCompatActivity() {
             } else {
                 null
             }
-            val isNewUser = currentUser == null
+            val isGuest = com.tool.decluttr.presentation.util.GuestSession.isGuest(this)
+            val isNewUser = currentUser == null && !isGuest
 
             val splashScreen = installSplashScreen()
             DecluttrApp.appendStartupLog(this, "Splash screen installed")

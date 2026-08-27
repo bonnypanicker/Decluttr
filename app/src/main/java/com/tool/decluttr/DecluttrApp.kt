@@ -18,6 +18,7 @@ import com.tool.decluttr.domain.repository.AppRepository
 import com.tool.decluttr.domain.usecase.IconCacheManager
 import com.tool.decluttr.presentation.util.AppIconFetcher
 import com.tool.decluttr.presentation.util.AppIconKeyer
+import com.tool.decluttr.presentation.util.GuestSession
 import com.tool.decluttr.presentation.util.ThemePreferences
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -60,7 +61,19 @@ class DecluttrApp : Application(), ImageLoaderFactory {
             previousHandler?.uncaughtException(thread, throwable)
         }
         super.onCreate()
-        
+
+        // Once a real account signs in, drop any lingering guest-mode flag so a later
+        // sign-out returns the user to onboarding instead of silently re-entering as guest.
+        if (FirebaseApp.getApps(this).isNotEmpty()) {
+            runCatching {
+                FirebaseAuth.getInstance().addAuthStateListener { auth ->
+                    if (auth.currentUser != null && GuestSession.isGuest(this)) {
+                        GuestSession.clear(this)
+                    }
+                }
+            }
+        }
+
         // Fix 4: Pre-warm WebView during splash if user is new
         Looper.myQueue().addIdleHandler(object : MessageQueue.IdleHandler {
             override fun queueIdle(): Boolean {
@@ -68,7 +81,7 @@ class DecluttrApp : Application(), ImageLoaderFactory {
                     runCatching { FirebaseAuth.getInstance().currentUser == null }.getOrDefault(true)
                 } else {
                     true
-                }
+                } && !GuestSession.isGuest(this@DecluttrApp)
                 if (isNewUser) {
                     appendStartupLog(this@DecluttrApp, "Pre-warming WebView on Idle")
                     runCatching { WebView(this@DecluttrApp) }

@@ -83,6 +83,10 @@
     <string name="archive_empty_action">Find apps to Decluttr</string>
     <string name="archive_empty_message_logged_out">Please login to view or archive apps.</string>
     <string name="archive_empty_action_login">Continue with Google</string>
+    <string name="login_required_title">Sign in to Decluttr</string>
+    <string name="login_required_message">Archiving keeps your apps, notes, and categories safely synced to your account. Sign in to archive and uninstall, so nothing is ever lost.</string>
+    <string name="login_required_positive">Continue with Google</string>
+    <string name="login_required_negative">Not now</string>
     <string name="archive_empty_filtered">No archived apps match your current search.</string>
     <string name="wishlist_empty_title">Your wishlist is empty</string>
     <string name="wishlist_empty_message">To add an app, open it in Play Store, tap the 3-dot menu, select Share, choose Decluttr, add notes, then tap Add to Wishlist.</string>
