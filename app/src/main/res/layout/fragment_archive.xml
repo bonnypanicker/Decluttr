@@ -127,14 +127,32 @@
                 android:layout_marginTop="16dp"
                 android:text="@string/archive_empty_action" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_archive_login"
+            <FrameLayout
+                android:id="@+id/btn_archive_login_container"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:visibility="gone"
-                app:icon="@drawable/ic_google_logo"
-                android:text="@string/archive_empty_action_login" />
+                android:visibility="gone">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_archive_login"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:icon="@drawable/ic_google_logo"
+                    android:text="@string/archive_empty_action_login" />
+
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:id="@+id/btn_archive_login_progress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:indeterminate="true"
+                    android:visibility="gone"
+                    app:indicatorSize="24dp"
+                    app:trackThickness="3dp"
+                    app:indicatorColor="?attr/colorOnPrimary"
+                    app:trackColor="@android:color/transparent" />
+            </FrameLayout>
         </LinearLayout>
 
         <FrameLayout

@@ -85,7 +85,9 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private lateinit var emptyStateContainer: View
     private lateinit var tvEmptyMessage: TextView
     private lateinit var btnFindApps: Button
-    private lateinit var btnArchiveLogin: Button
+    private lateinit var btnArchiveLogin: com.google.android.material.button.MaterialButton
+    private lateinit var btnArchiveLoginContainer: View
+    private lateinit var btnArchiveLoginProgress: View
     private lateinit var tipOverlayContainer: View
     private lateinit var tipOverlayIcon: ImageView
     private lateinit var tipOverlayTitle: TextView
@@ -108,6 +110,8 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private var isDragInProgress = false
     private var pendingAppsDuringDrag: List<ArchivedApp>? = null
     private var isGoogleSignInLoading = false
+    private var loginBtnOrigTextColors: android.content.res.ColorStateList? = null
+    private var loginBtnOrigIconTint: android.content.res.ColorStateList? = null
     private var snapToTopAfterNextSubmit = false
     private val singletonCollapseInFlight = mutableSetOf<String>()
     private val pendingFolderCreations = mutableMapOf<String, Long>()
@@ -155,6 +159,11 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         tvEmptyMessage = v.findViewById(R.id.tv_empty_message)
         btnFindApps = v.findViewById(R.id.btn_find_apps)
         btnArchiveLogin = v.findViewById(R.id.btn_archive_login)
+        btnArchiveLoginContainer = v.findViewById(R.id.btn_archive_login_container)
+        btnArchiveLoginProgress = v.findViewById(R.id.btn_archive_login_progress)
+        // Capture the button's resting colors once so the loading state can restore them.
+        loginBtnOrigTextColors = btnArchiveLogin.textColors
+        loginBtnOrigIconTint = btnArchiveLogin.iconTint
         tipOverlayContainer = v.findViewById(R.id.tip_overlay_container)
         tipOverlayIcon = v.findViewById(R.id.iv_tip_overlay_icon)
         tipOverlayTitle = v.findViewById(R.id.tv_tip_overlay_title)
@@ -623,28 +632,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 recyclerView.visibility = View.GONE
                 emptyStateContainer.visibility = View.VISIBLE
                 completeViewModeTransitionIfNeeded()
-                if (visibleArchiveApps.isEmpty()) {
-                    val loggedIn = viewModel.isLoggedIn.value
-                    val isAuthLoading = isGoogleSignInLoading || authViewModel.isLoading.value
-
-                    if (loggedIn == null || isAuthLoading) {
-                        tvEmptyMessage.text = ""
-                        btnFindApps.visibility = View.GONE
-                        btnArchiveLogin.visibility = View.GONE
-                    } else if (!loggedIn) {
-                        tvEmptyMessage.text = getString(R.string.archive_empty_message_logged_out)
-                        btnFindApps.visibility = View.GONE
-                        btnArchiveLogin.visibility = View.VISIBLE
-                    } else {
-                        tvEmptyMessage.text = getString(R.string.archive_empty_message)
-                        btnFindApps.visibility = View.VISIBLE
-                        btnArchiveLogin.visibility = View.GONE
-                    }
-                } else {
-                    tvEmptyMessage.text = getString(R.string.archive_empty_filtered)
-                    btnFindApps.visibility = View.GONE
-                    btnArchiveLogin.visibility = View.GONE
-                }
+                applyLoginEmptyState(visibleArchiveApps.isEmpty())
             } else {
                 recyclerView.visibility = View.VISIBLE
                 emptyStateContainer.visibility = View.GONE
@@ -689,28 +677,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 recyclerView.visibility = View.GONE
                 emptyStateContainer.visibility = View.VISIBLE
                 completeViewModeTransitionIfNeeded()
-                if (visibleArchiveApps.isEmpty()) {
-                    val loggedIn = viewModel.isLoggedIn.value
-                    val isAuthLoading = isGoogleSignInLoading || authViewModel.isLoading.value
-
-                    if (loggedIn == null || isAuthLoading) {
-                        tvEmptyMessage.text = ""
-                        btnFindApps.visibility = View.GONE
-                        btnArchiveLogin.visibility = View.GONE
-                    } else if (!loggedIn) {
-                        tvEmptyMessage.text = getString(R.string.archive_empty_message_logged_out)
-                        btnFindApps.visibility = View.GONE
-                        btnArchiveLogin.visibility = View.VISIBLE
-                    } else {
-                        tvEmptyMessage.text = getString(R.string.archive_empty_message)
-                        btnFindApps.visibility = View.VISIBLE
-                        btnArchiveLogin.visibility = View.GONE
-                    }
-                } else {
-                    tvEmptyMessage.text = getString(R.string.archive_empty_filtered)
-                    btnFindApps.visibility = View.GONE
-                    btnArchiveLogin.visibility = View.GONE
-                }
+                applyLoginEmptyState(visibleArchiveApps.isEmpty())
         } else {
             recyclerView.visibility = View.VISIBLE
             emptyStateContainer.visibility = View.GONE
@@ -1043,6 +1010,48 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         ).show()
     }
 
+    private fun setLoginLoading(loading: Boolean) {
+        if (loading) {
+            btnArchiveLogin.isEnabled = false
+            btnArchiveLogin.setTextColor(android.graphics.Color.TRANSPARENT)
+            btnArchiveLogin.iconTint = android.content.res.ColorStateList.valueOf(android.graphics.Color.TRANSPARENT)
+            btnArchiveLoginProgress.visibility = View.VISIBLE
+        } else {
+            btnArchiveLogin.isEnabled = true
+            loginBtnOrigTextColors?.let { btnArchiveLogin.setTextColor(it) }
+            btnArchiveLogin.iconTint = loginBtnOrigIconTint
+            btnArchiveLoginProgress.visibility = View.GONE
+        }
+    }
+
+    private fun applyLoginEmptyState(isTrulyEmpty: Boolean) {
+        if (!isTrulyEmpty) {
+            tvEmptyMessage.text = getString(R.string.archive_empty_filtered)
+            btnFindApps.visibility = View.GONE
+            btnArchiveLoginContainer.visibility = View.GONE
+            setLoginLoading(false)
+            return
+        }
+        val loggedIn = viewModel.isLoggedIn.value
+        val isAuthLoading = isGoogleSignInLoading || authViewModel.isLoading.value
+        if (loggedIn == null) {
+            tvEmptyMessage.text = ""
+            btnFindApps.visibility = View.GONE
+            btnArchiveLoginContainer.visibility = View.GONE
+            setLoginLoading(false)
+        } else if (!loggedIn) {
+            tvEmptyMessage.text = getString(R.string.archive_empty_message_logged_out)
+            btnFindApps.visibility = View.GONE
+            btnArchiveLoginContainer.visibility = View.VISIBLE
+            setLoginLoading(isAuthLoading)
+        } else {
+            tvEmptyMessage.text = getString(R.string.archive_empty_message)
+            btnFindApps.visibility = View.VISIBLE
+            btnArchiveLoginContainer.visibility = View.GONE
+            setLoginLoading(false)
+        }
+    }
+
     private fun startGoogleSignIn() {
         val credentialManager = androidx.credentials.CredentialManager.create(requireContext())
         val serverClientId = runCatching { getString(R.string.default_web_client_id) }.getOrNull()
@@ -1052,10 +1061,12 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         }
         viewLifecycleOwner.lifecycleScope.launch {
             isGoogleSignInLoading = true
-            updateUI(viewModel.archivedApps.value)
+            setLoginLoading(true)
+            var handedOffToFirebase = false
             try {
                 when (val result = GoogleSignInHelper.signIn(requireActivity(), credentialManager, serverClientId)) {
                     is GoogleSignInHelper.Result.NativeToken -> {
+                        handedOffToFirebase = true
                         authViewModel.authenticateWithGoogleIdToken(result.idToken, result.rawNonce)
                     }
                     GoogleSignInHelper.Result.WebSignedIn,
@@ -1072,7 +1083,9 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
                 android.widget.Toast.makeText(requireContext(), e.localizedMessage ?: "Google Sign-In failed.", android.widget.Toast.LENGTH_LONG).show()
             } finally {
                 isGoogleSignInLoading = false
-                updateUI(viewModel.archivedApps.value)
+                if (!handedOffToFirebase) {
+                    updateUI(viewModel.archivedApps.value)
+                }
             }
         }
     }
