@@ -87,6 +87,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
 
     private lateinit var dashboardAdapter: DiscoveryDashboardAdapter
     private lateinit var specificAdapter: DiscoveryAppsAdapter
+    private var dashFastScrollThumb: com.tool.decluttr.presentation.util.FastScrollThumb? = null
     private var requestedRefreshAfterUsageGrant = false
     private var returnedFromUsageSettings = false
 
@@ -104,6 +105,12 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         setupListeners()
         setupBackHandling()
         observeViewModel()
+    }
+
+    override fun onDestroyView() {
+        dashFastScrollThumb?.detach()
+        dashFastScrollThumb = null
+        super.onDestroyView()
     }
 
     override fun onResume() {
@@ -180,6 +187,10 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         dashRecyclerView.adapter = dashboardAdapter
         dashRecyclerView.itemAnimator = androidx.recyclerview.widget.DefaultItemAnimator()
         dashRecyclerView.setHasFixedSize(true)
+
+        viewDashboard.findViewById<View>(R.id.fast_scroll_thumb)?.let { thumb ->
+            dashFastScrollThumb = com.tool.decluttr.presentation.util.FastScrollThumb(dashRecyclerView, thumb)
+        }
 
         specificAdapter = DiscoveryAppsAdapter(
             onToggle = { toggleAppSelection(it) }
