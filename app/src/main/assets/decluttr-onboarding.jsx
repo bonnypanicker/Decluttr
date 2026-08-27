@@ -986,7 +986,7 @@ export default function DecluttrOnboarding() {
 
           {/* Visual area */}
           <div style={{
-            flex: 1, minHeight: 180, maxHeight: 280,
+            flex: 1, minHeight: isLastSlide ? 140 : 180, maxHeight: 280,
             animation: "fadeSlideIn 0.5s ease both",
             animationDelay: "0.3s",
           }}>
@@ -996,7 +996,7 @@ export default function DecluttrOnboarding() {
 
         {/* Bottom section */}
         <div style={{
-          padding: "20px 28px 40px",
+          padding: isLastSlide ? "12px 28px 24px" : "20px 28px 40px",
           position: "relative", zIndex: 10,
           background: "linear-gradient(to top, #0a0b0f 70%, transparent)",
         }}>
@@ -1036,7 +1036,7 @@ export default function DecluttrOnboarding() {
             </>
           ) : (
             /* Last slide — sign in */
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <button
                 className="get-started-btn"
                 style={{
@@ -1064,7 +1064,7 @@ export default function DecluttrOnboarding() {
                 className="guest-entry-btn"
                 onClick={() => window.AndroidAuth && window.AndroidAuth.continueAsGuest && window.AndroidAuth.continueAsGuest()}
                 style={{
-                  width: "100%", padding: "6px 0",
+                  width: "100%", padding: "3px 0",
                   background: "none", border: "none", cursor: "pointer",
                   fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.38)",
                   fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.01em",
