@@ -351,8 +351,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         btnSort.visibility = if (isListMode) View.VISIBLE else View.GONE
         btnTipOverlayClose.setOnClickListener { dismissActiveTip(markShown = true) }
         tipOverlayContainer.setOnClickListener {
-            // Intentionally consume touches so underlying archive items are never tapped
-            // while the tip overlay is visible.
+            // Consume the tap by dismissing the tip: the full-screen blocker must
+            // never strand touches (e.g. over the login pill), and underlying items
+            // are still protected because the first tap only closes the tip.
+            dismissActiveTip(markShown = true)
         }
 
         btnReinstalledApps.setOnClickListener {
@@ -518,6 +520,9 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         tipScheduleJob = viewLifecycleOwner.lifecycleScope.launch {
             delay(delayMs)
             if (!isAdded || view == null || activeTipKey != null) return@launch
+            // Tips describe interacting with archived apps; on an empty archive they
+            // are irrelevant and their full-screen blocker would sit over the login pill.
+            if (viewModel.archivedApps.value.isEmpty()) return@launch
             showTip(nextTip.first, nextTip.second)
         }
     }
