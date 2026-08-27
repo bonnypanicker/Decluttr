@@ -100,8 +100,8 @@ dependencies {
     // Material Components for native XML views
     implementation("com.google.android.material:material:1.12.0")
 
-    // Google Play Billing
-    implementation("com.android.billingclient:billing-ktx:7.1.1")
+    // Google Play Billing (KTX extensions are bundled with the main artifact since v6)
+    implementation("com.android.billingclient:billing:9.1.0")
     
     // Google Play In-App Review
     implementation("com.google.android.play:review-ktx:2.0.1")

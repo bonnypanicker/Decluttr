@@ -604,12 +604,14 @@ class BillingRepositoryImpl(
                 )
                 .build()
 
-            billingClient.queryProductDetailsAsync(params) { result, details ->
+            billingClient.queryProductDetailsAsync(params) { result, detailsResult ->
+                val details = detailsResult.productDetailsList
                 Log.d(
                     TAG,
-                    "queryProductDetailsAsync: code=${result.responseCode}, msg=${result.debugMessage}, count=${details?.size ?: 0}"
+                    "queryProductDetailsAsync: code=${result.responseCode}, msg=${result.debugMessage}, " +
+                        "count=${details.size}, unfetched=${detailsResult.unfetchedProductList.size}"
                 )
-                if (result.responseCode == BillingClient.BillingResponseCode.OK && !details.isNullOrEmpty()) {
+                if (result.responseCode == BillingClient.BillingResponseCode.OK && details.isNotEmpty()) {
                     val product = details.first()
                     premiumProductDetails = product
                     val oneTime = product.oneTimePurchaseOfferDetails
