@@ -15,8 +15,8 @@ android {
         applicationId = "com.tool.decluttr"
         minSdk = 26
         targetSdk = 36
-        versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 259
-        versionName = System.getenv("VERSION_NAME") ?: "1.0.259"
+        versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 479
+        versionName = System.getenv("VERSION_NAME") ?: "1.0.479"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
