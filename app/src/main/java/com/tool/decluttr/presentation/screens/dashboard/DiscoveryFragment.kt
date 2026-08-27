@@ -46,6 +46,10 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
     private var isSearchActive = false
     private var searchQuery = ""
     private var selectedApps = emptySet<String>()
+
+    // Set when the user taps "Continue with Google" from the archive login prompt.
+    // Once sign-in completes we automatically resume the archive they were attempting.
+    private var pendingArchiveAfterLogin = false
     
     private var sortOption = SortOption.NAME
 
@@ -312,6 +316,28 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
                             tvUninstallProgress.text = "Uninstalling ${prog.current}/${prog.total}"
                         } else {
                             overlayUninstalling.visibility = View.GONE
+                        }
+                    }
+                }
+                launch {
+                    viewModel.isLoggedIn.collect { loggedIn ->
+                        if (loggedIn == true) {
+                            if (pendingArchiveAfterLogin) {
+                                pendingArchiveAfterLogin = false
+                                if (selectedApps.isNotEmpty()) {
+                                    executeBatchArchive()
+                                }
+                            }
+                        } else {
+                            pendingArchiveAfterLogin = false
+                        }
+                    }
+                }
+                launch {
+                    authViewModel.errorMessage.collect { message ->
+                        if (!message.isNullOrBlank() && pendingArchiveAfterLogin) {
+                            pendingArchiveAfterLogin = false
+                            android.widget.Toast.makeText(requireContext(), message, android.widget.Toast.LENGTH_LONG).show()
                         }
                     }
                 }
@@ -630,9 +656,13 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
             .setTitle(getString(R.string.login_required_title))
             .setMessage(getString(R.string.login_required_message))
             .setPositiveButton(getString(R.string.login_required_positive)) { _, _ ->
+                pendingArchiveAfterLogin = true
                 startGoogleSignIn()
             }
-            .setNegativeButton(getString(R.string.login_required_negative), null)
+            .setNegativeButton(getString(R.string.login_required_negative)) { _, _ ->
+                pendingArchiveAfterLogin = false
+            }
+            .setOnCancelListener { pendingArchiveAfterLogin = false }
             .show()
     }
 
@@ -651,11 +681,16 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
             try {
                 when (val result = GoogleSignInHelper.signIn(requireActivity(), credentialManager, serverClientId)) {
                     is GoogleSignInHelper.Result.NativeToken -> {
+                        // Firebase exchange happens in the ViewModel; the isLoggedIn
+                        // observer resumes the pending archive once it completes.
                         authViewModel.authenticateWithGoogleIdToken(result.idToken, result.rawNonce)
                     }
-                    GoogleSignInHelper.Result.WebSignedIn,
-                    GoogleSignInHelper.Result.Canceled -> Unit
+                    GoogleSignInHelper.Result.WebSignedIn -> Unit
+                    GoogleSignInHelper.Result.Canceled -> {
+                        pendingArchiveAfterLogin = false
+                    }
                     is GoogleSignInHelper.Result.Failed -> {
+                        pendingArchiveAfterLogin = false
                         android.widget.Toast.makeText(
                             requireContext(),
                             result.error.localizedMessage ?: "Google Sign-In failed.",
@@ -664,6 +699,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
                     }
                 }
             } catch (e: Exception) {
+                pendingArchiveAfterLogin = false
                 android.widget.Toast.makeText(
                     requireContext(),
                     e.localizedMessage ?: "Google Sign-In failed.",
