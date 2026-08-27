@@ -9,12 +9,12 @@ plugins {
 
 android {
     namespace = "com.tool.decluttr"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.tool.decluttr"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 259
         versionName = System.getenv("VERSION_NAME") ?: "1.0.259"
 
