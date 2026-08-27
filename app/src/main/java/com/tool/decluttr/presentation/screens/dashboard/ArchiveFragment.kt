@@ -113,6 +113,7 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
     private var loginBtnOrigTextColors: android.content.res.ColorStateList? = null
     private var loginBtnOrigIconTint: android.content.res.ColorStateList? = null
     private var snapToTopAfterNextSubmit = false
+    private var fastScrollThumb: com.tool.decluttr.presentation.util.FastScrollThumb? = null
     private val singletonCollapseInFlight = mutableSetOf<String>()
     private val pendingFolderCreations = mutableMapOf<String, Long>()
     private val pendingFolderCreationWindowMs = 3_000L
@@ -201,6 +202,10 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         recyclerView.layoutManager = GridLayoutManager(requireContext(), 4)
         recyclerView.adapter = adapter
         recyclerView.setHasFixedSize(false)
+
+        requireView().findViewById<View>(R.id.fast_scroll_thumb_archive)?.let { thumb ->
+            fastScrollThumb = com.tool.decluttr.presentation.util.FastScrollThumb(recyclerView, thumb)
+        }
 
         val enterAnim = AnimationUtils.loadAnimation(requireContext(), android.R.anim.fade_in).apply { duration = 200 }
         val controller = LayoutAnimationController(enterAnim, 0.05f)
@@ -563,6 +568,8 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
         tipScheduleJob?.cancel()
         tipScheduleJob = null
         activeTipKey = null
+        fastScrollThumb?.detach()
+        fastScrollThumb = null
         super.onDestroyView()
     }
 

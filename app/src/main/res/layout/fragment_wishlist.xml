@@ -87,6 +87,14 @@
             android:paddingHorizontal="16dp"
             android:paddingTop="8dp" />
 
+        <View
+            android:id="@+id/fast_scroll_thumb_wishlist"
+            android:layout_width="24dp"
+            android:layout_height="56dp"
+            android:layout_gravity="end|top"
+            android:layout_marginEnd="2dp"
+            android:visibility="gone" />
+
         <LinearLayout
             android:id="@+id/empty_state_container"
             android:layout_width="match_parent"

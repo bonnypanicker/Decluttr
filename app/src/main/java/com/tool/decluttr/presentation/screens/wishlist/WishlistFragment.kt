@@ -35,6 +35,7 @@ import kotlinx.coroutines.launch
 class WishlistFragment : Fragment(R.layout.fragment_wishlist) {
     private val viewModel: WishlistViewModel by viewModels()
     private val billingViewModel: BillingViewModel by activityViewModels()
+    private var fastScrollThumb: com.tool.decluttr.presentation.util.FastScrollThumb? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -167,6 +168,10 @@ class WishlistFragment : Fragment(R.layout.fragment_wishlist) {
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
 
+        view.findViewById<View>(R.id.fast_scroll_thumb_wishlist)?.let { thumb ->
+            fastScrollThumb = com.tool.decluttr.presentation.util.FastScrollThumb(recyclerView, thumb)
+        }
+
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
@@ -184,5 +189,11 @@ class WishlistFragment : Fragment(R.layout.fragment_wishlist) {
                 }
             }
         }
+    }
+
+    override fun onDestroyView() {
+        fastScrollThumb?.detach()
+        fastScrollThumb = null
+        super.onDestroyView()
     }
 }

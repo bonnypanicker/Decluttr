@@ -88,6 +88,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
     private lateinit var dashboardAdapter: DiscoveryDashboardAdapter
     private lateinit var specificAdapter: DiscoveryAppsAdapter
     private var dashFastScrollThumb: com.tool.decluttr.presentation.util.FastScrollThumb? = null
+    private var specFastScrollThumb: com.tool.decluttr.presentation.util.FastScrollThumb? = null
     private var requestedRefreshAfterUsageGrant = false
     private var returnedFromUsageSettings = false
 
@@ -110,6 +111,8 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
     override fun onDestroyView() {
         dashFastScrollThumb?.detach()
         dashFastScrollThumb = null
+        specFastScrollThumb?.detach()
+        specFastScrollThumb = null
         super.onDestroyView()
     }
 
@@ -198,6 +201,10 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         specRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         specRecyclerView.adapter = specificAdapter
         specRecyclerView.setHasFixedSize(true)
+
+        viewSpecificList.findViewById<View>(R.id.fast_scroll_thumb_specific)?.let { thumb ->
+            specFastScrollThumb = com.tool.decluttr.presentation.util.FastScrollThumb(specRecyclerView, thumb)
+        }
     }
 
     private fun showUsageDisclosureIfNeeded() {

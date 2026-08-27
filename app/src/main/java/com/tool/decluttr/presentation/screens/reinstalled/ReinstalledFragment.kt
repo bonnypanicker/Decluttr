@@ -33,6 +33,7 @@ import kotlinx.coroutines.launch
 class ReinstalledFragment : Fragment(R.layout.fragment_reinstalled) {
 
     private val viewModel: DashboardViewModel by activityViewModels()
+    private var fastScrollThumb: com.tool.decluttr.presentation.util.FastScrollThumb? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -60,6 +61,10 @@ class ReinstalledFragment : Fragment(R.layout.fragment_reinstalled) {
         recycler.layoutManager = LinearLayoutManager(requireContext())
         recycler.adapter = adapter
 
+        view.findViewById<View>(R.id.fast_scroll_thumb_reinstalled)?.let { thumb ->
+            fastScrollThumb = com.tool.decluttr.presentation.util.FastScrollThumb(recycler, thumb)
+        }
+
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.archivedApps.collect { apps ->
@@ -72,6 +77,12 @@ class ReinstalledFragment : Fragment(R.layout.fragment_reinstalled) {
                 }
             }
         }
+    }
+
+    override fun onDestroyView() {
+        fastScrollThumb?.detach()
+        fastScrollThumb = null
+        super.onDestroyView()
     }
 
     private fun getInstalledPackages(): Set<String> {
