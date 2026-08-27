@@ -309,13 +309,13 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         NativeBulkReviewDialog(
             context = activity,
             archivedApps = data.archivedApps,
-            onComplete = { notesMap ->
-                viewModel.saveReviewNotes(notesMap, data.celebration)
+            onComplete = { notesMap, categoriesMap ->
+                viewModel.saveReviewNotes(notesMap, categoriesMap, data.celebration)
                 // Switch to archive tab natively
                 view?.findViewById<BottomNavigationView>(R.id.bottom_nav)?.selectedItemId = R.id.nav_archive
             },
             onCancel = {
-                viewModel.saveReviewNotes(emptyMap(), data.celebration)
+                viewModel.saveReviewNotes(emptyMap(), emptyMap(), data.celebration)
                 view?.findViewById<BottomNavigationView>(R.id.bottom_nav)?.selectedItemId = R.id.nav_archive
             }
         ).show()

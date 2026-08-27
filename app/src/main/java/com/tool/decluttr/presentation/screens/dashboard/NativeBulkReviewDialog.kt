@@ -25,7 +25,7 @@ import com.tool.decluttr.presentation.util.AppIconModel
 class NativeBulkReviewDialog(
     context: Context,
     private val archivedApps: List<ArchivedApp>,
-    private val onComplete: (Map<String, String>) -> Unit,
+    private val onComplete: (notes: Map<String, String>, categories: Map<String, String>) -> Unit,
     private val onCancel: () -> Unit
 ) {
     private val dialog: Dialog = DashboardModalDialogWrapper(
@@ -37,6 +37,7 @@ class NativeBulkReviewDialog(
         fixedHeightFraction = 0.7f
     ).build()
     private val notesMap = mutableMapOf<String, String>()
+    private val categoryMap = mutableMapOf<String, String>()
 
     init {
         dialog.setOnCancelListener { onCancel() }
@@ -111,7 +112,7 @@ class NativeBulkReviewDialog(
 
         btnSkipAll.setOnClickListener {
             dialog.dismiss()
-            onComplete(emptyMap())
+            onComplete(emptyMap(), emptyMap())
         }
 
         btnNext.setOnClickListener {
@@ -125,7 +126,10 @@ class NativeBulkReviewDialog(
         btnDone.setOnClickListener {
             saveCurrentPage(viewPager.currentItem)
             dialog.dismiss()
-            onComplete(notesMap.filterValues { it.isNotBlank() })
+            onComplete(
+                notesMap.filterValues { it.isNotBlank() },
+                categoryMap.filterValues { it.isNotBlank() }
+            )
         }
     }
 
@@ -137,6 +141,27 @@ class NativeBulkReviewDialog(
         val text = editText?.text?.toString()?.trim() ?: ""
         if (text.isNotBlank()) {
             notesMap[archivedApps[position].packageId] = text
+        }
+    }
+
+    private fun bindCategoryChip(chip: TextView, category: String?, onPicked: (String) -> Unit) {
+        if (category.isNullOrBlank()) {
+            chip.text = chip.context.getString(R.string.archive_popup_uncategorized)
+            chip.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, R.drawable.ic_add_category, 0)
+            chip.compoundDrawablePadding = (6 * chip.resources.displayMetrics.density).toInt()
+            chip.contentDescription = chip.context.getString(R.string.category_picker_chip_cd)
+        } else {
+            chip.text = category
+            chip.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, 0, 0)
+            chip.contentDescription = category
+        }
+        chip.setOnClickListener {
+            CategoryPicker.show(chip.context) { picked ->
+                onPicked(picked)
+                chip.text = picked
+                chip.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, 0, 0)
+                chip.contentDescription = picked
+            }
         }
     }
 
@@ -162,7 +187,9 @@ class NativeBulkReviewDialog(
         override fun onBindViewHolder(holder: PageViewHolder, position: Int) {
             val app = archivedApps[position]
             holder.name.text = app.name
-            holder.category.text = app.category ?: "Uncategorized"
+            bindCategoryChip(holder.category, categoryMap[app.packageId] ?: app.category) { picked ->
+                categoryMap[app.packageId] = picked
+            }
             holder.icon.load(AppIconModel(app.packageId)) {
                 memoryCacheKey(app.packageId)
                 crossfade(false)

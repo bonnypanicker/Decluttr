@@ -437,12 +437,21 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    fun saveReviewNotes(notesMap: Map<String, String>, celebration: CelebrationData) {
+    fun saveReviewNotes(
+        notesMap: Map<String, String>,
+        categoriesMap: Map<String, String>,
+        celebration: CelebrationData
+    ) {
         viewModelScope.launch {
-            for ((packageId, note) in notesMap) {
+            for (packageId in (notesMap.keys + categoriesMap.keys)) {
                 val app = archivedApps.value.find { it.packageId == packageId }
                 if (app != null) {
-                    appRepository.updateApp(app.copy(notes = note))
+                    appRepository.updateApp(
+                        app.copy(
+                            notes = notesMap[packageId] ?: app.notes,
+                            category = categoriesMap[packageId] ?: app.category
+                        )
+                    )
                 }
             }
             _celebrationEvent.emit(celebration)

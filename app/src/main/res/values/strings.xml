@@ -52,6 +52,27 @@
     <string name="archive_popup_edit">Edit</string>
     <string name="archive_popup_done">Done</string>
     <string name="archive_popup_uncategorized">Uncategorized</string>
+    <string name="category_picker_title">Add category</string>
+    <string name="category_picker_custom_option">Other…</string>
+    <string name="category_picker_custom_hint">Category name</string>
+    <string name="category_picker_add_action">Add</string>
+    <string name="category_picker_chip_cd">Add a category</string>
+    <string-array name="category_suggestions">
+        <item>Games</item>
+        <item>Social</item>
+        <item>Productivity</item>
+        <item>Photography</item>
+        <item>Video</item>
+        <item>Audio</item>
+        <item>News &amp; Magazines</item>
+        <item>Maps &amp; Navigation</item>
+        <item>Finance</item>
+        <item>Shopping</item>
+        <item>Health &amp; Fitness</item>
+        <item>Education</item>
+        <item>Travel</item>
+        <item>Tools</item>
+    </string-array>
     <string name="archive_popup_delete_title">Delete App</string>
     <string name="archive_popup_delete_message">Are you sure you want to delete %1$s from the archive?</string>
     <string name="archive_popup_delete_action">Delete</string>

@@ -21,6 +21,7 @@ class NativeAppDetailsDialog(
     private val context: Context,
     private val app: ArchivedApp,
     private val onNotesUpdated: (String) -> Unit,
+    private val onCategoryUpdated: (String) -> Unit,
     private val onDelete: () -> Unit,
     private val onDismissRequest: () -> Unit
 ) {
@@ -55,7 +56,13 @@ class NativeAppDetailsDialog(
             val btnReinstall = findViewById<MaterialButton>(R.id.btn_reinstall)
             
             appName.text = app.name
-            appCategory.text = app.category ?: context.getString(R.string.archive_popup_uncategorized)
+            applyCategoryChip(appCategory, app.category)
+            appCategory.setOnClickListener {
+                CategoryPicker.show(context) { picked ->
+                    applyCategoryChip(appCategory, picked)
+                    onCategoryUpdated(picked)
+                }
+            }
             appUninstalledDate.text = "Uninstalled on: ${
                 DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(app.archivedAt))
             }"
@@ -101,6 +108,19 @@ class NativeAppDetailsDialog(
             }
         }
         dialog?.show()
+    }
+
+    private fun applyCategoryChip(chip: TextView, category: String?) {
+        if (category.isNullOrBlank()) {
+            chip.text = context.getString(R.string.archive_popup_uncategorized)
+            chip.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, R.drawable.ic_add_category, 0)
+            chip.compoundDrawablePadding = (6 * context.resources.displayMetrics.density).toInt()
+            chip.contentDescription = context.getString(R.string.category_picker_chip_cd)
+        } else {
+            chip.text = category
+            chip.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, 0, 0)
+            chip.contentDescription = category
+        }
     }
 
     fun dismiss() {

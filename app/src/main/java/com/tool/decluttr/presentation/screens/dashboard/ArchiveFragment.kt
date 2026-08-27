@@ -997,11 +997,19 @@ class ArchiveFragment : Fragment(R.layout.fragment_archive) {
 
     private fun openNativeAppDetails(packageId: String) {
         val app = viewModel.archivedApps.value.find { it.packageId == packageId } ?: return
+        // Accumulate edits made while the dialog is open so a later save
+        // never overwrites an earlier one with stale state.
+        var latestApp = app
         NativeAppDetailsDialog(
             context = requireContext(),
             app = app,
             onNotesUpdated = { notes ->
-                viewModel.updateArchivedApp(app.copy(notes = notes))
+                latestApp = latestApp.copy(notes = notes)
+                viewModel.updateArchivedApp(latestApp)
+            },
+            onCategoryUpdated = { category ->
+                latestApp = latestApp.copy(category = category)
+                viewModel.updateArchivedApp(latestApp)
             },
             onDelete = {
                 viewModel.deleteArchivedApp(app)
