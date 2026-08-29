@@ -58,6 +58,11 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
     private lateinit var progressLoading: View
     private lateinit var overlayUninstalling: View
     private lateinit var tvUninstallProgress: TextView
+    private lateinit var emptyStateRoot: View
+    private lateinit var emptyStateTitle: TextView
+    private lateinit var emptyStateSubtitle: TextView
+    private lateinit var emptyStateCta: Button
+    private lateinit var emptyStateIllustration: android.widget.ImageView
 
     private lateinit var dashRecyclerView: RecyclerView
     private lateinit var dashSearchBar: View
@@ -145,6 +150,18 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         overlayUninstalling = v.findViewById(R.id.overlay_uninstalling)
         tvUninstallProgress = v.findViewById(R.id.tv_uninstall_progress)
 
+        emptyStateRoot = v.findViewById(R.id.empty_state_root)
+        emptyStateTitle = v.findViewById(R.id.empty_title)
+        emptyStateSubtitle = v.findViewById(R.id.empty_subtitle)
+        emptyStateCta = v.findViewById(R.id.empty_cta)
+        emptyStateIllustration = v.findViewById(R.id.empty_illustration)
+        emptyStateIllustration.setImageResource(R.drawable.illustration_empty_discovery)
+        emptyStateTitle.setText(R.string.discovery_empty_title)
+        emptyStateSubtitle.setText(R.string.discovery_empty_subtitle)
+        emptyStateCta.setText(R.string.discovery_empty_cta)
+        emptyStateCta.visibility = View.VISIBLE
+        emptyStateCta.setOnClickListener { viewModel.loadDiscoveryData() }
+
         dashRecyclerView = viewDashboard.findViewById(R.id.recycler_view)
         dashSearchBar = viewDashboard.findViewById(R.id.search_bar)
         dashSearchInput = dashSearchBar.findViewById(R.id.search_edit_text)
@@ -200,6 +217,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         )
         specRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         specRecyclerView.adapter = specificAdapter
+        com.tool.decluttr.presentation.util.RecyclerViewMotion.apply(specRecyclerView)
         specRecyclerView.setHasFixedSize(true)
 
         viewSpecificList.findViewById<View>(R.id.fast_scroll_thumb_specific)?.let { thumb ->
@@ -437,6 +455,13 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         filteredApps.forEach { app -> items.add(DashboardItem.AppItem(app, app.packageId in selectedApps)) }
 
         dashboardAdapter.submitList(items)
+
+        // Dashboard-level empty: no apps installed at all
+        val showDashboardEmpty = !isSearchActive && allApps.isEmpty()
+        emptyStateRoot.visibility = if (showDashboardEmpty) View.VISIBLE else View.GONE
+        if (showDashboardEmpty) {
+            viewDashboard.visibility = View.GONE
+        }
 
         // Selection Bar
         if (selectedApps.isNotEmpty()) {

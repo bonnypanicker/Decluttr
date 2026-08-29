@@ -11,8 +11,8 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="8dp">
+        android:paddingHorizontal="@dimen/space_12"
+        android:paddingVertical="@dimen/space_8">
 
         <ImageButton
             android:id="@+id/btn_back"
@@ -20,7 +20,7 @@
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Back"
-            android:padding="8dp"
+            android:padding="@dimen/space_8"
             android:src="@drawable/ic_arrow_back"
             android:tint="?attr/colorOnSurface" />
 
@@ -28,7 +28,7 @@
             android:id="@+id/tv_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/space_8"
             android:layout_weight="1"
             android:text="Reinstalled Apps"
             android:textAppearance="?attr/textAppearanceHeadlineSmall"
@@ -45,16 +45,16 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="16dp" />
+            android:paddingHorizontal="@dimen/space_16"
+            android:paddingTop="@dimen/space_8"
+            android:paddingBottom="@dimen/space_16" />
 
         <View
             android:id="@+id/fast_scroll_thumb_reinstalled"
             android:layout_width="24dp"
             android:layout_height="56dp"
             android:layout_gravity="end|top"
-            android:layout_marginEnd="2dp"
+            android:layout_marginEnd="@dimen/space_2"
             android:visibility="gone" />
 
         <include

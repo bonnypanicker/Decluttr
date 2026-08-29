@@ -6,14 +6,14 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="@dimen/discovery_item_horizontal_margin"
-    android:layout_marginBottom="12dp"
+    android:layout_marginBottom="@dimen/space_12"
     android:clickable="true"
     android:focusable="true"
     app:cardBackgroundColor="?attr/colorSurfaceContainer"
-    app:cardCornerRadius="20dp"
-    app:cardElevation="0dp"
+    app:cardCornerRadius="@dimen/space_20"
+    app:cardElevation="@dimen/elevation_none"
     app:rippleColor="?attr/colorControlHighlight"
-    app:strokeWidth="1dp"
+    app:strokeWidth="@dimen/elevation_low"
     app:strokeColor="?attr/colorOutlineVariant"
     style="@style/Widget.Material3.CardView.Outlined">
 
@@ -22,8 +22,8 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingVertical="16dp"
-        android:paddingHorizontal="20dp">
+        android:paddingVertical="@dimen/space_16"
+        android:paddingHorizontal="@dimen/space_20">
 
         <FrameLayout
             android:layout_width="56dp"
@@ -42,7 +42,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/space_16"
             android:orientation="vertical">
 
             <TextView
@@ -58,7 +58,7 @@
                 android:id="@+id/card_description"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="@dimen/space_2"
                 android:text="Description"
                 android:textAppearance="?attr/textAppearanceBodyMedium"
                 android:textColor="?attr/colorOnSurfaceVariant" />

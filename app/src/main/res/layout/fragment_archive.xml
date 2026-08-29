@@ -9,9 +9,9 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="4dp"
+        android:layout_marginHorizontal="@dimen/space_16"
+        android:layout_marginTop="@dimen/space_8"
+        android:layout_marginBottom="@dimen/space_4"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -26,10 +26,10 @@
             android:id="@+id/btn_view_switch"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="@dimen/space_8"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Switch archive view"
-            android:padding="8dp"
+            android:padding="@dimen/space_8"
             android:src="@drawable/ic_list"
             android:tint="?attr/colorOnSurfaceVariant" />
 
@@ -37,10 +37,10 @@
             android:id="@+id/btn_reinstalled_apps"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_marginStart="4dp"
+            android:layout_marginStart="@dimen/space_4"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="More archive actions"
-            android:padding="8dp"
+            android:padding="@dimen/space_8"
             android:src="@drawable/ic_more_vert"
             android:tint="?attr/colorOnSurfaceVariant" />
     </LinearLayout>
@@ -49,7 +49,7 @@
         android:id="@+id/category_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginVertical="8dp"
+        android:layout_marginVertical="@dimen/space_8"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:visibility="gone">
@@ -60,8 +60,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:clipToPadding="false"
-            android:paddingStart="16dp"
-            android:paddingEnd="4dp"
+            android:paddingStart="@dimen/space_16"
+            android:paddingEnd="@dimen/space_4"
             android:scrollbars="none">
 
             <LinearLayout
@@ -75,10 +75,10 @@
             android:id="@+id/btn_sort"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_marginEnd="12dp"
+            android:layout_marginEnd="@dimen/space_12"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Sort archived apps"
-            android:padding="8dp"
+            android:padding="@dimen/space_8"
             android:src="@drawable/ic_sort"
             android:tint="?attr/colorOnSurfaceVariant"
             android:visibility="gone" />
@@ -94,14 +94,14 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:padding="16dp" />
+            android:padding="@dimen/space_16" />
 
         <View
             android:id="@+id/fast_scroll_thumb_archive"
             android:layout_width="24dp"
             android:layout_height="56dp"
             android:layout_gravity="end|top"
-            android:layout_marginEnd="2dp"
+            android:layout_marginEnd="@dimen/space_2"
             android:visibility="gone" />
 
         <LinearLayout
@@ -123,7 +123,7 @@
                 android:id="@+id/tv_empty_message"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/space_16"
                 android:text="@string/archive_empty_message"
                 android:textAppearance="?attr/textAppearanceBodyMedium"
                 android:textColor="?attr/colorOnSurfaceVariant" />
@@ -132,14 +132,14 @@
                 android:id="@+id/btn_find_apps"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/space_16"
                 android:text="@string/archive_empty_action" />
 
             <FrameLayout
                 android:id="@+id/btn_archive_login_container"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/space_16"
                 android:visibility="gone">
 
                 <com.google.android.material.button.MaterialButton
@@ -156,8 +156,8 @@
                     android:layout_gravity="center"
                     android:indeterminate="true"
                     android:visibility="gone"
-                    app:indicatorSize="24dp"
-                    app:trackThickness="3dp"
+                    app:indicatorSize="@dimen/space_24"
+                    app:trackThickness="@dimen/elevation_medium"
                     app:indicatorColor="?attr/colorOnPrimary"
                     app:trackColor="@android:color/transparent" />
             </FrameLayout>
@@ -170,8 +170,8 @@
             android:layout_gravity="top"
             android:clickable="true"
             android:focusable="true"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="8dp"
+            android:paddingHorizontal="@dimen/space_16"
+            android:paddingTop="@dimen/space_8"
             android:visibility="gone">
 
             <com.google.android.material.card.MaterialCardView
@@ -181,31 +181,31 @@
                 android:clickable="true"
                 android:focusable="true"
                 app:cardBackgroundColor="?attr/colorSurfaceContainerHighest"
-                app:cardCornerRadius="18dp"
-                app:cardElevation="4dp"
+                app:cardCornerRadius="@dimen/space_20"
+                app:cardElevation="@dimen/space_4"
                 app:strokeColor="?attr/colorOutlineVariant"
-                app:strokeWidth="1dp">
+                app:strokeWidth="@dimen/elevation_low">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="top"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="14dp"
-                    android:paddingVertical="12dp">
+                    android:paddingHorizontal="@dimen/space_16"
+                    android:paddingVertical="@dimen/space_12">
 
                     <ImageView
                         android:id="@+id/iv_tip_overlay_icon"
                         android:layout_width="24dp"
                         android:layout_height="24dp"
-                        android:layout_marginTop="2dp"
+                        android:layout_marginTop="@dimen/space_2"
                         android:src="@drawable/ic_broom"
                         app:tint="?attr/colorPrimary" />
 
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="10dp"
+                        android:layout_marginStart="@dimen/space_8"
                         android:layout_weight="1"
                         android:orientation="vertical">
 
@@ -222,7 +222,7 @@
                             android:id="@+id/tv_tip_overlay_text"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
+                            android:layout_marginTop="@dimen/space_2"
                             android:text=""
                             android:textAppearance="?attr/textAppearanceBodySmall"
                             android:textColor="?attr/colorOnSurfaceVariant" />
@@ -232,10 +232,10 @@
                         android:id="@+id/btn_tip_overlay_close"
                         android:layout_width="32dp"
                         android:layout_height="32dp"
-                        android:layout_marginStart="8dp"
+                        android:layout_marginStart="@dimen/space_8"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:contentDescription="Dismiss tip"
-                        android:padding="4dp"
+                        android:padding="@dimen/space_4"
                         android:src="@drawable/ic_close"
                         app:tint="?attr/colorOnSurfaceVariant" />
                 </LinearLayout>

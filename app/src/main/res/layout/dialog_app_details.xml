@@ -3,16 +3,16 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="16dp"
-    android:layout_marginVertical="12dp"
+    android:layout_marginHorizontal="@dimen/space_16"
+    android:layout_marginVertical="@dimen/space_12"
     android:accessibilityPaneTitle="@string/archive_popup_notes_title"
     android:focusable="true"
     android:focusableInTouchMode="true"
     app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
-    app:cardCornerRadius="28dp"
-    app:cardElevation="16dp"
+    app:cardCornerRadius="@dimen/space_32"
+    app:cardElevation="@dimen/space_16"
     app:strokeColor="?attr/colorOutlineVariant"
-    app:strokeWidth="1dp">
+    app:strokeWidth="@dimen/elevation_low">
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -25,9 +25,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="20dp"
-            android:paddingTop="20dp"
-            android:paddingBottom="16dp">
+            android:paddingHorizontal="@dimen/space_20"
+            android:paddingTop="@dimen/space_20"
+            android:paddingBottom="@dimen/space_16">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -39,8 +39,8 @@
                 android:layout_width="56dp"
                 android:layout_height="56dp"
                 app:cardBackgroundColor="@android:color/transparent"
-                app:cardCornerRadius="28dp"
-                app:cardElevation="0dp">
+                app:cardCornerRadius="@dimen/space_32"
+                app:cardElevation="@dimen/elevation_none">
 
                 <ImageView
                     android:id="@+id/app_icon"
@@ -53,8 +53,8 @@
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="14dp"
-                android:layout_marginEnd="10dp"
+                android:layout_marginStart="@dimen/space_16"
+                android:layout_marginEnd="@dimen/space_8"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
@@ -71,10 +71,10 @@
                     android:id="@+id/app_category"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
+                    android:layout_marginTop="@dimen/space_8"
                     android:background="@drawable/bg_archive_popup_category_chip"
-                    android:paddingHorizontal="10dp"
-                    android:paddingVertical="4dp"
+                    android:paddingHorizontal="@dimen/space_8"
+                    android:paddingVertical="@dimen/space_4"
                     android:textAppearance="?attr/textAppearanceLabelMedium"
                     android:textColor="?attr/colorOnSurfaceVariant" />
 
@@ -82,7 +82,7 @@
                     android:id="@+id/app_uninstalled_date"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
+                    android:layout_marginTop="@dimen/space_8"
                     android:textAppearance="?attr/textAppearanceBodySmall"
                     android:textColor="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
@@ -93,7 +93,7 @@
                 android:layout_height="48dp"
                 android:background="@drawable/bg_archive_popup_icon_button"
                 android:contentDescription="@string/archive_popup_delete_cd"
-                android:padding="12dp"
+                android:padding="@dimen/space_12"
                 android:src="@drawable/ic_delete_outlined"
                 app:tint="?attr/colorError" />
         </LinearLayout>
@@ -103,7 +103,7 @@
             style="@style/Widget.Material3.Button"
             android:layout_width="match_parent"
             android:layout_height="52dp"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="@dimen/space_20"
             android:contentDescription="@string/archive_popup_reinstall_cd"
             android:text="@string/archive_popup_reinstall"
             android:textAllCaps="false"
@@ -113,20 +113,20 @@
             app:icon="@drawable/ic_google_play"
             app:iconGravity="textStart"
             app:iconTint="@color/GooglePlayGreen"
-            app:iconPadding="10dp" />
+            app:iconPadding="@dimen/space_8" />
 
         <include
             android:id="@+id/archive_notes_card"
             layout="@layout/molecule_archive_notes_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp" />
+            android:layout_marginTop="@dimen/space_20" />
 
         <TextView
             android:id="@+id/archive_popup_helper_text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/space_8"
             android:text="@string/archive_popup_helper"
             android:textAppearance="?attr/textAppearanceBodySmall"
             android:textColor="?attr/colorOnSurfaceVariant" />

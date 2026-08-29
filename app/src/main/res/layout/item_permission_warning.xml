@@ -5,18 +5,18 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="@dimen/discovery_item_horizontal_margin"
-    android:layout_marginBottom="12dp"
+    android:layout_marginBottom="@dimen/space_12"
     app:cardBackgroundColor="?attr/colorErrorContainer"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="0dp"
-    app:strokeWidth="0dp"
+    app:cardCornerRadius="@dimen/space_16"
+    app:cardElevation="@dimen/elevation_none"
+    app:strokeWidth="@dimen/elevation_none"
     style="@style/Widget.Material3.CardView.Filled">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="@dimen/space_16">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -33,26 +33,26 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/space_8"
                 android:text="Usage Access Required"
                 android:textStyle="bold"
-                android:textSize="16sp"
+                android:textAppearance="@style/TextAppearance.Decluttr.BodyLarge"
                 android:textColor="?attr/colorOnErrorContainer" />
         </LinearLayout>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/space_8"
             android:text="We need permission to detect which apps you haven't used recently."
-            android:textSize="14sp"
+            android:textAppearance="@style/TextAppearance.Decluttr.BodyMedium"
             android:textColor="?attr/colorOnErrorContainer" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/grant_permission_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/space_12"
             android:text="Grant Permission"
             style="@style/Widget.Material3.Button" />
     </LinearLayout>

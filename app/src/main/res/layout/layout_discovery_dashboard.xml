@@ -13,8 +13,8 @@
             android:id="@+id/search_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="12dp"
-            android:layout_marginVertical="8dp"
+            android:layout_marginHorizontal="@dimen/space_12"
+            android:layout_marginVertical="@dimen/space_8"
             android:visibility="gone" />
 
         <FrameLayout
@@ -27,14 +27,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
-                android:padding="12dp" />
+                android:padding="@dimen/space_12" />
 
             <View
                 android:id="@+id/fast_scroll_thumb"
                 android:layout_width="24dp"
                 android:layout_height="56dp"
                 android:layout_gravity="end|top"
-                android:layout_marginEnd="2dp"
+                android:layout_marginEnd="@dimen/space_2"
                 android:visibility="gone" />
         </FrameLayout>
     </LinearLayout>

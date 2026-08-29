@@ -55,8 +55,22 @@ class WishlistFragment : Fragment(R.layout.fragment_wishlist) {
         val btnSort = view.findViewById<ImageButton>(R.id.btn_sort)
         val chipGroupCategories = view.findViewById<ChipGroup>(R.id.chip_group_categories)
         val recyclerView = view.findViewById<RecyclerView>(R.id.rv_wishlist)
-        val emptyStateContainer = view.findViewById<View>(R.id.empty_state_container)
+        val emptyStateContainer = view.findViewById<View>(R.id.empty_state_root)
         val sortRow = view.findViewById<View>(R.id.sort_row)
+
+        // Bind the reusable empty state
+        view.findViewById<android.widget.ImageView>(R.id.empty_illustration)
+            .setImageResource(R.drawable.illustration_empty_wishlist)
+        view.findViewById<android.widget.TextView>(R.id.empty_title)
+            .setText(R.string.wishlist_empty_title)
+        view.findViewById<android.widget.TextView>(R.id.empty_subtitle)
+            .setText(R.string.wishlist_empty_subtitle)
+        val emptyCta = view.findViewById<com.google.android.material.button.MaterialButton>(R.id.empty_cta)
+        emptyCta.setText(R.string.wishlist_empty_cta)
+        emptyCta.visibility = android.view.View.VISIBLE
+        emptyCta.setOnClickListener {
+            findNavController().navigateUp()
+        }
 
         ViewCompat.setOnApplyWindowInsetsListener(recyclerView) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())

@@ -46,7 +46,19 @@ class ReinstalledFragment : Fragment(R.layout.fragment_reinstalled) {
 
         val btnBack = view.findViewById<ImageButton>(R.id.btn_back)
         val recycler = view.findViewById<RecyclerView>(R.id.reinstalled_recycler_view)
-        val empty = view.findViewById<TextView>(R.id.tv_reinstalled_empty)
+        val empty = view.findViewById<View>(R.id.empty_state_root)
+
+        // Bind the reusable empty state
+        view.findViewById<ImageView>(R.id.empty_illustration)
+            .setImageResource(R.drawable.illustration_empty_reinstalled)
+        view.findViewById<TextView>(R.id.empty_title)
+            .setText(R.string.reinstalled_empty_title)
+        view.findViewById<TextView>(R.id.empty_subtitle)
+            .setText(R.string.reinstalled_empty_subtitle)
+        val emptyCta = view.findViewById<com.google.android.material.button.MaterialButton>(R.id.empty_cta)
+        emptyCta.setText(R.string.reinstalled_empty_cta)
+        emptyCta.visibility = View.VISIBLE
+        emptyCta.setOnClickListener { findNavController().navigateUp() }
 
         ViewCompat.setOnApplyWindowInsetsListener(recycler) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -60,6 +72,7 @@ class ReinstalledFragment : Fragment(R.layout.fragment_reinstalled) {
         val adapter = ReinstalledAppsAdapter { app -> openPlayStore(app.packageId) }
         recycler.layoutManager = LinearLayoutManager(requireContext())
         recycler.adapter = adapter
+        com.tool.decluttr.presentation.util.RecyclerViewMotion.apply(recycler)
 
         view.findViewById<View>(R.id.fast_scroll_thumb_reinstalled)?.let { thumb ->
             fastScrollThumb = com.tool.decluttr.presentation.util.FastScrollThumb(recycler, thumb)

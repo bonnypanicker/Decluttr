@@ -15,7 +15,7 @@
         android:layout_width="@dimen/icon_size_large"
         android:layout_height="@dimen/icon_size_large"
         app:shapeAppearanceOverlay="@style/Shape.Decluttr.IconSquircle"
-        app:strokeWidth="0dp"
+        app:strokeWidth="@dimen/elevation_none"
         android:contentDescription="@null"
         android:importantForAccessibility="no" />
 

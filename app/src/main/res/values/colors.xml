@@ -34,6 +34,9 @@
     <!-- Drag-target highlight overlay (kept as a drawable ref) -->
     <color name="drag_highlight_fill">#1A6750A4</color>
 
+    <!-- Storage meter track on hero card (20% white) -->
+    <color name="storage_meter_track">#33FFFFFF</color>
+
     <!-- Misc (kept for splash + launcher) -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>

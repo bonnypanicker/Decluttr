@@ -34,7 +34,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/space_12"
             android:text="@string/discovery_loading"
             android:textAppearance="?attr/textAppearanceBodyMedium"
             android:textColor="?attr/colorOnSurfaceVariant" />
@@ -53,20 +53,20 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:layout_margin="12dp"
+        android:layout_margin="@dimen/space_12"
         android:visibility="gone"
-        app:cardCornerRadius="16dp"
+        app:cardCornerRadius="@dimen/space_16"
         app:cardBackgroundColor="?attr/colorSurface"
         app:strokeColor="?attr/colorOutline"
-        app:strokeWidth="1dp">
+        app:strokeWidth="@dimen/elevation_low">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="12dp">
+            android:paddingHorizontal="@dimen/space_16"
+            android:paddingVertical="@dimen/space_12">
 
             <ProgressBar
                 android:layout_width="20dp"
@@ -77,7 +77,7 @@
                 android:id="@+id/tv_uninstall_progress"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="@dimen/space_12"
                 android:layout_weight="1"
                 android:text="Uninstalling 1/1"
                 android:textAppearance="?attr/textAppearanceTitleSmall"

@@ -9,23 +9,23 @@
     android:clickable="true"
     android:focusable="true"
     app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
-    app:cardElevation="16dp"
-    app:cardCornerRadius="0dp"
-    app:strokeWidth="0dp">
+    app:cardElevation="@dimen/space_16"
+    app:cardCornerRadius="@dimen/elevation_none"
+    app:strokeWidth="@dimen/elevation_none">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingTop="12dp"
-        android:paddingHorizontal="16dp"
-        android:paddingBottom="16dp">
+        android:paddingTop="@dimen/space_12"
+        android:paddingHorizontal="@dimen/space_16"
+        android:paddingBottom="@dimen/space_16">
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:layout_marginBottom="12dp"
+            android:layout_marginBottom="@dimen/space_12"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -41,7 +41,7 @@
                 android:id="@+id/selection_info_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
+                android:layout_marginStart="@dimen/space_4"
                 android:text="0 selected • 0 MB"
                 android:textAppearance="?attr/textAppearanceLabelLarge"
                 android:textColor="?attr/colorOnSurface"
@@ -59,7 +59,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="@dimen/space_8"
                 android:text="Uninstall Only"
                 style="@style/Widget.Material3.Button.TonalButton" />
 
@@ -68,7 +68,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/space_8"
                 android:text="Archive &amp; Uninstall"
                 style="@style/Widget.Material3.Button" />
                 

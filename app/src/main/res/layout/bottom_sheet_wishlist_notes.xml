@@ -4,21 +4,21 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingHorizontal="24dp"
-    android:paddingTop="16dp"
-    android:paddingBottom="24dp">
+    android:paddingHorizontal="@dimen/space_24"
+    android:paddingTop="@dimen/space_16"
+    android:paddingBottom="@dimen/space_24">
 
     <View
         android:layout_width="32dp"
         android:layout_height="4dp"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="20dp"
+        android:layout_marginBottom="@dimen/space_20"
         android:background="@drawable/bg_bottom_sheet_handle" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
+        android:layout_marginBottom="@dimen/space_20"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -34,7 +34,7 @@
             android:id="@+id/tv_app_name"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/space_12"
             android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="1"
@@ -61,15 +61,15 @@
             android:inputType="textMultiLine|textCapSentences"
             android:maxLines="5"
             android:minLines="3"
-            android:paddingBottom="12dp"
-            android:paddingTop="12dp" />
+            android:paddingBottom="@dimen/space_12"
+            android:paddingTop="@dimen/space_12" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <TextView
         android:id="@+id/tv_char_count"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="@dimen/space_8"
         android:gravity="end"
         android:text="0 / 500"
         android:textAppearance="?attr/textAppearanceLabelSmall"
@@ -78,7 +78,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="@dimen/space_20"
         android:gravity="end"
         android:orientation="horizontal">
 
@@ -86,7 +86,7 @@
             android:id="@+id/btn_cancel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
+            android:layout_marginEnd="@dimen/space_8"
             android:text="Cancel"
             style="@style/Widget.Material3.Button.TextButton" />
 
