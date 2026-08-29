@@ -111,8 +111,15 @@
     <string name="archive_empty_filtered">No archived apps match your current search.</string>
     <string name="wishlist_empty_title">Your wishlist is empty</string>
     <string name="wishlist_empty_message">To add an app, open it in Play Store, tap the 3-dot menu, select Share, choose Decluttr, add notes, then tap Add to Wishlist.</string>
+    <string name="wishlist_empty_subtitle">Save apps you\'re thinking about installing later. We\'ll keep your notes ready.</string>
+    <string name="wishlist_empty_cta">Browse apps</string>
     <string name="discovery_empty_title">Nothing to show here</string>
     <string name="discovery_empty_message">Try changing search or sort to discover more apps.</string>
+    <string name="discovery_empty_subtitle">Pull down to refresh, or share an app from anywhere to add it here.</string>
+    <string name="discovery_empty_cta">Refresh</string>
+    <string name="reinstalled_empty_title">No reinstalls yet</string>
+    <string name="reinstalled_empty_subtitle">Apps you reinstall from the archive will show up here so you can decide if they earned a permanent spot.</string>
+    <string name="reinstalled_empty_cta">View archive</string>
     <string name="discovery_loading">Analyzing installed apps…</string>
     <string name="discovery_storage_estimated_label">Estimated space to reclaim</string>
     <string name="discovery_storage_subtitle_empty">No high-impact cleanup targets right now</string>

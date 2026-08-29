@@ -40,6 +40,13 @@
             android:textColor="?attr/colorOnSurfaceVariant" />
     </LinearLayout>
 
+    <!-- Empty State (used by Dashboard view when no candidates) -->
+    <include
+        android:id="@+id/empty_state"
+        layout="@layout/view_empty_state"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
     <!-- Uninstalling Status Bar -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/overlay_uninstalling"

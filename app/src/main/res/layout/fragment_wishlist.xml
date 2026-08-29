@@ -95,36 +95,11 @@
             android:layout_marginEnd="2dp"
             android:visibility="gone" />
 
-        <LinearLayout
-            android:id="@+id/empty_state_container"
+        <include
+            android:id="@+id/empty_state"
+            layout="@layout/view_empty_state"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:paddingHorizontal="32dp"
-            android:visibility="gone">
-
-            <TextView
-                android:id="@+id/tv_empty_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:gravity="center"
-                android:text="@string/wishlist_empty_title"
-                android:textAppearance="?attr/textAppearanceTitleMedium"
-                android:textColor="?attr/colorOnSurface"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tv_empty"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:gravity="center"
-                android:text="@string/wishlist_empty_message"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorOnSurfaceVariant" />
-        </LinearLayout>
+            android:layout_height="match_parent" />
     </FrameLayout>
 
 </LinearLayout>
