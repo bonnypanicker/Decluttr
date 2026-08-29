@@ -188,7 +188,7 @@ class DiscoveryFragment : Fragment(R.layout.fragment_discovery) {
         )
         dashRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         dashRecyclerView.adapter = dashboardAdapter
-        dashRecyclerView.itemAnimator = androidx.recyclerview.widget.DefaultItemAnimator()
+        com.tool.decluttr.presentation.util.RecyclerViewMotion.apply(dashRecyclerView)
         dashRecyclerView.setHasFixedSize(true)
 
         viewDashboard.findViewById<View>(R.id.fast_scroll_thumb)?.let { thumb ->
