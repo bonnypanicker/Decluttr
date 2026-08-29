@@ -48,8 +48,8 @@
     </style>
 
     <style name="Animation.Decluttr.DashboardModal" parent="@android:style/Animation.Dialog">
-        <item name="android:windowEnterAnimation">@anim/archive_popup_enter</item>
-        <item name="android:windowExitAnimation">@anim/archive_popup_exit</item>
+        <item name="android:windowEnterAnimation">@anim/dialog_enter</item>
+        <item name="android:windowExitAnimation">@anim/dialog_exit</item>
     </style>
 
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">

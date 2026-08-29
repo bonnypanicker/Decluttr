@@ -167,6 +167,7 @@ class WishlistFragment : Fragment(R.layout.fragment_wishlist) {
 
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
+        com.tool.decluttr.presentation.util.RecyclerViewMotion.apply(recyclerView)
 
         view.findViewById<View>(R.id.fast_scroll_thumb_wishlist)?.let { thumb ->
             fastScrollThumb = com.tool.decluttr.presentation.util.FastScrollThumb(recyclerView, thumb)

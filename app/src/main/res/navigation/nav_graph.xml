@@ -11,6 +11,10 @@
         <action
             android:id="@+id/action_auth_to_dashboard"
             app:destination="@id/dashboardFragment"
+            app:enterAnim="@anim/fade_through_enter"
+            app:exitAnim="@anim/fade_through_exit"
+            app:popEnterAnim="@anim/fade_through_enter"
+            app:popExitAnim="@anim/fade_through_exit"
             app:popUpTo="@id/nav_graph"
             app:popUpToInclusive="true" />
     </fragment>
@@ -21,10 +25,18 @@
         android:label="Dashboard">
         <action
             android:id="@+id/action_archive_to_wishlist"
-            app:destination="@id/wishlistFragment" />
+            app:destination="@id/wishlistFragment"
+            app:enterAnim="@anim/fade_through_enter"
+            app:exitAnim="@anim/fade_through_exit"
+            app:popEnterAnim="@anim/fade_through_enter"
+            app:popExitAnim="@anim/fade_through_exit" />
         <action
             android:id="@+id/action_archive_to_reinstalled"
-            app:destination="@id/reinstalledFragment" />
+            app:destination="@id/reinstalledFragment"
+            app:enterAnim="@anim/fade_through_enter"
+            app:exitAnim="@anim/fade_through_exit"
+            app:popEnterAnim="@anim/fade_through_enter"
+            app:popExitAnim="@anim/fade_through_exit" />
     </fragment>
 
     <fragment
