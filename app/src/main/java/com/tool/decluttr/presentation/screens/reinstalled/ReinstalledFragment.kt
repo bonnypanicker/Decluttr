@@ -46,16 +46,16 @@ class ReinstalledFragment : Fragment(R.layout.fragment_reinstalled) {
 
         val btnBack = view.findViewById<ImageButton>(R.id.btn_back)
         val recycler = view.findViewById<RecyclerView>(R.id.reinstalled_recycler_view)
-        val empty = view.findViewById<View>(R.id.empty_state_root)
+        val empty = view.findViewById<View>(R.id.empty_state)
 
         // Bind the reusable empty state
-        view.findViewById<ImageView>(R.id.empty_illustration)
-            .setImageResource(R.drawable.illustration_empty_reinstalled)
-        view.findViewById<TextView>(R.id.empty_title)
-            .setText(R.string.reinstalled_empty_title)
-        view.findViewById<TextView>(R.id.empty_subtitle)
-            .setText(R.string.reinstalled_empty_subtitle)
+        val emptyIllustration = view.findViewById<ImageView>(R.id.empty_illustration)
+        val emptyTitle = view.findViewById<TextView>(R.id.empty_title)
+        val emptySubtitle = view.findViewById<TextView>(R.id.empty_subtitle)
         val emptyCta = view.findViewById<com.google.android.material.button.MaterialButton>(R.id.empty_cta)
+        emptyIllustration.setImageResource(R.drawable.illustration_empty_reinstalled)
+        emptyTitle.setText(R.string.reinstalled_empty_title)
+        emptySubtitle.setText(R.string.reinstalled_empty_subtitle)
         emptyCta.setText(R.string.reinstalled_empty_cta)
         emptyCta.visibility = View.VISIBLE
         emptyCta.setOnClickListener { findNavController().navigateUp() }
