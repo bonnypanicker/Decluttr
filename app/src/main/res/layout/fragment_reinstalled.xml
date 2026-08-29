@@ -56,16 +56,11 @@
             android:layout_gravity="end|top"
             android:layout_marginEnd="2dp"
             android:visibility="gone" />
-    </FrameLayout>
 
-    <TextView
-        android:id="@+id/tv_reinstalled_empty"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:padding="24dp"
-        android:text="No reinstalled apps"
-        android:textAppearance="?attr/textAppearanceBodyMedium"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        android:visibility="gone" />
+        <include
+            android:id="@+id/empty_state"
+            layout="@layout/view_empty_state"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </FrameLayout>
 </LinearLayout>
