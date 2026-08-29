@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="TextAppearance.Decluttr.DisplaySmall" parent="TextAppearance.Material3.DisplaySmall">
+        <item name="fontFamily">@font/manrope</item>
+        <item name="android:fontFamily">@font/manrope</item>
+        <item name="android:textSize">28sp</item>
+        <item name="android:fontWeight">600</item>
+    </style>
+
+    <style name="TextAppearance.Decluttr.TitleLarge" parent="TextAppearance.Material3.TitleLarge">
+        <item name="fontFamily">@font/manrope</item>
+        <item name="android:fontFamily">@font/manrope</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:fontWeight">500</item>
+    </style>
+
+    <style name="TextAppearance.Decluttr.TitleMedium" parent="TextAppearance.Material3.TitleMedium">
+        <item name="fontFamily">@font/manrope</item>
+        <item name="android:fontFamily">@font/manrope</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:fontWeight">500</item>
+    </style>
+
+    <style name="TextAppearance.Decluttr.BodyLarge" parent="TextAppearance.Material3.BodyLarge">
+        <item name="fontFamily">@font/manrope</item>
+        <item name="android:fontFamily">@font/manrope</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:fontWeight">400</item>
+    </style>
+
+    <style name="TextAppearance.Decluttr.BodyMedium" parent="TextAppearance.Material3.BodyMedium">
+        <item name="fontFamily">@font/manrope</item>
+        <item name="android:fontFamily">@font/manrope</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:fontWeight">400</item>
+    </style>
+
+    <style name="TextAppearance.Decluttr.Label" parent="TextAppearance.Material3.LabelMedium">
+        <item name="fontFamily">@font/manrope</item>
+        <item name="android:fontFamily">@font/manrope</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:fontWeight">500</item>
+    </style>
+</resources>

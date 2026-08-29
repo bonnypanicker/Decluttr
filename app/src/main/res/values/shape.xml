@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Use for: app icon thumbnails in dense grids (Dashboard, Discovery) -->
+    <style name="Shape.Decluttr.IconSquare" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/radius_small</item>
+    </style>
+
+    <!-- Use for: user avatars, profile-style circular images only -->
+    <style name="Shape.Decluttr.IconCircle" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <!-- Use for: app icons inside list rows (Wishlist, Archive list items) -->
+    <style name="Shape.Decluttr.IconSquircle" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">22%</item>
+    </style>
+</resources>

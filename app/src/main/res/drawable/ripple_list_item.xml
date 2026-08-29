@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ripple that matches a 16dp corner radius. Apply as
+     android:foreground="@drawable/ripple_list_item" on any MaterialCardView or
+     ConstraintLayout row so the ripple respects the rounded card corners
+     (plain ?attr/selectableItemBackground ignores the corner radius and looks
+     like a glitch on rounded cards). -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?attr/colorControlHighlight">
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="@dimen/radius_medium" />
+            <solid android:color="@android:color/transparent" />
+        </shape>
+    </item>
+</ripple>

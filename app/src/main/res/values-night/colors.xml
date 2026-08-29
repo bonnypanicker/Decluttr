@@ -1,6 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Material baseline (dark) — the night-mode equivalents of Primary40/Secondary40/Tertiary40.
+         These MUST live in values-night/ since they're only meaningful in dark mode and the
+         default light theme must NOT have them. -->
+    <color name="Primary80">#AEC6FF</color>
+    <color name="Secondary80">#BBC6E4</color>
+    <color name="Tertiary80">#DFB8EC</color>
+
+    <!-- Dark-mode override: drag highlight uses lighter alpha so it shows on dark surfaces -->
     <color name="drag_highlight_fill">#2DCBB1FF</color>
-    <color name="DarkSurfaceContainer">#1C222B</color>
-    <color name="DarkSurfaceContainerHigh">#202734</color>
-    <color name="DarkSurfaceContainerHighest">#263040</color>
 </resources>

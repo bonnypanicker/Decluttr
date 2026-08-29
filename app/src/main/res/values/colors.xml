@@ -1,18 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="Primary80">#AEC6FF</color>
+    <!-- Brand accent = AccentTeal (#14B8A6). Primary40 / Secondary40 / Tertiary40
+         are the Material baseline roles (colorPrimary / colorSecondary /
+         colorTertiary) used for system-level Material components only — do not
+         introduce new ad hoc accent colors outside this file. -->
+
+    <!-- Material baseline (light) — mirrored in values-night/colors.xml as Primary80/Secondary80/Tertiary80 -->
     <color name="Primary40">#275CAA</color>
-
-    <color name="Secondary80">#BBC6E4</color>
     <color name="Secondary40">#535E78</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-    <color name="ic_launcher_background">#21457E</color>
-
-    <color name="Tertiary80">#DFB8EC</color>
     <color name="Tertiary40">#704A7B</color>
 
+    <!-- Light surface scale (Cream, the brand's warm off-white) -->
+    <color name="CreamBackground">#FFF8EF</color>
+    <color name="CreamSurface">#FFF6EA</color>
+    <color name="CreamSurfaceContainer">#FFF1E1</color>
+    <color name="CreamSurfaceContainerHigh">#FFEBD7</color>
+    <color name="CreamSurfaceContainerHighest">#FFE5CD</color>
+
+    <!-- Legacy surface tokens — still referenced by night-mode theme;
+         dark equivalents live in values-night/colors.xml -->
     <color name="DarkBackground">#0D1117</color>
     <color name="DarkSurface">#161B22</color>
     <color name="DarkSurfaceContainer">#1C222B</color>
@@ -20,12 +26,16 @@
     <color name="DarkSurfaceContainerHighest">#263040</color>
     <color name="DarkPrimaryText">#E5E7EB</color>
     <color name="DarkSecondaryText">#9CA3AF</color>
-    <color name="CreamBackground">#FFF8EF</color>
-    <color name="CreamSurface">#FFF6EA</color>
-    <color name="CreamSurfaceContainer">#FFF1E1</color>
-    <color name="CreamSurfaceContainerHigh">#FFEBD7</color>
-    <color name="CreamSurfaceContainerHighest">#FFE5CD</color>
+
+    <!-- Brand / functional accents (limited use) -->
     <color name="AccentTeal">#14B8A6</color>
     <color name="GooglePlayGreen">#34A853</color>
+
+    <!-- Drag-target highlight overlay (kept as a drawable ref) -->
     <color name="drag_highlight_fill">#1A6750A4</color>
+
+    <!-- Misc (kept for splash + launcher) -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="ic_launcher_background">#21457E</color>
 </resources>
