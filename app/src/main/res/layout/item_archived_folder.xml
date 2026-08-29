@@ -5,17 +5,17 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:gravity="center_horizontal"
-    android:padding="4dp"
-    android:background="@android:color/transparent"
+    android:padding="@dimen/space_4"
+    android:background="@drawable/ripple_list_item"
     android:clickable="true"
     android:focusable="true">
 
     <FrameLayout
         android:id="@+id/folder_preview_container"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
+        android:layout_width="@dimen/space_48"
+        android:layout_height="@dimen/space_48"
         android:background="@drawable/bg_folder_icon"
-        android:padding="4dp">
+        android:padding="@dimen/space_4">
 
         <GridLayout
             android:layout_width="wrap_content"
@@ -26,31 +26,39 @@
 
                 <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/folder_icon_1"
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:layout_margin="1dp"
-                    app:shapeAppearanceOverlay="@style/CircleIconShape" />
+                    android:layout_width="@dimen/space_20"
+                    android:layout_height="@dimen/space_20"
+                    android:layout_margin="@dimen/space_2"
+                    app:shapeAppearanceOverlay="@style/Shape.Decluttr.IconSquare"
+                    android:contentDescription="@null"
+                    android:importantForAccessibility="no" />
 
                 <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/folder_icon_2"
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:layout_margin="1dp"
-                    app:shapeAppearanceOverlay="@style/CircleIconShape" />
+                    android:layout_width="@dimen/space_20"
+                    android:layout_height="@dimen/space_20"
+                    android:layout_margin="@dimen/space_2"
+                    app:shapeAppearanceOverlay="@style/Shape.Decluttr.IconSquare"
+                    android:contentDescription="@null"
+                    android:importantForAccessibility="no" />
 
                 <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/folder_icon_3"
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:layout_margin="1dp"
-                    app:shapeAppearanceOverlay="@style/CircleIconShape" />
+                    android:layout_width="@dimen/space_20"
+                    android:layout_height="@dimen/space_20"
+                    android:layout_margin="@dimen/space_2"
+                    app:shapeAppearanceOverlay="@style/Shape.Decluttr.IconSquare"
+                    android:contentDescription="@null"
+                    android:importantForAccessibility="no" />
 
                 <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/folder_icon_4"
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:layout_margin="1dp"
-                    app:shapeAppearanceOverlay="@style/CircleIconShape" />
+                    android:layout_width="@dimen/space_20"
+                    android:layout_height="@dimen/space_20"
+                    android:layout_margin="@dimen/space_2"
+                    app:shapeAppearanceOverlay="@style/Shape.Decluttr.IconSquare"
+                    android:contentDescription="@null"
+                    android:importantForAccessibility="no" />
         </GridLayout>
     </FrameLayout>
 
@@ -58,10 +66,9 @@
         android:id="@+id/folder_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="@dimen/space_8"
         android:gravity="center"
-        android:textSize="12sp"
-        android:textStyle="bold"
+        android:textAppearance="@style/TextAppearance.Decluttr.Label"
         android:maxLines="2"
         android:ellipsize="end"
         android:textColor="?android:attr/textColorPrimary" />

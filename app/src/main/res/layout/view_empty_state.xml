@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/empty_state_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:paddingHorizontal="@dimen/space_32"
+    android:paddingVertical="@dimen/space_48"
+    android:visibility="gone">
+
+    <ImageView
+        android:id="@+id/empty_illustration"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:importantForAccessibility="no"
+        tools:src="@drawable/illustration_empty_wishlist" />
+
+    <TextView
+        android:id="@+id/empty_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_16"
+        android:gravity="center"
+        android:textAppearance="@style/TextAppearance.Decluttr.TitleMedium"
+        tools:text="Your wishlist is empty" />
+
+    <TextView
+        android:id="@+id/empty_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_8"
+        android:gravity="center"
+        android:textAppearance="@style/TextAppearance.Decluttr.BodyMedium"
+        android:alpha="0.7"
+        tools:text="Save apps you're thinking about installing later." />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/empty_cta"
+        style="@style/Widget.Material3.Button.TonalButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_20"
+        android:visibility="gone"
+        tools:text="Browse apps"
+        tools:visibility="visible" />
+</LinearLayout>

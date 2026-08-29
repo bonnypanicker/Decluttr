@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Archive box illustration. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <path
+        android:pathData="M24,42 L96,42 L96,92 A8,8 0 0 1 88,100 L32,100 A8,8 0 0 1 24,92 Z"
+        android:fillColor="#FFEBD7" />
+    <path
+        android:pathData="M20,30 L100,30 A6,6 0 0 1 106,36 L106,46 L14,46 L14,36 A6,6 0 0 1 20,30 Z"
+        android:fillColor="#14B8A6" />
+    <path
+        android:pathData="M58,68 L66,68 L66,78 L76,78 L76,84 L66,84 L66,92 L58,92 L58,84 L48,84 L48,78 L58,78 Z"
+        android:fillColor="#FFFFFF" />
+</vector>

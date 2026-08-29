@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Simple flat illustration: stacked-card stack with a heart glyph. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    <path
+        android:pathData="M30,32 L90,32 A8,8 0 0 1 98,40 L98,90 A8,8 0 0 1 90,98 L30,98 A8,8 0 0 1 22,90 L22,40 A8,8 0 0 1 30,32 Z"
+        android:fillColor="#FFEBD7" />
+    <path
+        android:pathData="M36,46 L84,46 A6,6 0 0 1 90,52 L90,78 A6,6 0 0 1 84,84 L36,84 A6,6 0 0 1 30,78 L30,52 A6,6 0 0 1 36,46 Z"
+        android:fillColor="#14B8A6" />
+    <path
+        android:pathData="M60,72 C50,62 44,68 44,60 C44,56 48,52 52,52 C55,52 58,54 60,57 C62,54 65,52 68,52 C72,52 76,56 76,60 C76,68 70,62 60,72 Z"
+        android:fillColor="#FFFFFF" />
+</vector>
